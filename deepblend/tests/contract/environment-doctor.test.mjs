@@ -4,6 +4,8 @@ import { chmodSync, existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, wr
 import { spawnSync } from 'node:child_process'
 import { tmpdir } from 'node:os'
 import { join, resolve } from 'node:path'
+import { crc32, deflateSync } from 'node:zlib'
+import { runFunctionalProbe } from '../../../packages/deepblend/bundle/lib/functional-probe.js'
 import { formatEnvironmentReport, inspectEnvironment, probeExecutable, REQUIREMENTS } from '../../../packages/deepblend/bundle/lib/doctor.js'
 
 const root = resolve(import.meta.dirname, '../../..')
@@ -152,7 +154,7 @@ test('npm pack ships the executable and its requirements together', () => {
     })
     assert.equal(result.status, 0, result.stderr)
     const packed = JSON.parse(result.stdout)[0]
-    for (const file of ['lib/doctor-cli.js', 'lib/doctor.js', 'lib/doctor-requirements.json']) {
+    for (const file of ['lib/doctor-cli.js', 'lib/doctor.js', 'lib/functional-probe.js', 'lib/doctor-requirements.json']) {
       assert.ok(packed.files.some(entry => entry.path === file), `missing ${file}`)
     }
     const extracted = join(directory, 'extracted')
@@ -182,4 +184,63 @@ test('new Harness is supported without falsely demanding a downgrade; untested c
     const runtime = JSON.parse(readFileSync(join(root, 'deepblend/development/compatibility', `dsh-${version}`, 'package.json'), 'utf8'))
     assert.equal(runtime.dependencies['@deepseek-ai/dsh'], version)
   }
+})
+
+function png() {
+  const chunk = (type, data) => {
+    const name = Buffer.from(type), size = Buffer.alloc(4), check = Buffer.alloc(4)
+    size.writeUInt32BE(data.length); check.writeUInt32BE(crc32(Buffer.concat([name, data])))
+    return Buffer.concat([size, name, data, check])
+  }
+  const ihdr = Buffer.alloc(13); ihdr.writeUInt32BE(64, 0); ihdr.writeUInt32BE(64, 4); ihdr[8] = 8; ihdr[9] = 2
+  return Buffer.concat([Buffer.from([137,80,78,71,13,10,26,10]), chunk('IHDR', ihdr),
+    chunk('IDAT', deflateSync(Buffer.alloc(64 * (64 * 3 + 1)))), chunk('IEND', Buffer.alloc(0))])
+}
+function fakeBlender(dir, bytes) {
+  const path = join(dir, 'fake-blender')
+  writeFileSync(path, `#!${process.execPath}\nconst fs=require('fs');const args=process.argv;if(args.includes('--version')){console.log('Blender 5.2.1');process.exit(0)}const script=fs.readFileSync(args[args.indexOf('--python')+1],'utf8');const path=JSON.parse(script.match(/^s\\.render\\.filepath = (.*)$/m)[1]);fs.writeFileSync(path,Buffer.from('${bytes.toString('base64')}','base64'));\n`)
+  chmodSync(path, 0o755); return path
+}
+
+test('a successful Blender exit without a complete PNG cannot claim the preview works', { skip: process.platform === 'win32' }, () => {
+  const dir = mkdtempSync(join(tmpdir(), 'deepblend-functional-test-'))
+  try {
+    const report = runFunctionalProbe({ commands: { blender: fakeBlender(dir, png().subarray(0, 33)) } })
+    assert.deepEqual(report.blenderPreview, { status: 'fail', reason: 'invalid-output' })
+    assert.equal(report.videoEncoding.status, 'unverified')
+    assert.equal(report.imageInput.status, 'unverified')
+    assert.equal(report.visualReview.status, 'unverified')
+  } finally { rmSync(dir, { recursive: true, force: true }) }
+})
+
+test('missing encoder does not turn a usable PNG into a failed image probe', { skip: process.platform === 'win32' }, () => {
+  const dir = mkdtempSync(join(tmpdir(), 'deepblend-functional-test-'))
+  try {
+    const report = runFunctionalProbe({ commands: { blender: fakeBlender(dir, png()), ffmpeg: join(dir, 'missing-ffmpeg') } })
+    assert.equal(report.blenderPreview.status, 'pass')
+    assert.deepEqual(report.videoEncoding, { status: 'fail', reason: 'missing' })
+    assert.equal(report.pluginActivation.status, 'unverified')
+    assert.equal(report.agent.status, 'unverified')
+  } finally { rmSync(dir, { recursive: true, force: true }) }
+})
+
+
+test('the CLI separates real image checks from missing video and does not mark model access as verified', { skip: process.platform === 'win32' }, () => {
+  const dir = mkdtempSync(join(tmpdir(), 'deepblend-functional-cli-'))
+  try {
+    const dsh = join(dir, 'dsh'), pnpm = join(dir, 'pnpm')
+    for (const [path, version] of [[dsh, valid.dsh], [pnpm, valid.pnpm]]) {
+      writeFileSync(path, `#!${process.execPath}\nconsole.log(${JSON.stringify(version)})\n`); chmodSync(path, 0o755)
+    }
+    const command = ['--json', '--probe', '--dsh', dsh, '--pnpm', pnpm, '--blender', fakeBlender(dir, png()),
+      '--ffmpeg', join(dir, 'missing-ffmpeg'), '--ffprobe', join(dir, 'missing-ffprobe')]
+    const image = spawnSync(process.execPath, [cli, ...command], { encoding: 'utf8' })
+    assert.equal(image.status, 0, image.stderr)
+    const report = JSON.parse(image.stdout)
+    assert.equal(report.functional.blenderPreview.status, 'pass')
+    assert.equal(report.functional.videoEncoding.status, 'fail')
+    assert.equal(report.functional.imageInput.status, 'unverified')
+    const video = spawnSync(process.execPath, [cli, ...command, '--require-video'], { encoding: 'utf8' })
+    assert.equal(video.status, 1)
+  } finally { rmSync(dir, { recursive: true, force: true }) }
 })

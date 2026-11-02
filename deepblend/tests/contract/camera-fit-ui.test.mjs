@@ -25,6 +25,7 @@ async function client(t, options = {}) {
   const fetch = async (url, init = {}) => {
     const parsed = new URL(url, 'http://localhost'), id = parsed.pathname.match(/projects\/([^/]+)/)?.[1] || parsed.searchParams.get('projectId') || 'one'
     const project = projects[id]; let payload
+    if (init.method !== 'POST') await options.beforeRead?.({ path: parsed.pathname, project })
     if (init.method === 'POST') {
       const body = JSON.parse(init.body), call = { id, path: parsed.pathname, body, signal: init.signal }; calls.push(call)
       await options.beforePost?.(call)
@@ -45,15 +46,15 @@ async function client(t, options = {}) {
         payload = { ok: true, revision: clone(result) }; options.alterReply?.(payload)
       }
     } else if (parsed.pathname.endsWith('/jobs')) payload = { ok: true, route: 'project.jobs', jobs: [], unfinished: [] }
-    else if (parsed.pathname.endsWith('/previews')) payload = { ok: true, route: 'project.previews', artifactBase: `/deepblend/artifacts/${id}/`, previews: { projectId: id, revisions: [] } }
+    else if (parsed.pathname.endsWith('/previews')) payload = { ok: true, route: 'project.previews', artifactBase: `/deepblend/artifacts/${id}/`, previews: { projectId: id, revisions: options.previewEntries?.(project) || [] } }
     else {
       const spec = clone(sceneSpec)
       for (const result of ledger.values()) if (!spec.cameras.some(camera => camera.id === result.cameraFitReceipt.fittedCameraId)) {
         spec.cameras.push({ ...clone(spec.cameras[0]), id: result.cameraFitReceipt.fittedCameraId })
       }
       const scene = buildSceneTree(spec, { revision: project.revision, digest: 'a'.repeat(64) })
-      payload = { ok: true, route: 'state', projectsRoot, cameraFitSupported: options.supported !== false, projects: [{ projectId: 'one' }, { projectId: 'two' }], selected: {
-        project: { projectId: id, title: id }, currentRevision: project.revision, scene, jobs: [], unfinishedJobs: [], qa: {},
+      payload = { ok: true, route: 'state', projectsRoot, ...(options.motion ? { storeIdentity: 'd'.repeat(64), motionPreviewSupported: true, editableSnapshotAvailability: { available: true } } : {}), cameraFitSupported: options.supported !== false, projects: [{ projectId: 'one' }, { projectId: 'two' }], selected: {
+        project: { projectId: id, title: id }, currentRevision: project.revision, revisions: [{ revision: 'r0001' }, { revision: project.revision }], scene, jobs: [], unfinishedJobs: [], qa: {},
         recipeParameters: { projectId: id, revision: project.revision, available: true, conflicts: [], parameters: [],
           placement: options.noCompleteScope ? { available: false } : { available: true, subjectEntityId: plan.subjectEntityId, memberEntityIds: plan.memberEntityIds, defaultPose: plan.pose } } } }
     }
@@ -82,6 +83,64 @@ test('one explicit save uses the full lamp selection, original camera, explicit 
   assert.equal(f.storage.records.size, 0); assert.equal(f.store.getState().view, 'preview')
   assert.equal(f.store.getState().photographyDrafts.one.cameraId, body.fittedCameraId)
   assert.ok(f.nodes().find(node => node.props['data-result-kind'] === 'camera-fit'))
+})
+
+test('a fitted camera follows into the untouched motion draft but never overwrites a creator edit', async t => {
+  for (const touched of [false, true]) {
+    const f = await client(t, { motion: true })
+    const key = JSON.stringify(['/camera-fit-fixture', 'd'.repeat(64), 'one'])
+    const before = f.store.getState().motionDrafts[key]
+    assert.equal(before.cameraRestrictions.hero, 'animated')
+    if (touched) f.store.actions.setMotionValue('amount', '12')
+    await f.store.actions.saveCameraFit()
+    await settle(f.store, state => state.currentRevision === 'r0002')
+    const after = f.store.getState().motionDrafts[key], fitted = f.calls[0].body.fittedCameraId
+    if (touched) {
+      assert.equal(after.baseRevision, 'r0001'); assert.equal(after.amount, '12'); assert.equal(after.cameraId, 'hero')
+    } else {
+      assert.equal(after.baseRevision, 'r0002'); assert.equal(after.cameraId, fitted); assert.ok(after.cameras.includes(fitted))
+      assert.deepEqual(clone(after.entityIds), f.calls[0].body.entityIds); assert.equal(after.touched, false)
+      f.store.actions.setView('jobs')
+      assert.equal(f.nodes().find(node => node.props['data-action'] === 'motion-preview').props.disabled, false)
+    }
+  }
+})
+
+test('a motion edit made while the fitted camera is saving is not overwritten by its late response', async t => {
+  let release; const gate = new Promise(resolve => { release = resolve })
+  const f = await client(t, { motion: true, beforePost: () => gate })
+  const key = JSON.stringify(['/camera-fit-fixture', 'd'.repeat(64), 'one'])
+  const saving = f.store.actions.saveCameraFit(); await settle(f.store, state => state.busy.editor)
+  f.store.actions.setMotionValue('amount', '11')
+  release(); await saving; await settle(f.store, state => state.currentRevision === 'r0002')
+  const after = f.store.getState().motionDrafts[key]
+  assert.equal(after.amount, '11'); assert.equal(after.touched, true); assert.equal(after.baseRevision, 'r0001')
+})
+
+test('a saved fit never invites review of an old or absent preview while its new source is loading', async t => {
+  let release; const gate = new Promise(resolve => { release = resolve })
+  let showNew = true
+  const entry = revision => ({ revision, previews: [{ kind: 'preview', path: `revisions/${revision}/previews/fit.png` }] })
+  const f = await client(t, {
+    beforeRead: ({ path, project }) => path.endsWith('/previews') && project.revision === 'r0002' ? gate : undefined,
+    previewEntries: project => project.revision === 'r0002' && showNew ? [entry('r0001'), entry('r0002')] : [entry('r0001')],
+  })
+  await f.store.actions.saveCameraFit()
+  let notice = f.nodes().find(node => node.props['data-result-kind'] === 'camera-fit')
+  assert.match(notice.children.join(''), /r0002/)
+  assert.match(notice.children.join(''), /not currently displayed|不是该版本预览/)
+  assert.equal(f.nodes().find(node => node.props['data-artifact-revision'])?.props['data-artifact-revision'], 'r0001')
+  release(); await settle(f.store, state => state.currentRevision === 'r0002')
+  notice = f.nodes().find(node => node.props['data-result-kind'] === 'camera-fit')
+  assert.match(notice.children.join(''), /Review the preview|请查看预览/)
+  assert.equal(f.nodes().find(node => node.props['data-artifact-revision'])?.props['data-artifact-revision'], 'r0002')
+  f.store.actions.selectLighttableResult('r0001')
+  assert.equal(f.nodes().find(node => node.props['data-result-kind'] === 'camera-fit'), undefined)
+  assert.equal(f.nodes().find(node => node.props['data-artifact-revision'])?.props['data-artifact-revision'], 'r0001')
+  f.store.actions.returnToCurrentResult(); showNew = false; f.store.actions.reload()
+  await settle(f.store, state => state.previews?.revisions?.length === 1)
+  notice = f.nodes().find(node => node.props['data-result-kind'] === 'camera-fit')
+  assert.match(notice.children.join(''), /not currently displayed|不是该版本预览/)
 })
 
 test('a lost response freezes intent and retries exactly once without a second fixture commit', async t => {

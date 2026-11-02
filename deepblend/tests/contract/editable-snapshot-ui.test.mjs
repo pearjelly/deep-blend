@@ -28,14 +28,16 @@ function fixture(options = {}) {
     { jobId: 'current-movie', revisionId: 'r0002', status: 'completed', delivery: { videoPath: 'renders/current/video.mp4' } },
     { jobId: 'running-movie', revisionId: 'r0001', status: 'running', delivery: { videoPath: 'renders/running/video.mp4' } },
     { jobId: 'still-frame', revisionId: 'r0001', status: 'completed', delivery: null },
+    ...(options.images || []),
   ]
   const state = () => ({ ok: true, route: 'state', hostApiVersion: 6, projectsRoot: root, storeIdentity,
     editableSnapshotProtocol: options.protocol === undefined ? 1 : options.protocol,
     editableSnapshotAvailability: options.availability ?? { available: true },
+    snapshotImagesSupported: Boolean(options.images),
     projects: [{ projectId: 'demo' }, { projectId: 'other' }], selected: { project: { projectId: project, title: 'Test' }, currentRevision: revision,
       revisions: [{ revision: 'r0001', isCurrent: revision === 'r0001' }, { revision: 'r0002', isCurrent: revision === 'r0002' }], jobs, unfinishedJobs: [] } })
   const snapshot = (body, resultState = 'preparing') => {
-    const handle = { requestId: body.requestId, exportId: exportId(body.requestId), projectId: project, revision: body.revision, videoJobId: body.videoJobId || null, storeIdentity: body.expectedStoreIdentity }
+    const handle = { requestId: body.requestId, exportId: exportId(body.requestId), projectId: project, revision: body.revision, videoJobId: body.videoJobId || null, ...(body.imageJobIds?.length ? { imageJobIds: body.imageJobIds } : {}), storeIdentity: body.expectedStoreIdentity }
     const value = { ...handle, state: resultState, phase: 'copying', writtenBytes: 30, totalBytes: 100 }
     if (resultState === 'ready') Object.assign(value, { downloadUrl: `/deepblend/projects/${encodeURIComponent(project)}/editable-snapshots/${handle.exportId}/download?storeIdentity=${handle.storeIdentity}`, archive: { bytes: 100, sha256: 'd'.repeat(64) } })
     return value
@@ -60,10 +62,92 @@ function fixture(options = {}) {
   }
   const store = core.createWorkbenchStore({ fetch, editableSnapshotStorage: storage, preferenceStorage: storage, creationDraftStorage: storage,
     pollLiveMs: 100000, pollIdleMs: 100000, editableSnapshotPollMs: options.pollMs ?? 100000, editableSnapshotTimeoutMs: options.timeoutMs ?? 1000 })
-  return { store, calls, exports, storage, snapshot, setHandler: value => { handler = value }, switchRoot: (back = false) => { root = back ? '/projects/a' : '/projects/b'; storeIdentity = back ? identityA : identityB }, switchRevision: () => { revision = 'r0001' },
+  return { store, calls, exports, storage, snapshot, jobs, setHandler: value => { handler = value }, switchRoot: (back = false) => { root = back ? '/projects/a' : '/projects/b'; storeIdentity = back ? identityA : identityB }, switchRevision: () => { revision = 'r0001' },
     async start() { store.start(); try { await until(() => store.getState().status === 'ok', 'initial load'); return store } catch (error) { store.stop(); throw error } } }
 }
 const snapshotCalls = f => f.calls.filter(call => call.url.includes('/editable-snapshots'))
+
+test('image selection is revision-scoped and cannot expose a stale ready archive', async t => {
+  const image = (jobId, revisionId) => ({ jobId, revisionId, status: 'completed', cameraId: 'hero', delivery: { kind: 'still', verified: true, image: { frame: 7, width: 2560, height: 1440, sha256: 'c'.repeat(64) } } })
+  const f = fixture({ images: [image('still-b', 'r0002'), image('still-a', 'r0002'), image('old-still', 'r0001')],
+    handler: ({ body, snapshot }) => body?.requestId ? response({ ok: true, snapshot: snapshot(body, 'ready') }) : null })
+  const store = await f.start(); t.after(() => store.stop())
+  store.actions.setSnapshotImage('old-still', true); assert.deepEqual(json(selectedEntry(store).imageJobIds), [])
+  store.actions.setSnapshotImage('still-b', true); store.actions.setSnapshotImage('still-a', true)
+  await store.actions.prepareEditableSnapshot()
+  assert.deepEqual(snapshotCalls(f)[0].body.imageJobIds, ['still-a', 'still-b']); assert.ok(action(store, 'snapshot-download'))
+  store.actions.setSnapshotImage('still-a', false)
+  assert.equal(action(store, 'snapshot-download'), undefined, 'a ready archive for the previous selection is not offered as the new selection')
+  await store.actions.prepareEditableSnapshot()
+  assert.deepEqual(snapshotCalls(f).at(-1).body.imageJobIds, ['still-b']); assert.ok(action(store, 'snapshot-download'))
+  store.actions.setSnapshotRevision('r0001'); assert.deepEqual(json(selectedEntry(store).imageJobIds), [])
+  assert.equal(action(store, 'snapshot-download'), undefined, 'switching revision cannot offer the prior archive')
+})
+
+test('selected image identities survive a context change and mismatched replies are rejected', async t => {
+  const image = { jobId: 'still-a', revisionId: 'r0002', status: 'completed', cameraId: 'hero', delivery: { kind: 'still', verified: true, image: { frame: 7, width: 2560, height: 1440, sha256: 'c'.repeat(64) } } }
+  const f = fixture({ images: [image] }), store = await f.start(); t.after(() => store.stop())
+  store.actions.setSnapshotImage('still-a', true); await store.actions.prepareEditableSnapshot()
+  const handle = json(entry(store).handle); assert.deepEqual(handle.imageJobIds, ['still-a'])
+  store.actions.selectProject('other'); await until(() => store.getState().activeProjectId === 'other')
+  store.actions.selectProject('demo'); await until(() => store.getState().activeProjectId === 'demo' && entry(store)?.result)
+  assert.deepEqual(json(selectedEntry(store).imageJobIds), ['still-a']); assert.deepEqual(json(entry(store).handle), handle)
+  f.setHandler(({ method }) => method === 'GET' ? response({ ok: true, snapshot: { ...handle, imageJobIds: ['other'], state: 'ready', archive: { bytes: 100, sha256: 'd'.repeat(64) } } }) : null)
+  await store.actions.checkEditableSnapshot()
+  assert.equal(entry(store).issue.code, 'UI_SNAPSHOT_MISMATCH'); assert.equal(action(store, 'snapshot-download'), undefined)
+})
+
+test('an unavailable selected image remains visible and can be removed without silently changing the request', async t => {
+  const image = { jobId: 'still-a', revisionId: 'r0002', status: 'completed', cameraId: 'hero', delivery: { kind: 'still', verified: true, image: { frame: 7, width: 2560, height: 1440, sha256: 'c'.repeat(64) } } }
+  const f = fixture({ images: [image] }), store = await f.start(); t.after(() => store.stop())
+  store.actions.setSnapshotImage('still-a', true); f.jobs.splice(f.jobs.findIndex(job => job.jobId === 'still-a'), 1)
+  store.actions.reload(); await until(() => !store.getState().jobs.some(job => job.jobId === 'still-a'))
+  const missing = nodes(render(store)).find(node => node.props?.['data-field'] === 'snapshot-image' && node.props?.['data-job-id'] === 'still-a')
+  assert.ok(missing); assert.equal(missing.props.checked, true)
+  await store.actions.prepareEditableSnapshot(); assert.equal(snapshotCalls(f).length, 0); assert.equal(selectedEntry(store).issue.code, 'UI_SNAPSHOT_MISMATCH')
+  store.actions.setSnapshotImage('still-a', false); assert.deepEqual(json(selectedEntry(store).imageJobIds), [])
+})
+
+test('job video link identifies the displayed project, revision, store and verified bytes', async t => {
+  const f = fixture(), store = await f.start(); t.after(() => store.stop())
+  store.actions.setView('jobs')
+  const job = { jobId: 'render-0001', revisionId: 'r0001', status: 'completed', type: 'render', frameStart: 1, frameEnd: 144,
+    progress: { percent: 100, missing: 0, corrupt: 0 }, delivery: { verified: true, sha256: 'c'.repeat(64) } }
+  const base = { ...store.getState(), renderVideoDownloadSupported: true, jobs: [job] }
+  const links = state => nodes(core.renderView({ state, actions: store.actions })).filter(node => node.props?.['data-action'] === 'download-video:render-0001')
+  const link = links(base)[0]
+  assert.ok(link)
+  const url = new URL(link.props.href, 'http://localhost')
+  assert.equal(url.pathname, '/deepblend/projects/demo/jobs/render-0001/video')
+  assert.equal(url.searchParams.get('revision'), 'r0001'); assert.equal(url.searchParams.get('sha256'), job.delivery.sha256)
+  assert.equal(url.searchParams.get('storeIdentity'), identityA)
+  for (const changed of [
+    { renderVideoDownloadSupported: false }, { editableSnapshotAvailability: { available: false } }, { storeIdentity: null },
+    { jobs: [{ ...job, status: 'running' }] }, { jobs: [{ ...job, delivery: { ...job.delivery, verified: false } }] },
+    { jobs: [{ ...job, revisionId: 'r0002/escape' }] }, { jobs: [{ ...job, delivery: { verified: true } }] },
+  ]) assert.equal(links({ ...base, ...changed }).length, 0)
+})
+
+test('single-frame delivery links pin the measured image and do not label unverified jobs', async t => {
+  const f = fixture(), store = await f.start(); t.after(() => store.stop())
+  store.actions.setView('jobs')
+  const job = { jobId: 'render-0001', revisionId: 'r0001', status: 'completed', type: 'render', frameStart: 7, frameEnd: 7,
+    progress: { percent: 100, missing: 0, corrupt: 0 }, delivery: { verified: true }, provenance: { frames: [{ frame: 7, sha256: 'b'.repeat(64) }] } }
+  const base = { ...store.getState(), renderFrameDownloadSupported: true, jobs: [job] }
+  const links = state => nodes(core.renderView({ state, actions: store.actions })).filter(node => node.props?.['data-action'] === 'download-frame:render-0001')
+  const link = links(base)[0]; assert.ok(link)
+  const url = new URL(link.props.href, 'http://localhost')
+  assert.equal(url.pathname, '/deepblend/projects/demo/jobs/render-0001/frames/7')
+  assert.equal(url.searchParams.get('revision'), 'r0001'); assert.equal(url.searchParams.get('sha256'), 'b'.repeat(64)); assert.equal(url.searchParams.get('storeIdentity'), identityA)
+  const publishedStill = { ...job, delivery: { kind: 'still', verified: true, image: { frame: 7, sha256: 'a'.repeat(64) } }, provenance: { limited: true } }
+  assert.equal(new URL(links({ ...base, jobs: [publishedStill] })[0].props.href, 'http://localhost').searchParams.get('sha256'), 'a'.repeat(64))
+  assert.equal(links({ ...base, jobs: [{ ...publishedStill, delivery: { ...publishedStill.delivery, image: { frame: 8, sha256: 'a'.repeat(64) } } }] }).length, 0)
+  for (const changed of [
+    { renderFrameDownloadSupported: false }, { editableSnapshotAvailability: { available: false } }, { storeIdentity: null },
+    { jobs: [{ ...job, status: 'running' }] }, { jobs: [{ ...job, frameEnd: 8 }] }, { jobs: [{ ...job, delivery: { verified: false } }] },
+    { jobs: [{ ...job, provenance: { frames: [] } }] }, { jobs: [{ ...job, provenance: { frames: [{ frame: 7, sha256: 'bad' }] } }] },
+  ]) assert.equal(links({ ...base, ...changed }).length, 0)
+})
 
 test('saved revision and completed same-revision video selection survive refresh and preserve authoring inputs', async t => {
   const f = fixture(), store = await f.start(); t.after(() => store.stop())

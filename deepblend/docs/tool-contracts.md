@@ -125,6 +125,8 @@ asset-instance，再沿用 checkpoint/依赖摘要保护。旧v1/v2/v3默认行�
 
 在上面基础上**把 contact sheet 交给视觉模型**，并把三件不同的事分开返回：
 
+未发布的工作区支持可选 `views: [{ id, cameraId, frame }]`：提供明确 `revision` 后，选择 1–4 组保存的相机与帧，按该版本画幅生成最大边 640 像素、最多 16 采样的检查图。不能同时传 `roles`、全局 `frame`、`width` 或 `height`；可带 `expectedStoreIdentity`、`expectedDigest` 固定刚读取的来源。Host 缺少该能力时明确拒绝，不回退到其他机位。`inputScope` 和工具文字记录实际相机、帧、尺寸与采样；它们对应检查图，不是正式交付媒体的美术验收。未传 `views` 时仍使用标准角色视图组。此调用不会执行建议操作；`blender_visual_autofix` 仍使用标准视图组，不能把它的结果冒认为针对指定机位的修正。
+
 | 字段 | 谁产出的 | 可否复现 |
 |---|---|---|
 | `score` | Host，从像素测量算出 | ✅ 纯函数 |
@@ -668,7 +670,7 @@ checkpoint 优先；当前 revision 没有 checkpoint 时，会先从 spec 编�
 
 ## 5. ScenePatch v1 操作词汇表
 
-共 32 个操作。**操作名不可重命名**（它们是线协议的一部分，与错误码同理）。
+共 33 个操作。**操作名不可重命名**（它们是线协议的一部分，与错误码同理）。
 
 ### 5.1 实体
 
@@ -748,6 +750,7 @@ checkpoint 优先；当前 revision 没有 checkpoint 时，会先从 spec 编�
 | `project.brief.set` | `goal`（≤2000 字符）、`referenceImages`（≤4，完整替换；每项 `{id,assetId,sha256,label,purposes,notes?}`；PNG/JPEG 内容寻址资产） |
 | `project.reviewSubject.set` | `entityId`（实体 ID 或 `null`）；保存主要评审对象，null 恢复自动选择；实体须存在且非 empty，不移动相机 |
 | `entity.uv.project` | `entityId`（仅 mesh 生成器），`quarterTurns?`（0–3，缺省 0），`scale?`（0.0001–10000，缺省 1）；逐面重建 `faceUvs`，最长局部网格跨度对应 scale 次重复。仅用于平面面片，拒绝非平面面片；UV 岛重叠，不打包。保留几何、变换、材质与摄影 |
+| `project.aspectRatio.set` | `aspectRatio`（如 `16:9`）；仅更新项目参考标记，实际画幅由渲染配置控制 |
 
 逐面投影的 U 沿各面最长局部边，V 在面内与其垂直；`quarterTurns` 将投影后的 UV 坐标逆时针转动。缺省 0 将长边保留在 U 方向。统一按控制网格最长局部边界跨度归一化，保留各面比例与相对密度；修改器和物体变换在此后生效，因此旋转的副本可用同样选项。图片本身的木纹方向不自动识别，仍需实际材质预览。
 | `project.frameRange.set` | `frameStart`, `frameEnd`, `fps?` |
@@ -817,7 +820,7 @@ M3 新增的：
 | 高风险操作有审批记录 | 超过 `requireApprovalAboveFrames` 的交付渲染把要求写进 job 记录与工具结果 |
 | 每个错误有稳定 `errorCode` | 见 §6 |
 | 工具结果记录 Artifact、Revision 和 Job 引用 | revision 摘要含 `checkpoint`/`previews`/`job` |
-| 不接受任意 Python | 只接受 32 个固定操作名，无脚本入口 |
+| 不接受任意 Python | 只接受 33 个固定操作名，无脚本入口 |
 | 结果必须**可无损表示** | 工具边界把 `-0` 归一为 `0`，丢 `undefined`、换非有限数并报告 |
 | 不接受任意 Shell | 全部经 `ctx.subprocess` 的 argv 数组 |
 | 不写入项目工作区之外 | `paths.js` 的 `resolveInside()` 在 realpath 上强制 |
@@ -888,6 +891,7 @@ M3 新增的：
 
 | 路由 | 语义 | 说明 |
 |---|---|---|
+| `POST /deepblend/readiness/image-input` | **写** | 本机同源、用户主动触发一张随机测试图的当前评审路由检查；单次模型调用，返回受限状态，不返回原始回答或凭据。 |
 | `GET /deepblend/capabilities` | 读 | Blender capabilities and the settings card. |
 | `GET /deepblend/diagnostics` | 读 | A shareable diagnostic bundle: versions, configuration, store summary and recent failures. |
 | `GET /deepblend/workbench` | 读 | The standalone fullscreen workbench document. |
@@ -920,12 +924,19 @@ M3 新增的：
 | `POST /deepblend/projects/:projectId/recipe-parameters` | **写** | 检查 `baseRevision`，保存受约束的整套尺寸为原子版本；保留独立样式和历史。 |
 | `POST /deepblend/projects/:projectId/surface-placement` | **写** | 使用明确的主体/完整台灯作用域、支承、位姿与帧，经过原生测量和候选核验后保存一个版本及预览。 |
 | `POST /deepblend/projects/:projectId/camera-fit` | **写** | 为明确部件、来源相机及帧另存静态机位，独立核验完整几何入镜后保存一个版本及预览。 |
+| `POST /deepblend/projects/:projectId/photography-reuse` | **写** | 主动读取两个保存工程的静态产品边界与灯光，返回待审阅的适配草稿；不保存场景版本，不调用模型。 |
 | `POST /deepblend/projects/:projectId/restore` | **写** | Move the current pointer to a saved revision; preserve history. Optional `expectedCurrentRevision` rejects intervening edits. |
 | `GET /deepblend/projects/:projectId/jobs` | 读 | Render/export jobs of a project. |
 | `GET /deepblend/projects/:projectId/jobs/:jobId` | 读 | One job with its live progress. |
+| `GET /deepblend/projects/:projectId/jobs/:jobId/video` | 读 | Download the verified video for one explicit job and revision. |
+| `GET /deepblend/projects/:projectId/jobs/:jobId/frames/:frame` | 读 | 下载已完成任务中与版本、帧号和摘要绑定的原始 PNG。 |
+| `POST /deepblend/projects/:projectId/motion-previews` | **写** | 私有生成相机运动候选与低采样预览，不发布工程版本。 |
+| `GET /deepblend/projects/:projectId/motion-previews/:candidateId/video` | 读 | 本机同源播放已核验的私有运动预览。 |
+| `POST /deepblend/projects/:projectId/motion-previews/:candidateId/save` | **写** | 明确确认后核验并保存新相机与运动；同一候选的重试不会重复发布。 |
+| `POST /deepblend/projects/:projectId/motion-previews/:candidateId/discard` | **写** | 丢弃尚未确认的私有候选。 |
 | `POST /deepblend/projects/:projectId/jobs/:jobId/cancel` | **写** | Cancel a running job and verify the process is gone. |
 | `POST /deepblend/projects/:projectId/render` | **写** | Start a delivery render (or resume one). |
-| `POST /deepblend/projects/:projectId/editable-snapshots` | **写** | 固定明确版本和可选已完成影片，立即返回 planning handle；后台准备或恢复可编辑副本。 |
+| `POST /deepblend/projects/:projectId/editable-snapshots` | **写** | 固定明确版本、可选已完成影片和图片任务，立即返回 planning handle；后台准备或恢复可编辑副本。 |
 | `GET /deepblend/projects/:projectId/editable-snapshots/:exportId` | 读 | 读取请求、文件清单是否冻结、准备进度与就绪下载地址。 |
 | `POST /deepblend/projects/:projectId/editable-snapshots/:exportId/cancel` | **写** | 取消未完成的规划或归档，已就绪副本保持可用。 |
 | `GET /deepblend/projects/:projectId/editable-snapshots/:exportId/download` | 读 | 本机同源下载已核验副本；同一 FD 校验并流式传输，不支持 Range。 |
@@ -964,7 +975,7 @@ M3 新增的：
 * **产物 URL 由内容决定**：客户端给工件 URL 加上 `?v=<sha256 前 12 位>`。预览是**产物**：
   当前/上一张预览拼图轮换时仍使用固定路径，摘要确保浏览器获取对应字节；单图、多视角图和评审图片各自保留独立路径。早期同路径缓存缺陷的回归断言在 `e2e/ui.e2e.mjs`。
 * **文件响应由 Host 读取**：工件路由调用 `blenderStudio.readArtifact`，配方预览调用 `readRecipePreview`，可编辑副本下载调用 `openEditableSnapshot`。工件读取仍用 `resolveInside` 把项目目录当作边界（SPEC §15.2）；路由器会**先解码** `*` 捕获的尾部，使路径守卫能识别 `%2e%2e%2f` 这样的编码穿越。
-* **可编辑副本下载只在本机直连访问中可用**：四条副本路由要求 loopback socket 与 Host，并核对 Origin/Fetch Metadata；POST 要求 JSON，不信任代理转发头。状态接口返回 `ready` 后，浏览器还会核对项目、固定请求、保存版本、可选影片和 store identity，并只使用与该身份精确匹配的下载 URL。下载请求带 store identity，Host 校验就绪回执、冻结清单及完整 ZIP 摘要后，从同一 FD 流式发送；响应为 `application/zip`，含 `Content-Disposition: attachment`、精确 `Content-Length`、`Cache-Control: no-store`、`X-Content-Type-Options: nosniff` 和 `Accept-Ranges: none`。Range 请求返回 416；开始发送后的错误终止传输，不在 ZIP 后追加 JSON。下载中断保留就绪副本。详见[可编辑副本机制](development/editable-snapshots.md)。
+* **可编辑副本下载只在本机直连访问中可用**：四条副本路由要求 loopback socket 与 Host，并核对 Origin/Fetch Metadata；POST 要求 JSON，不信任代理转发头。状态接口返回 `ready` 后，浏览器还会核对项目、固定请求、保存版本、可选影片、图片任务和 store identity，并只使用与该身份精确匹配的下载 URL。图片最多选择 16 个已完成单帧任务，规划时核对版本、原生工程摘要、帧与图片字节；不自动附带预览或视频帧。下载请求带 store identity，Host 校验就绪回执、冻结清单及完整 ZIP 摘要后，从同一 FD 流式发送；响应为 `application/zip`，含 `Content-Disposition: attachment`、精确 `Content-Length`、`Cache-Control: no-store`、`X-Content-Type-Options: nosniff` 和 `Accept-Ranges: none`。Range 请求返回 416；开始发送后的错误终止传输，不在 ZIP 后追加 JSON。下载中断保留就绪副本。详见[可编辑副本机制](development/editable-snapshots.md)。
 * **`resumeJobId` → `jobId` 的映射在 UI 半边的 handler 里**（工具半边同样映射）。
   两个名字不同是有意的：调用方表达的是意图（续渲哪个 job），Host 读的是参数
   （`jobId`）。映射写在一处，并由套件断言。

@@ -533,8 +533,9 @@ def _visible_samples(scene, target, mask, actors, parts):
         column = int(columns[index])
         u = (column + 0.5) / float(width)
         v = (row + 0.5) / float(height)
-        # Screen rows run downward; the camera frame's vertical axis runs upward.
-        local = _bilinear(top_left, bottom_left, bottom_right, top_right, u, 1.0 - v)
+        # Both the loaded mask and this corner interpolation run top to bottom.
+        # Flipping v here casts through the vertically mirrored silhouette.
+        local = _bilinear(top_left, bottom_left, bottom_right, top_right, u, v)
         direction = (camera.matrix_world @ local) - origin
         if direction.length < 1e-9:
             continue
@@ -542,7 +543,9 @@ def _visible_samples(scene, target, mask, actors, parts):
         # Blender 5.x returns SIX values here (hit, location, normal, face index,
         # object, matrix); 4.x returned five. Unpacking with a length check keeps both
         # working, and the hit object is the only field this measurement uses.
-        cast = scene.ray_cast(depsgraph, origin, direction.normalized(), distance=direction.length * 1.5)
+        # view_frame describes the image plane, not the subject distance. A short
+        # ray based on that plane misses farther products and their blockers.
+        cast = scene.ray_cast(depsgraph, origin, direction.normalized(), distance=camera.data.clip_end)
         hit = bool(cast[0])
         hit_object = cast[4] if len(cast) >= 6 else cast[3]
         if hit and id(hit_object) in body:

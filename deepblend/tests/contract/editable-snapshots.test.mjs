@@ -175,15 +175,83 @@ test('selected video must match completed job, exact original spec/native and im
   const delivery = { jobId: 'render-0001', projectId: 'demo', revisionId: 'r0001', source: {
     sceneSpecDigest: sceneSpecDigest(f.spec), sceneSpec: { bytes: specBytes.length, sha256: hash(specBytes) }, checkpoint: { bytes: f.native.length, sha256: hash(f.native) } },
     video: { bytes: video.length, sha256: hash(video), verified: true, path: 'output/final.mp4' } }
-  const job = { jobId: 'render-0001', projectId: 'demo', revisionId: 'r0001', status: 'completed', sceneSpecDigest: sceneSpecDigest(f.spec), delivery: delivery.video }
+  const cameraId = f.spec.cameras[0].id
+  const job = { jobId: 'render-0001', projectId: 'demo', revisionId: 'r0001', status: 'completed', sceneSpecDigest: sceneSpecDigest(f.spec), delivery: delivery.video,
+    cameraId, frameStart: 1, frameEnd: 144, fps: 24, renderConfig: { resolution: [1920, 1080], samples: 128 } }
   await put(f.root, videoPath, video); await put(f.root, 'renders/render-0001/job.json', job)
   await put(f.root, 'renders/render-0001/manifest.json', delivery); await put(f.root, 'output/final.mp4', 'newer-video')
   const ready = await settle(f.service, await f.service.create({ projectId: 'demo', requestId: 'video', revision: 'r0001', videoJobId: 'render-0001' }))
   assert.equal(ready.state, 'ready', JSON.stringify(ready))
-  assert.deepEqual((await unpack(join(f.root, 'exports', ready.exportId, 'snapshot.zip'))).get(videoPath), video)
+  const videoArchive = await unpack(join(f.root, 'exports', ready.exportId, 'snapshot.zip'))
+  assert.deepEqual(videoArchive.get(videoPath), video)
+  const readme = videoArchive.get('README.md').toString()
+  assert.ok(readme.includes(`camera=db_camera__${cameraId}`)); assert.match(readme, /resolution=1920×1080; samples=128; frames=1–144; fps=24/)
+  assert.match(readme, /active camera, resolution and samples can differ/); assert.match(readme, /not a guarantee that every frame has the same source/)
+  await put(f.root, 'renders/render-0001/job.json', { ...job, cameraId: 'missing-camera', renderConfig: { resolution: ['bad\nvalue', 1080], samples: -1 } })
+  const uncertain = await settle(f.service, await f.service.create({ projectId: 'demo', requestId: 'uncertain-video-settings', revision: 'r0001', videoJobId: 'render-0001' }))
+  assert.equal(uncertain.state, 'ready', JSON.stringify(uncertain))
+  const uncertainReadme = (await unpack(join(f.root, 'exports', uncertain.exportId, 'snapshot.zip'))).get('README.md').toString()
+  assert.match(uncertainReadme, /camera=not recorded/); assert.doesNotMatch(uncertainReadme, /db_camera__missing-camera|bad\nvalue|samples=-1/)
+  await put(f.root, 'renders/render-0001/job.json', job)
+  const request = { projectId: 'demo', jobId: 'render-0001', revision: 'r0001', sha256: hash(video), expectedStoreIdentity: f.service.storeIdentity }
+  const download = await f.service.openVideo(request), chunks = []
+  for await (const chunk of download.stream) chunks.push(chunk)
+  await download.close()
+  assert.deepEqual(Buffer.concat(chunks), video, 'the fixed job video is used, not the newer mutable output/final.mp4')
+  assert.match(download.filename, /^deepblend-r0001-render-0001-/)
+  await assert.rejects(f.service.openVideo({ ...request, revision: 'r0002' }), code('SNAPSHOT_VIDEO_CONFLICT'))
+  await assert.rejects(f.service.openVideo({ ...request, sha256: hash('other') }), code('SNAPSHOT_VIDEO_CONFLICT'))
+  await assert.rejects(f.service.openVideo({ ...request, expectedStoreIdentity: '0'.repeat(64) }), code('SNAPSHOT_STORE_CHANGED'))
+  await assert.rejects(f.service.openVideo({ ...request, jobId: '../other' }), code('SNAPSHOT_REQUEST_INVALID'))
+  await put(f.root, videoPath, Buffer.alloc(video.length, 3))
+  await assert.rejects(f.service.openVideo(request), code('SNAPSHOT_ARCHIVE_MISMATCH'))
+  await put(f.root, videoPath, video)
   delivery.source.sceneSpec.sha256 = hash('another spec with same projected digest')
   await put(f.root, 'renders/render-0001/manifest.json', delivery)
   await rejectsPreparation(f.service, { projectId: 'demo', requestId: 'wrong-video', revision: 'r0001', videoJobId: 'render-0001' }, 'SNAPSHOT_VIDEO_CONFLICT')
+})
+
+test('selected images and video are pinned to the same revision, checkpoint and fixed request', async t => {
+  const f = await fixture(t), specBytes = bytesFor(f.spec), specDigest = sceneSpecDigest(f.spec), video = Buffer.from('video'), videoId = 'render-0001'
+  const videoInfo = { bytes: video.length, sha256: hash(video), verified: true }
+  await put(f.root, `renders/${videoId}/job.json`, { jobId: videoId, projectId: 'demo', revisionId: 'r0001', status: 'completed', sceneSpecDigest: specDigest, delivery: videoInfo })
+  await put(f.root, `renders/${videoId}/manifest.json`, { jobId: videoId, projectId: 'demo', revisionId: 'r0001', source: { sceneSpecDigest: specDigest,
+    sceneSpec: { bytes: specBytes.length, sha256: hash(specBytes) }, checkpoint: { bytes: f.native.length, sha256: hash(f.native) } }, video: videoInfo })
+  await put(f.root, `renders/${videoId}/encoded/${videoId}.mp4`, video)
+  const createImage = async (jobId, text) => {
+    const png = Buffer.from(text), image = { frame: 7, bytes: png.length, sha256: hash(png), width: 2560, height: 1440 }, sourceId = `source-${jobId}`
+    const job = { jobId, projectId: 'demo', revisionId: 'r0001', status: 'completed', deliveryKind: 'still', cameraId: 'hero', frameStart: 7, frameEnd: 7,
+      filePrefix: 'frame_', filePadding: 4, sceneSpecDigest: specDigest, renderConfig: { resolution: [2560, 1440] }, delivery: { kind: 'still', verified: true, image } }
+    const manifest = { schemaVersion: 'deepblend.still-delivery/v1', jobId, projectId: 'demo', revisionId: 'r0001', source: { sceneSpecDigest: specDigest }, image,
+      render: { provenance: { coverage: 'complete', frames: [{ frame: 7, sourceId, sha256: image.sha256 }], sources: [{ id: sourceId, revisionId: 'r0001', cameraId: 'hero', checkpointSha256: hash(f.native) }] } } }
+    await put(f.root, `renders/${jobId}/job.json`, job); await put(f.root, `renders/${jobId}/manifest.json`, manifest)
+    await put(f.root, `renders/${jobId}/frames/frame_0007.png`, png)
+    return { png, manifest }
+  }
+  const a = await createImage('render-0002', 'image-one'), b = await createImage('render-0003', 'image-two'), c = await createImage('render-0004', 'image-three')
+  const request = { projectId: 'demo', requestId: 'images-and-video', revision: 'r0001', videoJobId: videoId, imageJobIds: ['render-0004', 'render-0002', 'render-0003'] }
+  const ready = await settle(f.service, await f.service.create(request)); assert.equal(ready.state, 'ready', JSON.stringify(ready))
+  assert.deepEqual(ready.imageJobIds, ['render-0002', 'render-0003', 'render-0004'])
+  const zip = await unpack(join(f.root, 'exports', ready.exportId, 'snapshot.zip'))
+  for (const [id, expected] of [['render-0002', a.png], ['render-0003', b.png], ['render-0004', c.png]])
+    assert.deepEqual(zip.get(`renders/${id}/frames/frame_0007.png`), expected)
+  assert.deepEqual(zip.get(`renders/${videoId}/encoded/${videoId}.mp4`), video)
+  assert.deepEqual(zip.get('revisions/r0001/scene.blend'), f.native)
+  const readme = zip.get('README.md').toString()
+  assert.match(readme, /camera=not recorded/)
+  assert.match(readme, /frame=7; resolution=2560×1440/)
+  assert.equal(JSON.parse(zip.get('snapshot-manifest.json')).selectedImages.length, 3)
+  assert.equal((await f.service.create({ ...request, imageJobIds: ['render-0003', 'render-0004', 'render-0002'] })).exportId, ready.exportId)
+  await assert.rejects(f.service.create({ ...request, imageJobIds: ['render-0002'] }), code('SNAPSHOT_REQUEST_CONFLICT'))
+  await assert.rejects(f.service.create({ ...request, requestId: 'duplicate', imageJobIds: ['render-0002', 'render-0002'] }), code('SNAPSHOT_REQUEST_INVALID'))
+  a.manifest.render.provenance.sources[0].checkpointSha256 = hash('different native file')
+  await put(f.root, 'renders/render-0002/manifest.json', a.manifest)
+  await rejectsPreparation(f.service, { ...request, requestId: 'wrong-native', imageJobIds: ['render-0002'] }, 'SNAPSHOT_IMAGE_CONFLICT')
+  b.manifest.revisionId = 'r0002'; await put(f.root, 'renders/render-0003/manifest.json', b.manifest)
+  await rejectsPreparation(f.service, { ...request, requestId: 'wrong-revision', imageJobIds: ['render-0003'] }, 'SNAPSHOT_IMAGE_CONFLICT')
+  await put(f.root, 'renders/render-0004/frames/frame_0007.png', Buffer.from('changed'))
+  await rejectsPreparation(f.service, { ...request, requestId: 'changed-image', imageJobIds: ['render-0004'] }, 'SNAPSHOT_SOURCE_CHANGED')
+  assert.deepEqual((await unpack(join(f.root, 'exports', ready.exportId, 'snapshot.zip'))).get('renders/render-0004/frames/frame_0007.png'), c.png)
 })
 
 test('cancel closes payloads, preserves only small failure evidence and repeats the same fixed plan', async t => {
@@ -300,6 +368,8 @@ test('new HTTP surface enforces local Host/Origin/JSON boundaries and streams an
   const ctx = new Context()
   ctx.provide('blenderStudio', {
     openEditableSnapshot: request => { opened++; return f.service.open(request) }, getEditableSnapshot: request => f.service.get(request),
+    openRenderVideo: request => { opened++; return f.service.openVideo(request) },
+    openRenderFrame: request => { opened++; return f.service.openFrame(request) },
     exportEditableSnapshot: request => f.service.create(request), cancelEditableSnapshot: request => f.service.cancel(request),
   })
   const ui = new BlenderUi(ctx, { serveRoute: false }), server = createServer((request, response) => ui._handle(request, response))
@@ -317,6 +387,53 @@ test('new HTTP surface enforces local Host/Origin/JSON boundaries and streams an
   assert.equal(received.length, ready.archive.bytes); assert.equal(hash(received), ready.archive.sha256)
   const stale = await fetch(url.replace(ready.storeIdentity, '0'.repeat(64)))
   assert.equal(stale.status, 409); assert.equal((await stale.json()).error.code, 'SNAPSHOT_STORE_CHANGED')
+  const video = Buffer.from('actual fixture video'), sha = hash(video)
+  const job = { jobId: 'render-0001', projectId: 'demo', revisionId: 'r0001', status: 'completed', sceneSpecDigest: sceneSpecDigest(f.spec),
+    delivery: { bytes: video.length, sha256: sha, verified: true } }
+  await put(f.root, 'renders/render-0001/job.json', job)
+  await put(f.root, 'renders/render-0001/manifest.json', { ...job, source: { sceneSpecDigest: job.sceneSpecDigest }, video: job.delivery })
+  await put(f.root, 'renders/render-0001/encoded/render-0001.mp4', video)
+  const videoUrl = `${base}/deepblend/projects/demo/jobs/render-0001/video?revision=r0001&sha256=${sha}&storeIdentity=${f.service.storeIdentity}`
+  const videoResponse = await fetch(videoUrl)
+  assert.equal(videoResponse.status, 200); assert.equal(videoResponse.headers.get('content-type'), 'video/mp4')
+  assert.match(videoResponse.headers.get('content-disposition'), /^attachment; filename="deepblend-r0001-render-0001-/)
+  assert.deepEqual(Buffer.from(await videoResponse.arrayBuffer()), video)
+  assert.equal((await fetch(videoUrl, { headers: { origin: 'http://evil.example' } })).status, 403)
+  assert.equal((await fetch(videoUrl, { headers: { range: 'bytes=0-10' } })).status, 416)
+  const wrong = await fetch(videoUrl.replace('revision=r0001', 'revision=r0002'))
+  assert.equal(wrong.status, 409); assert.equal((await wrong.json()).error.code, 'SNAPSHOT_VIDEO_CONFLICT')
+  const png = Buffer.from('fixture frame bytes'), pngHash = hash(png), sourceId = '7b3ddad6-655a-4138-bdb4-ef7638768499'
+  Object.assign(job, { frameStart: 7, frameEnd: 7, filePrefix: 'frame_', filePadding: 4 })
+  const binding = { sourceId, sha256: pngHash, stat: { bytes: png.length } }
+  const sources = { schemaVersion: 'deepblend.frame-sources/v1', projectId: 'demo', jobId: job.jobId, revisionId: job.revisionId,
+    sources: { [sourceId]: { id: sourceId, revisionId: 'r0001' } }, frames: { 7: binding } }
+  const manifest = { ...job, source: { sceneSpecDigest: job.sceneSpecDigest }, video: job.delivery,
+    render: { provenance: { frames: [{ frame: 7, sourceId, sha256: pngHash }] } } }
+  await put(f.root, 'renders/render-0001/job.json', job); await put(f.root, 'renders/render-0001/manifest.json', manifest)
+  await put(f.root, 'renders/render-0001/frame-sources.json', sources); await put(f.root, 'renders/render-0001/frames/frame_0007.png', png)
+  const frameUrl = `${base}/deepblend/projects/demo/jobs/render-0001/frames/7?revision=r0001&sha256=${pngHash}&storeIdentity=${f.service.storeIdentity}`
+  const frame = await fetch(frameUrl)
+  assert.equal(frame.status, 200); assert.equal(frame.headers.get('content-type'), 'image/png')
+  assert.match(frame.headers.get('content-disposition'), /^attachment; filename="deepblend-r0001-render-0001-frame-7-/)
+  assert.deepEqual(Buffer.from(await frame.arrayBuffer()), png)
+  assert.equal((await fetch(frameUrl, { headers: { origin: 'http://evil.example' } })).status, 403)
+  assert.equal((await fetch(frameUrl, { headers: { range: 'bytes=0-10' } })).status, 416)
+  assert.equal((await fetch(frameUrl.replace('revision=r0001', 'revision=r0002'))).status, 409)
+  assert.equal((await fetch(frameUrl.replace('/frames/7?', '/frames/8?'))).status, 409)
+  assert.equal((await fetch(frameUrl.replace(f.service.storeIdentity, '0'.repeat(64)))).status, 409)
+  await put(f.root, 'renders/render-0001/frames/frame_0007.png', Buffer.alloc(png.length, 3))
+  assert.notEqual((await fetch(frameUrl)).status, 200, 'changed bytes are refused before streaming')
+  await put(f.root, 'renders/render-0001/frames/frame_0007.png', png)
+  sources.frames[7].sourceId = 'other'; await put(f.root, 'renders/render-0001/frame-sources.json', sources)
+  assert.equal((await fetch(frameUrl)).status, 409, 'changed source binding is refused')
+  sources.frames[7].sourceId = sourceId; await put(f.root, 'renders/render-0001/frame-sources.json', sources)
+  const image = { frame: 7, bytes: png.length, sha256: pngHash, width: 2560, height: 1440 }
+  job.deliveryKind = 'still'; job.renderConfig = { resolution: [2560, 1440] }; job.delivery = { kind: 'still', verified: true, image }
+  manifest.schemaVersion = 'deepblend.still-delivery/v1'; manifest.image = image
+  await put(f.root, 'renders/render-0001/job.json', job); await put(f.root, 'renders/render-0001/manifest.json', manifest)
+  assert.deepEqual(Buffer.from(await (await fetch(frameUrl)).arrayBuffer()), png, 'image-only delivery downloads without a video')
+  manifest.image.sha256 = '0'.repeat(64); await put(f.root, 'renders/render-0001/manifest.json', manifest)
+  assert.equal((await fetch(frameUrl)).status, 409, 'image receipt must match the downloaded PNG')
 })
 
 test('returns a durable planning handle before asset work; duplicate controls, cancel and dispose cover planning', async t => {

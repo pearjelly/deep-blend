@@ -87,7 +87,7 @@ function verifyLighttableProvenance(root) {
     assert.deepEqual([image.width, image.height], image.file === 'workbench.png' ? [1440, 1013] : [390, 844])
     assert.equal(image.postProcessed, false)
     const conversion = image.encodingConversion
-    assert.equal(conversion.sourceFile, image.file === 'workbench.png' ? 'lighttable-desktop.png' : 'lighttable-narrow.png')
+    assert.equal(conversion.sourceFile, image.file === 'workbench.png' ? 'lighttable-desktop.jpg' : 'lighttable-narrow.jpg')
     assert.equal(conversion.sourceFormat, 'JPEG')
     assert.match(conversion.sourceSha256, /^[a-f0-9]{64}$/)
     assert.match(conversion.decodedPixelsSha256, /^[a-f0-9]{64}$/)

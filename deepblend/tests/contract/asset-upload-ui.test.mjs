@@ -508,3 +508,28 @@ test('native upload shutdown accepts an observed macOS zombie while rejecting re
   assert.equal(live.remaining.length, 1)
   assert.equal(live.firstObservedAllExitedAt, null)
 })
+
+test('shutdown records a detached system updater without hiding live owned processes or changed identities', async () => {
+  const source = readFileSync(new URL('../e2e/asset-bundle-upload.e2e.mjs', import.meta.url), 'utf8')
+  const start = source.indexOf('async function waitForOwnedExit('), end = source.indexOf('\nfunction retainHome()', start)
+  const observe = new Function(`${source.slice(start, end)}; return waitForOwnedExit`)()
+  const root = '/Users/example/Library/Application Support/Google/GoogleUpdater'
+  const command = root + '/157.0/GoogleUpdater.app/Contents/MacOS/GoogleUpdater'
+  const browser = { pid: 10, ppid: 3, stat: 'S', start: 'one', command: '/Applications/Chrome' }
+  const updater = { pid: 20, ppid: 10, stat: 'S', start: 'two', command }
+  const child = { pid: 21, ppid: 20, stat: 'S', start: 'three', command }
+  const run = rows => { let time = 0; return observe({ rows: [browser, updater, child] }, {
+    timeoutMs: 2, pollMs: 1, externalUpdaterRoot: root, now: () => time,
+    pause: async ms => { time += ms }, read: () => ({ rows }) }) }
+  const detached = await run([{ ...updater, ppid: 1 }, child])
+  assert.deepEqual(detached.remaining, [])
+  assert.deepEqual(detached.detachedExternal.map(row => row.pid), [20, 21])
+  assert.equal(detached.firstObservedOwnedExitedAt, 0)
+  assert.equal(detached.firstObservedAllExitedAt, null, 'do not claim the detached processes exited')
+  assert.deepEqual(detached.errors, [])
+  assert.equal((await run([browser, updater, child])).remaining.length, 3, 'an updater still owned by a live browser remains a residual')
+  assert.equal((await run([{ ...updater, ppid: 1, start: 'replacement' }])).errors.length, 1, 'PID reuse cannot be excused')
+  const unrelated = { pid: 22, ppid: 1, stat: 'S', start: 'four', command: '/owned/chrome-helper' }
+  const mixed = await observe({ rows: [updater, unrelated] }, { externalUpdaterRoot: root, timeoutMs: 0, read: () => ({ rows: [{ ...updater, ppid: 1 }, unrelated] }) })
+  assert.deepEqual(mixed.remaining.map(row => row.pid), [22], 'ordinary orphaned workers remain failures')
+})

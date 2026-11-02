@@ -1767,6 +1767,7 @@ export default class LocalBlenderRuntime extends Service {
         payload: { entityIds: request.entityIds, assetInstanceIds: request.assetInstanceIds,
           frame: request.frame, cameraId: request.cameraId, fittedCameraId: request.fittedCameraId,
           margin: request.margin, checkpointSha256: request.checkpointSha256,
+          ...(request.photography === undefined ? {} : { photography: request.photography }),
           ...(sources.length === 1 ? {} : { baselineCheckpointPath: sources[1].snapshot,
             baselineCheckpointSha256: request.baselineCheckpointSha256 }) } },
       { signal: request.signal, session: false, args: ['--blend', sources[0].snapshot] })
@@ -2005,6 +2006,8 @@ export default class LocalBlenderRuntime extends Service {
       checkpoint: request.checkpointPath,
       cameraId: request.cameraId ?? null,
       ...(selection.cameraSelection === undefined ? {} : { cameraSelection: selection.cameraSelection }),
+      ...(request.motionFrameAudit === undefined ? {} : { motionFrameAudit: request.motionFrameAudit }),
+      ...(request.motionFrameAuditOnly === undefined ? {} : { motionFrameAuditOnly: request.motionFrameAuditOnly }),
       profileName: request.profileName ?? null,
       profile: request.profile ?? {},
       frameRange: request.frameRange ?? null,

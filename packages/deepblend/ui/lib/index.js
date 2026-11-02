@@ -287,9 +287,9 @@ export default class BlenderUiHost extends Service {
 
     let releaseSignal = () => {}
     try {
-      if (matched.route.id.startsWith('project.editableSnapshots.')) assertSnapshotHttpRequest(request)
-      if (matched.route.id === 'project.editableSnapshots.download') {
-        if (request.headers?.range) {
+      if (matched.route.id.startsWith('project.editableSnapshots.') || matched.route.id.startsWith('project.motionPreview.') || matched.route.id === 'project.job.video' || matched.route.id === 'project.job.frame' || matched.route.id === 'readiness.imageInput') assertSnapshotHttpRequest(request)
+      if (matched.route.id === 'project.editableSnapshots.download' || matched.route.id === 'project.job.video' || matched.route.id === 'project.job.frame' || matched.route.id === 'project.motionPreview.video') {
+        if (request.headers?.range && matched.route.id !== 'project.motionPreview.video') {
           response.setHeader('accept-ranges', 'none')
           this._sendJson(response, 416, { ok: false, error: { code: 'SNAPSHOT_RANGE_UNSUPPORTED', message: 'Snapshot downloads require a complete transfer.' } })
           return
@@ -304,7 +304,7 @@ export default class BlenderUiHost extends Service {
         try {
           response.setHeader('content-type', download.contentType)
           response.setHeader('content-length', String(download.bytes))
-          response.setHeader('content-disposition', `attachment; filename="${download.filename}"`)
+          response.setHeader('content-disposition', `${matched.route.id === 'project.motionPreview.video' ? 'inline' : 'attachment'}; filename="${download.filename}"`)
           response.setHeader('x-content-type-options', 'nosniff')
           response.setHeader('cache-control', 'no-store')
           response.setHeader('accept-ranges', 'none')
@@ -333,7 +333,7 @@ export default class BlenderUiHost extends Service {
         return
       }
       const cancellable = ['project.assets.upload', 'project.assets.preview', 'project.preview',
-        'project.assetUploads.create', 'project.assetUploads.file', 'project.assetUploads.complete'].includes(matched.route.id)
+        'project.assetUploads.create', 'project.assetUploads.file', 'project.assetUploads.complete', 'project.motionPreview.create', 'readiness.imageInput'].includes(matched.route.id)
       let signal
       if (cancellable) {
         const controller = new AbortController()
@@ -578,15 +578,37 @@ export function createHandlers(ctx) {
   const approvalThreshold = () => studio().config?.requireApprovalAboveFrames ?? Number.POSITIVE_INFINITY
 
   return {
-    'project.editableSnapshots.create': async ({ params, body }) => ({ snapshot: await snapshotStudio('exportEditableSnapshot').exportEditableSnapshot({
-      projectId: params.projectId, requestId: body.requestId, revision: body.revision, ...(body.videoJobId == null ? {} : { videoJobId: body.videoJobId }),
-      ...(body.expectedStoreIdentity === undefined ? {} : { expectedStoreIdentity: body.expectedStoreIdentity }),
-    }) }),
+    'readiness.imageInput': async ({ signal }) => {
+      const service = studio()
+      if (typeof service?.probeImageInput !== 'function') throw new BlenderError('UI_HOST_API_STALE', 'The running Blender Host does not support the image-input probe. Restart the Host.')
+      return { imageInput: await service.probeImageInput({ signal }) }
+    },
+    'project.editableSnapshots.create': async ({ params, body }) => {
+      if (body.imageJobIds !== undefined && studio().snapshotImagesSupported !== true)
+        throw new BlenderError('UI_HOST_API_STALE', 'Update the Host to include still images; no snapshot was prepared.')
+      return { snapshot: await snapshotStudio('exportEditableSnapshot').exportEditableSnapshot({
+        projectId: params.projectId, requestId: body.requestId, revision: body.revision, ...(body.videoJobId == null ? {} : { videoJobId: body.videoJobId }),
+        ...(body.imageJobIds === undefined ? {} : { imageJobIds: body.imageJobIds }),
+        ...(body.expectedStoreIdentity === undefined ? {} : { expectedStoreIdentity: body.expectedStoreIdentity }),
+      }) }
+    },
     'project.editableSnapshots.get': async ({ params }) => ({ snapshot: await snapshotStudio('getEditableSnapshot').getEditableSnapshot(params) }),
     'project.editableSnapshots.cancel': async ({ params, body }) => ({ snapshot: await snapshotStudio('cancelEditableSnapshot').cancelEditableSnapshot({ ...params,
       ...(body.expectedStoreIdentity === undefined ? {} : { expectedStoreIdentity: body.expectedStoreIdentity }) }) }),
     'project.editableSnapshots.download': async ({ params, query, signal }) => snapshotStudio('openEditableSnapshot').openEditableSnapshot({ ...params, signal,
       ...(query?.storeIdentity === undefined ? {} : { expectedStoreIdentity: query.storeIdentity }) }),
+    'project.job.video': async ({ params, query, signal }) => snapshotStudio('openRenderVideo').openRenderVideo({ ...params, signal,
+      revision: query.revision, sha256: query.sha256, expectedStoreIdentity: query.storeIdentity }),
+    'project.job.frame': async ({ params, query, signal }) => snapshotStudio('openRenderFrame').openRenderFrame({ ...params, signal,
+      revision: query.revision, sha256: query.sha256, expectedStoreIdentity: query.storeIdentity }),
+    'project.motionPreview.create': async ({ params, body, signal }) => ({ preview: await snapshotStudio('previewMotion').previewMotion({
+      projectId: params.projectId, baseRevision: body.baseRevision, projectsRoot: body.projectsRoot, sourceCameraId: body.sourceCameraId,
+      seconds: body.seconds, fraction: body.fraction, direction: body.direction, entityIds: body.entityIds,
+      allowRangeExtension: body.allowRangeExtension, signal }) }),
+    'project.motionPreview.video': async ({ params, signal }) => snapshotStudio('openMotionPreview').openMotionPreview({ projectId: params.projectId, id: params.candidateId, signal }),
+    'project.motionPreview.save': async ({ params, body }) => ({ saved: await snapshotStudio('saveMotionPreview').saveMotionPreview({
+      projectId: params.projectId, id: params.candidateId, intentSha256: body.intentSha256, projectsRoot: body.projectsRoot }) }),
+    'project.motionPreview.discard': async ({ params }) => snapshotStudio('discardMotionPreview').discardMotionPreview({ projectId: params.projectId, id: params.candidateId }),
     /** SPEC §14.4 `blenderSettings.getCapabilities`; M0's route, unchanged in shape. */
     capabilities: async ({ query }) => {
       const refresh = query.refresh === '1'
@@ -716,10 +738,23 @@ export function createHandlers(ctx) {
         projects: listed.projects.map(record => buildProjectView(record)),
         projectsRoot: listed.projectsRoot,
         storeIdentity: listed.storeIdentity ?? null,
+        projectStorage: typeof studio().getProjectStorage === 'function' ? studio().getProjectStorage() : null,
         editableSnapshotProtocol: studio().editableSnapshotProtocol === 1 && typeof studio().exportEditableSnapshot === 'function'
           && typeof studio().getEditableSnapshot === 'function' && typeof studio().cancelEditableSnapshot === 'function'
           && typeof studio().openEditableSnapshot === 'function' ? 1 : null,
         editableSnapshotAvailability,
+        snapshotImagesSupported: studio().snapshotImagesSupported === true,
+        renderVideoDownloadSupported: typeof studio().openRenderVideo === 'function',
+        renderFrameDownloadSupported: typeof studio().openRenderFrame === 'function',
+        selectedReviewViewsSupported: typeof studio().visualReviewSelectedViews === 'function',
+        photographyBoundaryReuseSupported: typeof studio().planPhotographyReuse === 'function',
+        stillDeliveryPresetSupported: studio().stillDeliveryPresetSupported === true,
+        videoDeliveryPresetSupported: studio().videoDeliveryPresetSupported === true,
+        deliveryAspectPresetSupported: studio().deliveryAspectPresetSupported === true,
+        stillImageDeliverySupported: studio().stillImageDeliverySupported === true,
+        motionPreviewSupported: typeof studio().previewMotion === 'function' && typeof studio().openMotionPreview === 'function'
+          && typeof studio().saveMotionPreview === 'function' && typeof studio().discardMotionPreview === 'function',
+        imageInputProbeSupported: typeof studio().probeImageInput === 'function',
         creationRequestProtocol: studio().creationRequestProtocol ?? null,
         cameraTargetResetSupported: studio().cameraTargetResetSupported === true,
         assemblyPlacementSupported: studio().assemblyPlacementSupported === true,
@@ -782,6 +817,7 @@ export function createHandlers(ctx) {
         projectId: params.projectId,
         revision: detail.revision,
         digest: detail.digest,
+        assemblyPlacement: detail.assemblyPlacement ?? null,
         ...(geometry ? { geometryInspection: detail.geometryInspection } : {}),
         scene: buildSceneTree(detail.spec, {
           revision: detail.revision,
@@ -911,10 +947,20 @@ export function createHandlers(ctx) {
       projectId: params.projectId, assetId: params.assetId, sha256: body.sha256, assetPath: body.assetPath, signal,
     }),
 
+    'project.photographyReuse': async ({ params, body, signal }) => {
+      const plan = await snapshotStudio('planPhotographyReuse').planPhotographyReuse({ ...body, projectId: params.projectId, signal })
+      return { plan }
+    },
+
     'project.review': async ({ params, body }) => {
       const revision = requiredRevision(body.revision)
-      const result = await studio().visualReview({ projectId: params.projectId, revision, consultReviewer: true,
-        width: 640, height: 480, samples: 16 })
+      if (body.views !== undefined && (!/^[a-f0-9]{64}$/.test(body.expectedStoreIdentity ?? '') || !/^[a-f0-9]{64}$/.test(body.expectedDigest ?? ''))) {
+        throw new BlenderError(BlenderErrorCode.REVISION_CONFLICT, 'Refresh the saved project source before reviewing selected cameras.')
+      }
+      const result = body.views === undefined
+        ? await studio().visualReview({ projectId: params.projectId, revision, consultReviewer: true, width: 640, height: 480, samples: 16 })
+        : await snapshotStudio('visualReviewSelectedViews').visualReviewSelectedViews({ projectId: params.projectId, revision, views: body.views,
+          expectedStoreIdentity: body.expectedStoreIdentity, expectedDigest: body.expectedDigest, consultReviewer: true })
       return { revision: result.revision ?? revision,
         review: buildQaView({ projectId: params.projectId, revision, review: result }).visual }
     },
@@ -932,8 +978,14 @@ export function createHandlers(ctx) {
     'project.patch': async ({ params, body }) => {
       // The patch is passed through verbatim: the Host validates it against the
       // ScenePatch schema and the base revision, and it is the only writer.
+      const host = studio()
+      if (body.expectedStoreIdentity !== undefined) {
+        const listed = await host.listProjects()
+        if (!/^[a-f0-9]{64}$/.test(body.expectedStoreIdentity) || body.expectedStoreIdentity !== listed.storeIdentity)
+          throw new BlenderError(BlenderErrorCode.REVISION_CONFLICT, 'The active project store changed; no patch was applied.')
+      }
       const patch = { ...(body.patch ?? body), projectId: params.projectId }
-      const result = await studio().applyScenePatch(patch)
+      const result = await host.applyScenePatch(patch)
       return { revision: result }
     },
 
@@ -992,6 +1044,12 @@ export function createHandlers(ctx) {
 
     'project.render': async ({ params, body }) => {
       const resumeJobId = typeof body.resumeJobId === 'string' && body.resumeJobId.length > 0 ? body.resumeJobId : null
+      if (resumeJobId === null && body.stillPreset !== undefined && studio().stillDeliveryPresetSupported !== true)
+        throw new BlenderError('UI_HOST_API_STALE', 'Update the Host to render with a still preset; nothing was started.')
+      if (resumeJobId === null && body.videoPreset !== undefined && studio().videoDeliveryPresetSupported !== true)
+        throw new BlenderError('UI_HOST_API_STALE', 'Update the Host to render with a video size preset; nothing was started.')
+      if (resumeJobId === null && body.deliveryKind !== undefined && studio().stillImageDeliverySupported !== true)
+        throw new BlenderError('UI_HOST_API_STALE', 'Update the Host to deliver a still image; nothing was started.')
       const request = {
         projectId: params.projectId,
         revision: body.revision,
@@ -1000,6 +1058,10 @@ export function createHandlers(ctx) {
         samples: numberOrUndefined(body.samples),
         // Keep the HTTP field stable while using the Host's actual parameter.
         profileName: body.profile,
+        ...(body.stillPreset === undefined ? {} : { stillPreset: body.stillPreset }),
+        ...(body.videoPreset === undefined ? {} : { videoPreset: body.videoPreset }),
+        ...(body.deliveryKind === undefined ? {} : { deliveryKind: body.deliveryKind }),
+        ...(body.cameraId === undefined ? {} : { cameraId: body.cameraId }),
         reason: body.reason ?? 'started from the workbench UI',
       }
       // A resume is a different host entry point, and the UI must not have to

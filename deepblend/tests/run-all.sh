@@ -137,6 +137,9 @@ run_suite "M5 assets: local automatic, network approved, and the caps in between
 run_suite "Workbench UI plane: closed route set, writes through the Host, client seat table (M4)" \
   node deepblend/tests/composition/ui-plane.e2e.mjs
 
+run_suite "Image readiness: opt-in local check, explicit cost and safe failure" \
+  node deepblend/tests/e2e/image-readiness-ui.e2e.mjs
+
 run_suite "Workbench UI in a real browser: manage a project, refresh, cancel, no browser Blender (M4)" \
   node deepblend/tests/e2e/ui.e2e.mjs
 
@@ -145,6 +148,24 @@ run_suite "Standalone fullscreen workbench: its own route, the console's own bun
 
 run_suite "Render selection: native profile, submitted revision, frame dimensions and encoded delivery" \
   node deepblend/tests/e2e/render-selection-ui.e2e.mjs
+
+run_suite "Still delivery: real Blender and browser with unavailable video encoders" \
+  node deepblend/tests/e2e/still-delivery-ui.e2e.mjs
+
+run_suite "Motion preview: native playback, explicit save and lost-reply recovery" \
+  node deepblend/tests/e2e/motion-preview-ui.e2e.mjs
+
+run_suite "Motion frame audit: real intermediate clipping and complete preview evidence" \
+  node deepblend/tests/blender-integration/motion-frame-audit.e2e.mjs
+
+run_suite "Motion save guard: recompiled intermediate clipping and atomic recovery" \
+  node deepblend/tests/blender-integration/motion-save-guard.e2e.mjs
+
+run_suite "Speaker motion: complete visible selection, hidden construction tools and native save" \
+  node deepblend/tests/e2e/speaker-motion-ui.e2e.mjs
+
+run_suite "Imported model motion: fitted camera, saved framing and preserved source bundle" \
+  node deepblend/tests/e2e/imported-motion-ui.e2e.mjs
 
 run_suite "Preview PNG saving: native browser files, exact source, refusal, retry and narrow layout" \
   node deepblend/tests/e2e/png-download-ui.e2e.mjs

@@ -8,7 +8,7 @@ import Studio, { StudioConfig } from '@deepblend/dsh-blender-host'
 import { BlenderErrorCode } from '@deepblend/dsh-blender-contracts'
 import { nativeFitReport } from '../lib/camera-fit-fixture.mjs'
 
-async function setup(t) {
+async function setup(t, staticProducts = false) {
   const root=mkdtempSync(join(tmpdir(),'deepblend-camera-fit-'))
   t.after(()=>rmSync(root,{recursive:true,force:true}))
   const calls={inspect:[],compile:[],preview:[]},hooks={}
@@ -38,6 +38,7 @@ async function setup(t) {
   const sceneSpec=JSON.parse(readFileSync(new URL('../../fixtures/product-turntable/scene-spec.json',import.meta.url),'utf8'))
   // Retain animation and the source's authored, unsorted camera order.
   sceneSpec.cameras.reverse()
+  if (staticProducts) sceneSpec.animationTracks = []
   const created=await studio.createProject({title:'Camera fit',sceneSpec,saveCheckpoint:true})
   const projectId=created.projectId
   return{root,studio,runtime,calls,hooks,request:{projectId,baseRevision:'r0001',entityIds:['watch-dial','watch-body'],
@@ -112,4 +113,75 @@ test('a changed project pointer during compilation refuses publication and retai
   await assert.rejects(s.studio.fitCamera(s.request),{code:'REVISION_CONFLICT'})
   assert.equal(s.studio.store.readRecord(s.request.projectId).title,'External update')
   assert.equal(existsSync(s.studio.store.revisionDirectory(s.request.projectId,'r0002')),false)
+})
+
+
+async function photographySetup(t) {
+  const s = await setup(t, true)
+  const spec = s.studio.store.readRevisionSpec(s.request.projectId, 'r0001')
+  const target = await s.studio.createProject({ title: 'Photography destination', sceneSpec: spec, saveCheckpoint: true })
+  const source = await s.studio.getScene(s.request.projectId, { full: true })
+  const destination = await s.studio.getScene(target.projectId, { full: true })
+  const request = { projectId: target.projectId, baseRevision: 'r0001', expectedDigest: destination.digest,
+    expectedStoreIdentity: s.studio.editableSnapshots.storeIdentity, entityIds: ['watch-body'], cameraId: 'camera-main', frame: 7,
+    source: { projectId: source.projectId, revision: source.revision, digest: source.digest,
+      entityIds: ['watch-body'], cameraId: 'camera-main', frame: 7 } }
+  s.hooks.inspect = (input, report) => {
+    if (!input.photography) return
+    const destination = input.photography.cameraMustBeStatic
+    if (destination) for (const member of report.members) member.worldBoundsMeters = { min: [3, 4, 0], max: [5, 6, 2] }
+    report.photography = { schemaVersion: 'deepblend.photography-snapshot/v1', staticGeometry: true, staticLights: true,
+      cameraStatic: true, cameraRotationEuler: [0, 0, 0], lights: input.photography.lightIds.map(id => ({ id, type: 'area', energy: 10,
+        color: [1, .8, .6], size: .5, transform: { location: [1, 2, 3], rotationEuler: [0, 0, 0], scale: [1, 1, 1] } })) }
+  }
+  return { ...s, photography: request }
+}
+
+test('boundary photography planning reads exact saved native sources and returns an unsaved proportional rig', async t => {
+  const s = await photographySetup(t), q = s.photography
+  const before = s.studio.store.readRevisionSpec(q.projectId, q.baseRevision)
+  const hashFiles = id => ['scene-spec.json', 'scene.blend', 'revision-manifest.json'].map(file => [join(s.studio.store.revisionDirectory(id, 'r0001'), file), readFileSync(join(s.studio.store.revisionDirectory(id, 'r0001'), file))])
+  const originals = [...hashFiles(q.projectId), ...hashFiles(q.source.projectId)]
+  const compileCount = s.calls.compile.length, previewCount = s.calls.preview.length
+  const plan = await s.studio.planPhotographyReuse(q)
+  assert.equal(plan.scale, 2)
+  assert.deepEqual(plan.camera.transform.location, [4, 5, 4])
+  assert.deepEqual(plan.camera.transform.rotationEuler, [0, 0, 0])
+  assert.equal(plan.camera.targetPoint, undefined); assert.equal(plan.camera.targetEntityId, undefined)
+  assert.equal(plan.camera.sensorWidth, before.cameras.find(c => c.id === q.cameraId).sensorWidth)
+  assert.deepEqual(plan.lights[0].transform.location, [5, 8, 6])
+  assert.equal(plan.lights[0].energy, 40); assert.equal(plan.lights[0].size, 1)
+  assert.equal(plan.request.expectedDigest, q.expectedDigest)
+  assert.equal(plan.provenance.sourceDigest, q.source.digest)
+  assert.equal(s.calls.inspect.length, 2)
+  assert.deepEqual(s.calls.inspect.map(c => c.photography.cameraMustBeStatic), [false, true])
+  assert.equal(s.calls.compile.length, compileCount); assert.equal(s.calls.preview.length, previewCount)
+  assert.equal(s.studio.store.readRecord(q.projectId).currentRevision, q.baseRevision)
+  for (const [file, bytes] of originals) assert.deepEqual(readFileSync(file), bytes)
+})
+
+test('boundary photography refuses stale identities, bad membership and frames before native work', async t => {
+  const s = await photographySetup(t), q = s.photography
+  for (const change of [r => r.expectedDigest = '0'.repeat(64), r => r.expectedStoreIdentity = '0'.repeat(64),
+    r => r.source.digest = '0'.repeat(64), r => r.source.frame = 99999, r => r.entityIds = ['missing'],
+    r => r.entityIds = ['watch-body', 'watch-body'], r => r.cameraId = 'missing']) {
+    const bad = structuredClone(q); change(bad)
+    await assert.rejects(s.studio.planPhotographyReuse(bad))
+    assert.equal(s.calls.inspect.length, 0)
+  }
+})
+
+test('boundary photography refuses old runtimes, dynamic receipts and a changed destination after inspection', async t => {
+  const s = await photographySetup(t), q = s.photography, normal = s.hooks.inspect
+  s.hooks.inspect = () => {}
+  await assert.rejects(s.studio.planPhotographyReuse(q), { code: 'SCENE_VALIDATION_FAILED' })
+  s.hooks.inspect = (input, report) => { normal(input, report); report.photography.staticGeometry = false }
+  await assert.rejects(s.studio.planPhotographyReuse(q), { code: 'SCENE_VALIDATION_FAILED' })
+  s.hooks.inspect = async (input, report) => {
+    normal(input, report)
+    if (input.photography.cameraMustBeStatic) await s.studio.applyScenePatch({ projectId: q.projectId, baseRevision: q.baseRevision,
+      saveCheckpoint: false, operations: [{ op: 'entity.tags.set', entityId: 'stage', tags: ['changed-during-read'] }] })
+  }
+  await assert.rejects(s.studio.planPhotographyReuse(q), { code: 'REVISION_CONFLICT' })
+  assert.equal(s.studio.store.readRecord(q.projectId).currentRevision, 'r0002')
 })

@@ -147,3 +147,44 @@ test('candidate lost measurement triggers conditional restore without consulting
   assert.equal(studio.store.readRecord(projectId).currentRevision, 'r0001')
   assert.equal(loop.rounds.at(-1).rolledBackTo, 'r0001')
 })
+
+test('selected review binds all requested delivery cameras and frames, preserves source, and records actual input scope', async t => {
+  const { studio, projectId, calls } = await setup(t, spec => {
+    spec.project.aspectRatio = '16:9'
+    for (const id of ['delivery-main', 'delivery-detail', 'delivery-reverse']) {
+      const camera = { ...structuredClone(spec.cameras[0]), id }; delete camera.role; spec.cameras.push(camera)
+    }
+  })
+  const directory = studio.store.revisionDirectory(projectId, 'r0001')
+  const original = readFileSync(join(directory, 'scene-spec.json'))
+  const selected = ['delivery-main', 'delivery-detail', 'delivery-reverse'].map((cameraId, i) => ({ id: `output-${i + 1}`, cameraId, frame: [1, 24, 60][i] }))
+  let modelViews
+  const review = await studio.visualReviewSelectedViews({ projectId, revision: 'r0001', views: selected,
+    width: 9999, samples: 512, consultReviewer: true, reviewer: async request => { modelViews = request.review.inputScope; return answer(request.review) } })
+  const native = calls.at(-1)
+  assert.deepEqual(native.views.map(({ id, cameraId, frame }) => ({ id, cameraId, frame })), selected)
+  assert.deepEqual([native.width, native.height, native.samples], [640, 360, 16])
+  assert.equal(review.inputScope.mode, 'selected-views'); assert.equal(review.inputScope.sourceRevision, 'r0001')
+  assert.deepEqual(review.inputScope.views.map(({ id, cameraId, frame }) => ({ id, cameraId, frame })), selected)
+  // The substituted native renderer reports 24x18. Persist what it actually returned, never the requested size.
+  assert.deepEqual(review.inputScope.views[0].resolution, [24, 18]); assert.equal(review.inputScope.views[0].samples, null)
+  assert.deepEqual(modelViews, review.inputScope)
+  const saved = JSON.parse(readFileSync(join(studio.store.projectDirectory(projectId), review.reviewArtifact.path)))
+  assert.deepEqual(saved.review.inputScope, review.inputScope)
+  assert.equal(studio.store.readRecord(projectId).currentRevision, 'r0001'); assert.ok(readFileSync(join(directory, 'scene-spec.json')).equals(original))
+})
+
+test('invalid or stale selected review inputs refuse before any rendering or model call', async t => {
+  const { studio, projectId, calls } = await setup(t)
+  const valid = { id: 'output', cameraId: 'camera-main', frame: 1 }
+  for (const views of [[], Array(5).fill(valid), [{ ...valid, cameraId: 'removed-camera' }], [{ ...valid, frame: 0 }],
+    [{ ...valid, frame: 1000000 }], [{ ...valid, frame: 1.5 }], [valid, { ...valid, id: 'duplicate-pair' }],
+    [{ ...valid, id: '../escape' }], [{ ...valid, role: 'top' }]]) {
+    await assert.rejects(studio.visualReviewSelectedViews({ projectId, revision: 'r0001', views, consultReviewer: true }))
+  }
+  assert.equal(calls.length, 0); assert.equal(studio.store.readRecord(projectId).currentRevision, 'r0001')
+  for (const hint of [{ expectedStoreIdentity: '0'.repeat(64) }, { expectedDigest: '0'.repeat(64) }]) {
+    await assert.rejects(studio.visualReviewSelectedViews({ projectId, revision: 'r0001', views: [valid], ...hint }), { code: 'REVISION_CONFLICT' })
+  }
+  assert.equal(calls.length, 0)
+})

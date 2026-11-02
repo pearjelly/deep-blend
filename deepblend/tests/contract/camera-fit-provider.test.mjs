@@ -65,3 +65,17 @@ test('cancellation after a native response cannot return a successful report',as
   s.hooks.run=()=>controller.abort()
   await assert.rejects(s.runtime.inspectCameraFit({...s.request,signal:controller.signal}),{code:BlenderErrorCode.ABORTED})
 })
+
+test('optional photography reaches the isolated native request and requires its own static receipt',async t=>{
+  const s=fixture(t),photography={lightIds:[],cameraMustBeStatic:true}
+  s.hooks.run=(q,_,r)=>{
+    assert.deepEqual(q.payload.photography,photography)
+    r.envelope.result.photography={schemaVersion:'deepblend.photography-snapshot/v1',staticGeometry:true,
+      staticLights:true,cameraStatic:true,cameraRotationEuler:[0,0,0],lights:[]}
+  }
+  const result=await s.runtime.inspectCameraFit({...s.request,photography})
+  assert.equal(result.report.photography.staticGeometry,true)
+  s.hooks.run=()=>{}
+  await assert.rejects(s.runtime.inspectCameraFit({...s.request,photography}),{code:'SCENE_VALIDATION_FAILED'})
+  assert.equal(readFileSync(s.request.checkpointPath,'utf8'),'source')
+})

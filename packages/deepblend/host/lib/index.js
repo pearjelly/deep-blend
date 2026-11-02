@@ -26,6 +26,8 @@
  */
 
 import { assertRuntimeSceneFeatures } from './runtime-scene-features.js'
+import { inspectProjectStorage } from './storage-readiness.js'
+import { selectedReviewPlan } from './selected-review-views.js'
 import { readRecipeContext } from './recipe-state.js'
 import { assemblyPlacementChanges } from './assembly-changes.js'
 import { normalizeSurfacePlacementRequest } from './surface-placement.js'
@@ -109,11 +111,14 @@ import { beginFrameAttempt, createFrameProvenanceReadBudget, readFrameProvenance
 import { streamAsset } from './asset-io.js'
 import { AssetUploadSessions, ASSET_UPLOAD_LIMITS } from './asset-uploads.js'
 import { EditableSnapshots } from './editable-snapshots.js'
+import { MotionPreviews } from './motion-preview.js'
+import { VisionReadiness } from './vision-readiness.js'
 import { prepareModelBundle, assetPreviewVersion, stageAssetBundle, verifyUnbundledGltfAsset, verifyUnbundledObjAsset } from './asset-bundle.js'
 import { ASSET_LIBRARY_LIMITS, uploadAssetType, checkAssetUpload, hashAssetFile, previewRasterAsset } from './asset-library.js'
 import { ASSET_PREVIEW_TEMPLATE, renderAssetPreview } from './asset-preview.js'
 import { listDiagnostics, renderDiagnostic } from './diagnostic-preview.js'
 import { inspectRevisionGeometry } from './geometry-inspection.js'
+import { planPhotographyReuse } from './photography-reuse.js'
 import { inspectReferenceImage, REFERENCE_IMAGE_MAX_BYTES } from './reference-image.js'
 import { createReadStream, linkSync } from 'node:fs'
 import { createHash, randomUUID } from 'node:crypto'
@@ -448,6 +453,9 @@ export default class BlenderStudio extends Service {
     this._inFlight = null
     /** Jobs being encoded right now, so two encoders never write one file. Keyed `projectId/jobId`. */
     this._deliveriesInFlight = new Map()
+    this.deliveryAspectPresetSupported = true
+    /** Known terminal delivery failures that could not yet be saved to disk. */
+    this._unrecordedDeliveryFailures = new Map()
 
     // Resolved ONCE, here, and every consumer below uses these two values rather
     // than `config.*`. An unresolved `projectsRoot` must follow the resolved
@@ -465,6 +473,10 @@ export default class BlenderStudio extends Service {
     this.editableSnapshotProtocol = 1
     this.ctx.effect(() => () => this.editableSnapshots.dispose())
     this.transactions = new RevisionTransaction({ store: this.store, runtime: this.runtime, config })
+    this.motionPreviews = new MotionPreviews({store:this.store,runtime:this.runtime,ctx:this.ctx,config:this.config,transactions:this.transactions})
+    this.ctx.effect(() => () => this.motionPreviews.dispose())
+    this.visionReadiness = new VisionReadiness({ctx:this.ctx,config:this.config})
+    this.ctx.effect(() => () => this.visionReadiness.dispose())
     this.ctx.effect(() => () => this._bundleUploads?.dispose())
 
     // ---- M3: the persistent render job (SPEC §10) --------------------------
@@ -558,6 +570,11 @@ export default class BlenderStudio extends Service {
     return diagnosticConfiguration(this.config)
   }
 
+  /** Observe the project filesystem without creating files or changing jobs. */
+  getProjectStorage() {
+    return inspectProjectStorage(this.projectsRoot)
+  }
+
   // ---------------------------------------------------------------------------
   // Capabilities (M0)
   // ---------------------------------------------------------------------------
@@ -647,6 +664,10 @@ export default class BlenderStudio extends Service {
   get surfacePlacementSupported() { return true }
   get assemblyPlacementSupported() { return true }
   get cameraFitSupported() { return true }
+  get stillDeliveryPresetSupported() { return true }
+  get videoDeliveryPresetSupported() { return true }
+  get stillImageDeliverySupported() { return true }
+  get snapshotImagesSupported() { return true }
 
   async _createProject(request, creationRequest) {
     const source = request.recipe ? this.recipes.instantiate(request.recipe) : null
@@ -842,6 +863,10 @@ export default class BlenderStudio extends Service {
       idempotentReplay: outcome.idempotentReplay === true, replayOf: outcome.replayOf ?? null,
       idempotencyKey: outcome.idempotencyKey, idempotencyKeyDerived: outcome.idempotencyKeyDerived === true,
       job: toCanonicalJobRecord(outcome.job), warnings: outcome.warnings, scene: outcome.sceneSummary }
+  }
+
+  async planPhotographyReuse(request) {
+    return planPhotographyReuse(this, request)
   }
 
   async fitCamera(request) {
@@ -1840,21 +1865,33 @@ export default class BlenderStudio extends Service {
   }
 
   /**
-   * One complete visual review of a revision: render, measure, compose a contact
-   * sheet, score, and (unless disabled) ask the vision reviewer what it sees.
+   * Review explicitly selected saved cameras at the saved project aspect, within
+   * the bounded inspection resolution and sample budget. This never edits cameras.
    *
    * @param {object} request
    * @param {string} request.projectId
-   * @param {string} [request.revision]
-   * @param {string[]} [request.roles]
-   * @param {boolean} [request.includeSheet] - compose and persist the sheet. Default true.
-   * @param {boolean} [request.consultReviewer] - ask the vision reviewer. Default false:
-   *   a review that only needs the measured score must not cost a model call.
-   * @param {number} [request.iteration]
-   * @param {object} [request.reviewer] - override the port (tests inject a stub).
+   * @param {string} request.revision
+   * @param {{id:string,cameraId:string,frame:number}[]} request.views
+   * @param {boolean} [request.consultReviewer] - only true spends a model call.
+   * @param {Function} [request.reviewer] - optional test port.
    * @param {AbortSignal} [request.signal]
    * @returns {Promise<Record<string, unknown>>}
    */
+  async visualReviewSelectedViews(request) {
+    if (request?.expectedStoreIdentity !== undefined && request.expectedStoreIdentity !== this.editableSnapshots.storeIdentity) {
+      throw new BlenderError(BlenderErrorCode.REVISION_CONFLICT, 'The project store changed; refresh before reviewing selected views.')
+    }
+    const spec = this.store.readRevisionSpec(request?.projectId, request?.revision)
+    if (request?.expectedDigest !== undefined && request.expectedDigest !== sceneSpecDigest(spec)) {
+      throw new BlenderError(BlenderErrorCode.REVISION_CONFLICT, 'The saved scene source changed; refresh before reviewing selected views.')
+    }
+    const plan = selectedReviewPlan(spec, request)
+    return this.visualReview({ projectId: request.projectId, revision: request.revision, views: plan.views,
+      width: plan.resolution[0], height: plan.resolution[1], samples: plan.samples,
+      consultReviewer: request.consultReviewer === true, reviewer: request.reviewer, signal: request.signal })
+  }
+
+  /** Render, measure and record a review; standard roles apply unless explicit views are supplied. */
   async visualReview(request) {
     const projectId = request?.projectId
     const record = this.store.readRecord(projectId)
@@ -1866,6 +1903,7 @@ export default class BlenderStudio extends Service {
       projectId,
       revision,
       roles: request.roles,
+      views: request.views,
       ...(Object.hasOwn(request, 'subjectId') ? { subjectId: request.subjectId } : {}),
       frame: request.frame,
       width: request.width,
@@ -1875,6 +1913,13 @@ export default class BlenderStudio extends Service {
       engine: request.engine,
       signal: request.signal,
     })
+
+    if (Array.isArray(request.views)) {
+      const expected = request.views.map(({ id, cameraId, frame }) => ({ id, cameraId, frame }))
+      const actual = rendered.views.map(({ viewId: id, cameraId, frame }) => ({ id, cameraId, frame }))
+      if (JSON.stringify(actual) !== JSON.stringify(expected)) throw new BlenderError(BlenderErrorCode.SCENE_VALIDATION_FAILED,
+        'The rendered review cameras or frames differ from the selected inputs; no model review was requested.')
+    }
 
     const reviewName = `review-${reviewId}-round-${iteration}`
     const sheetPath = `revisions/${revision}/contact-sheets/${reviewName}.png`
@@ -1938,6 +1983,9 @@ export default class BlenderStudio extends Service {
       reviewInputsDigest: reviewInputsDigest(sceneSpec),
       ...(referenceInputError ? { referenceInputError } : {}),
       artistic: validateArtisticReview(null, new Set()),
+      inputScope: { mode: Array.isArray(request.views) ? 'selected-views' : 'standard-views', sourceRevision: revision,
+        sourceDigest: rendered.digest, views: rendered.views.map(view => ({ id: view.viewId, cameraId: view.cameraId, frame: view.frame,
+          resolution: [view.width, view.height], samples: view.samples ?? null })) },
       sceneContext: {
         project: sceneSpec.project, entities: sceneSpec.entities,
         materials: sceneSpec.materials, lights: sceneSpec.lights, assets: sceneSpec.assets,
@@ -3387,7 +3435,8 @@ export default class BlenderStudio extends Service {
     // project problem. Falling through to "no such job" would send the caller
     // looking for a job id that was never the mistake.
     this.store.readRecord(projectId)
-    const renderRecord = jobId !== undefined ? this.renderJobs.readSafe(projectId, jobId) : null
+    const storedRecord = jobId !== undefined ? this.renderJobs.readSafe(projectId, jobId) : null
+    const renderRecord = storedRecord === null ? null : this._recoverUnrecordedDelivery(storedRecord)
     if (renderRecord !== null) {
       return {
         ...toCanonicalJobRecord({
@@ -3434,7 +3483,7 @@ export default class BlenderStudio extends Service {
     // An unknown project must not read as "a project with no jobs": the second is a
     // true statement about a real project, and a caller cannot tell them apart.
     this.store.readRecord(projectId)
-    const records = this.renderJobs.list(projectId)
+    const records = this.renderJobs.list(projectId).map(record => this._recoverUnrecordedDelivery(record))
     const limit = Number.isSafeInteger(request?.limit) ? request.limit : records.length
     const selected = limit >= records.length ? records : records.slice(records.length - limit)
     const provenanceBudget = createFrameProvenanceReadBudget()
@@ -3951,16 +4000,25 @@ export default class BlenderStudio extends Service {
     const revision = request?.revision ?? record.currentRevision
     const spec = this.store.readRevisionSpec(projectId, revision)
     const profileName = request?.profileName ?? this.config.finalRenderProfile
-    const profile = this._resolveRenderProfile(spec, profileName, revision)
+    const baseProfile = this._resolveRenderProfile(spec, profileName, revision)
 
     const range = this._resolveDeliveryRange({ spec, request })
     const frames = range.frames
+    if (request?.deliveryKind !== undefined && request.deliveryKind !== 'still')
+      throw new BlenderError(BlenderErrorCode.RENDER_RANGE_INVALID, 'Unknown delivery kind; nothing was started.')
+    if (request?.deliveryKind === 'still' && frames.length !== 1)
+      throw new BlenderError(BlenderErrorCode.RENDER_RANGE_INVALID, 'A still image delivery requires exactly one frame; nothing was started.')
+    const profile = this._applyVideoDeliveryPreset(this._applyStillDeliveryPreset(baseProfile, request?.stillPreset, frames), request?.videoPreset, request?.deliveryKind, request?.stillPreset)
     // The numbered-frame encoder consumes an interval, not an arbitrary sparse
     // list. Refuse before spending hours on frames it cannot encode correctly.
     if (frames[frames.length - 1] - frames[0] + 1 !== frames.length) throw new BlenderError(
       BlenderErrorCode.RENDER_RANGE_INVALID,
       'A delivery MP4 requires a contiguous frame interval. Use blender_preview_render for separated diagnostic frames; nothing was started.')
     const cameraSelection = useShots ? buildShotCameraSelection(spec, frames) : undefined
+    if (!useShots && request?.cameraId !== undefined && (typeof request.cameraId !== 'string'
+      || !spec.cameras?.some(camera => camera.id === request.cameraId))) throw new BlenderError(
+      BlenderErrorCode.SCENE_CAMERA_MISSING,
+      'The selected camera does not exist in this saved revision. Choose an available camera; no render was started.')
 
     // An open project may hold only one delivery render at a time, and the check
     // comes before everything below for the same reason as the approval gate: a
@@ -4072,6 +4130,9 @@ export default class BlenderStudio extends Service {
       fps: spec.project.fps,
       sceneFrameRange: [spec.project.frameStart, spec.project.frameEnd],
       profileName,
+      ...(request?.stillPreset === undefined ? {} : { stillPreset: request.stillPreset }),
+      ...(request?.videoPreset === undefined ? {} : { videoPreset: request.videoPreset }),
+      ...(request?.deliveryKind === undefined ? {} : { deliveryKind: request.deliveryKind }),
       renderConfig: null,
       cameraId,
       ...(cameraSelection === undefined ? {} : { cameraSelection }),
@@ -4146,7 +4207,12 @@ export default class BlenderStudio extends Service {
     const projectId = request?.projectId
     const jobId = request?.jobId
     const findings = await this.awaitReconciliation()
-    const record = this.renderJobs.read(projectId, jobId)
+    const record = this._recoverUnrecordedDelivery(this.renderJobs.read(projectId, jobId))
+    if (record.persistencePending === true) {
+      throw new BlenderError(record.persistenceErrorCode,
+        'The previous delivery failure could not be saved. Check disk space and write permissions, then retry; existing frames are preserved.',
+        { detail: { projectId, jobId } })
+    }
 
     // A failed or cancelled job IS resumable: its frames are on disk and its work
     // is unfinished, and refusing would mean a Blender crash in hour three costs
@@ -4175,6 +4241,14 @@ export default class BlenderStudio extends Service {
     }
 
     const expected = this.renderJobs.expectedFrames(record)
+    if (record.deliveryKind !== undefined && (record.deliveryKind !== 'still' || expected.length !== 1))
+      throw new BlenderError(BlenderErrorCode.RENDER_JOB_STATE_INVALID, 'The saved delivery kind and frame range disagree. Nothing was resumed.')
+    if (record.stillPreset !== undefined || record.videoPreset !== undefined) {
+      const savedSpec = this.store.readRevisionSpec(projectId, record.revisionId)
+      const savedProfile = this._applyVideoDeliveryPreset(this._applyStillDeliveryPreset(this._resolveRenderProfile(savedSpec, record.profileName ?? this.config.finalRenderProfile, record.revisionId), record.stillPreset, expected), record.videoPreset, record.deliveryKind, record.stillPreset)
+      if (record.renderConfig?.resolution && (record.renderConfig.resolution[0] !== savedProfile.resolution[0] || record.renderConfig.resolution[1] !== savedProfile.resolution[1]))
+        throw new BlenderError(BlenderErrorCode.RENDER_JOB_STATE_INVALID, 'The recorded delivery preset and render dimensions disagree. Nothing was resumed.')
+    }
     const ledger = this._cameraVerifiedLedger(record, this._readJobLedger(record, expected))
     if (ledger.toRender.length === 0 && ledger.presentCount === expected.length) {
       this._launchDelivery({ record, ledger })
@@ -4190,7 +4264,7 @@ export default class BlenderStudio extends Service {
 
     const spec = this.store.readRevisionSpec(projectId, record.revisionId)
     const profileName = record.profileName ?? this.config.finalRenderProfile
-    const profile = this._resolveRenderProfile(spec, profileName, record.revisionId)
+    const profile = this._applyVideoDeliveryPreset(this._applyStillDeliveryPreset(this._resolveRenderProfile(spec, profileName, record.revisionId), record.stillPreset, expected), record.videoPreset, record.deliveryKind, record.stillPreset)
     const recordedSamples = record.renderConfig?.samples
     const samples = request?.samples ?? recordedSamples ?? profile.samples
     const effective = this._deliverySamples(profile, samples, record.revisionId)
@@ -4284,6 +4358,13 @@ export default class BlenderStudio extends Service {
   async getEditableSnapshot(request) { return this.editableSnapshots.get(request) }
   async cancelEditableSnapshot(request) { return this.editableSnapshots.cancel(request) }
   async openEditableSnapshot(request) { return this.editableSnapshots.open(request) }
+  async openRenderVideo(request) { return this.editableSnapshots.openVideo(request) }
+  async openRenderFrame(request) { return this.editableSnapshots.openFrame(request) }
+  async previewMotion(request) { return this.motionPreviews.create(request) }
+  async openMotionPreview(request) { return this.motionPreviews.open(request) }
+  async saveMotionPreview(request) { return this.motionPreviews.commit(request) }
+  discardMotionPreview(request) { return this.motionPreviews.discard(request) }
+  async probeImageInput(request) { return this.visionReadiness.check(request) }
 
   async exportProject(request) {
     const projectId = request?.projectId
@@ -4298,6 +4379,9 @@ export default class BlenderStudio extends Service {
         { detail: { projectId } },
       )
     }
+
+    if (record.deliveryKind === 'still') throw new BlenderError(BlenderErrorCode.RENDER_JOB_STATE_INVALID,
+      'This job delivers a still image, not a video. Choose a video render job to export.')
 
     const spec = this.store.readRevisionSpec(projectId, record.revisionId)
     const delivery = await this._deliverJob({ record, spec, reason: 'export' })
@@ -4337,6 +4421,22 @@ export default class BlenderStudio extends Service {
       )
     }
     return profile
+  }
+
+  /** A still-only job setting, not a mutation of the saved scene or video profile. */
+  _applyStillDeliveryPreset(profile, preset, frames) {
+    if (preset === undefined) return profile
+    if (preset !== 'still-2560x1440' || !Array.isArray(frames) || frames.length !== 1)
+      throw new BlenderError(BlenderErrorCode.RENDER_RANGE_INVALID, 'The 2560×1440 still preset requires exactly one frame; no render was started.')
+    return { ...profile, resolution: [2560, 1440] }
+  }
+
+  /** A fixed video size for this job; it never changes the project frame rate. */
+  _applyVideoDeliveryPreset(profile, preset, deliveryKind, stillPreset) {
+    if (preset === undefined) return profile
+    if (preset !== 'video-1920x1080' || deliveryKind === 'still' || stillPreset !== undefined)
+      throw new BlenderError(BlenderErrorCode.RENDER_RANGE_INVALID, 'The 1920×1080 video preset cannot be combined with image delivery or a still preset; nothing was started.')
+    return { ...profile, resolution: [1920, 1080] }
   }
 
   /**
@@ -4537,7 +4637,7 @@ export default class BlenderStudio extends Service {
   /** The newest render job whose frames are complete, for `exportProject`. */
   _newestDeliverableJob(projectId, revision) {
     const candidates = this.renderJobs.list(projectId)
-      .filter(record => revision === undefined || record.revisionId === revision)
+      .filter(record => record.deliveryKind !== 'still' && (revision === undefined || record.revisionId === revision))
     for (let index = candidates.length - 1; index >= 0; index -= 1) {
       const record = candidates[index]
       if (record.delivery?.status === 'published') return record
@@ -4948,13 +5048,18 @@ export default class BlenderStudio extends Service {
           ? Math.round(live.journal.frameDurations().reduce((total, value) => total + value, 0) /
               live.journal.frameDurations().length)
           : null,
-        message: `${ledger.presentCount} frame(s) rendered; encoding`,
+        message: record.deliveryKind === 'still' ? 'Image rendered; verifying' : `${ledger.presentCount} frame(s) rendered; encoding`,
       }, { previous: this.renderJobs.read(projectId, jobId) })
 
-      this._appendOutput(live, `all ${ledger.presentCount} frame(s) rendered; encoding the delivery\n`)
+      this._appendOutput(live, record.deliveryKind === 'still' ? 'Image rendered; verifying the still delivery\n' : `all ${ledger.presentCount} frame(s) rendered; encoding the delivery\n`)
       const delivery = await this._deliverJob({ record, spec, reason: 'render' })
 
       if (delivery.status === 'completed') {
+        if (record.deliveryKind === 'still') {
+          this._appendOutput(live, `${delivery.message}\n`)
+          live.settle?.({ status: 'completed', detail: delivery.message })
+          return
+        }
         this._appendOutput(
           live,
           `delivery published: ${delivery.video?.path} (${delivery.video?.probed?.frameCount} frames, ` +
@@ -5211,6 +5316,28 @@ export default class BlenderStudio extends Service {
     }
   }
 
+  /** Retry a failure record only while the exact on-disk job remains unchanged. */
+  _recoverUnrecordedDelivery(record) {
+    const key = `${record.projectId}/${record.jobId}`
+    const pending = this._unrecordedDeliveryFailures.get(key)
+    if (pending === undefined) return record
+    if (JSON.stringify(record) !== pending.previous) {
+      // Another operation changed the record; never overwrite its newer state.
+      this._unrecordedDeliveryFailures.delete(key)
+      return record
+    }
+    try {
+      const saved = this.renderJobs.write(pending.failure, { previous: record })
+      this._unrecordedDeliveryFailures.delete(key)
+      return saved
+    } catch (cause) {
+      // The failure is known in this Host, but remains volatile until saved.
+      return { ...pending.failure, persistencePending: true,
+        persistenceErrorCode: isStorageExhausted(cause) ? BlenderErrorCode.DISK_FULL : BlenderErrorCode.SCRIPT_ERROR,
+        message: `${pending.failure.message} The failure could not be saved; check disk space and write permissions before resuming.` }
+    }
+  }
+
   async _deliverJob(input) {
     const { projectId, jobId } = input.record
     const deliveryKey = `${projectId}/${jobId}`
@@ -5228,21 +5355,27 @@ export default class BlenderStudio extends Service {
       if (operation.started) {
         // Covers encoder/probe failures and synchronous publication failures. The
         // caller may be a background resume or a completed-job re-export.
+        let current = null
+        let failure = null
         try {
-          const current = this.renderJobs.read(projectId, jobId)
+          current = this.renderJobs.read(projectId, jobId)
           const cancelled = operation.controller.signal.aborted || cause?.code === BlenderErrorCode.ABORTED
           const code = cancelled ? BlenderErrorCode.ABORTED : isStorageExhausted(cause)
             ? BlenderErrorCode.DISK_FULL : cause instanceof BlenderError ? cause.code : BlenderErrorCode.ENCODE_FAILED
           const message = cause instanceof Error ? cause.message : String(cause)
-          this.renderJobs.write({
+          failure = {
             ...current,
             status: current.status === 'completed' ? 'completed' : !operation.processGone ? 'stopping' : cancelled ? 'cancelled' : 'failed',
             delivery: { ...current.delivery, status: cancelled && operation.processGone ? 'cancelled' : 'failed',
               errorCode: code, message, completedAt: Date.now() },
             errorCode: cancelled ? null : code, message,
             ...(cancelled ? { cancelledAt: Date.now() } : {}), finishedAt: Date.now(),
-          }, { previous: current })
+          }
+          this.renderJobs.write(failure, { previous: current })
         } catch (writeCause) {
+          if (current !== null && failure !== null && operation.processGone) {
+            this._unrecordedDeliveryFailures.set(deliveryKey, { previous: JSON.stringify(current), failure })
+          }
           this.ctx.logger?.warn(`${LOG_SCOPE}: delivery ${jobId} could not record failure: ${writeCause?.message ?? writeCause}`)
         }
       }
@@ -5270,6 +5403,9 @@ export default class BlenderStudio extends Service {
     const expected = this.renderJobs.expectedFrames(record)
     const ledger = this._cameraVerifiedLedger(record, this._readJobLedger(record, expected))
     const total = expected.length
+
+    if (record.deliveryKind !== undefined && record.deliveryKind !== 'still')
+      throw new BlenderError(BlenderErrorCode.RENDER_JOB_STATE_INVALID, 'Unknown saved delivery kind; nothing was published.')
 
     if (ledger.presentCount !== total) {
       const current = this.renderJobs.read(projectId, jobId)
@@ -5314,6 +5450,38 @@ export default class BlenderStudio extends Service {
     const current = this.renderJobs.read(projectId, jobId)
     const liveStatus = current.status === 'completed' ? 'completed' : 'running'
     const deliveryAttempt = (current.delivery?.attempt ?? 0) + 1
+    if (record.deliveryKind === 'still') {
+      if (total !== 1 || current.deliveryKind !== 'still' || input.reason === 'export')
+        throw new BlenderError(BlenderErrorCode.RENDER_JOB_STATE_INVALID, 'A still delivery must contain exactly one frame.')
+      input.operation.started = true
+      this.renderJobs.write({ ...current, status: liveStatus, delivery: { kind: 'still', status: 'verifying', attempt: deliveryAttempt },
+        message: 'Verifying the still image and its render source' }, { previous: current })
+      this._checkDeliveryCancelled(input)
+      const directory = this.renderJobs.jobDirectory(projectId, jobId)
+      const provenance = syncFrameProvenance(record, directory)
+      const binding = provenance.frames?.[0], source = provenance.sources?.find(item => item.id === binding?.sourceId)
+      const image = ledger.present[0]
+      if (provenance.coverage !== 'complete' || provenance.configuration !== 'uniform' || provenance.frames.length !== 1
+        || binding?.frame !== expected[0] || !/^[a-f0-9]{64}$/.test(binding.sha256 ?? '') || !source
+        || source.revisionId !== record.revisionId || (record.cameraSelection === undefined && source.cameraId !== record.cameraId)
+        || !Number.isSafeInteger(image?.bytes) || image.bytes < 1)
+        throw new BlenderError(BlenderErrorCode.RENDER_FRAMES_INCOMPLETE, 'The image or its exact render source cannot be verified; no image was published.')
+      this._checkDeliveryCancelled(input)
+      const info = { frame: expected[0], bytes: image.bytes, sha256: binding.sha256,
+        width: record.renderConfig.resolution[0], height: record.renderConfig.resolution[1] }
+      const manifest = { schemaVersion: 'deepblend.still-delivery/v1', projectId, jobId, revisionId: record.revisionId,
+        source: { sceneSpecDigest: record.sceneSpecDigest }, image: info,
+        render: { profileName: record.profileName, config: provenance.groups[0].renderConfig,
+          cameraId: record.cameraId ?? null, provenance } }
+      const manifestPath = join(directory, 'manifest.json')
+      writeJsonAtomic(manifestPath, manifest)
+      const before = this.renderJobs.read(projectId, jobId)
+      const message = `Still image ready: ${info.width}x${info.height}, frame ${info.frame}.`
+      this.renderJobs.write({ ...before, status: 'completed', errorCode: null, outputManifest: manifestPath,
+        delivery: { kind: 'still', status: 'published', attempt: deliveryAttempt, verified: true, image: info, completedAt: Date.now() },
+        percent: 100, finishedAt: Date.now(), message }, { previous: before })
+      return { status: 'completed', verified: true, image: info, problems: [], message }
+    }
     input.operation.started = true
     this.renderJobs.write({
       ...current,
@@ -5561,6 +5729,7 @@ export default class BlenderStudio extends Service {
       estimatedRemainingMs: record.estimatedRemainingMs ?? null,
       fps: record.fps,
       profileName: record.profileName ?? null,
+      cameraId: record.cameraId ?? null,
       renderConfig: record.renderConfig ?? null,
       ...(record.cameraSelection === undefined ? {} : { cameraSelection: structuredClone(record.cameraSelection) }),
       provenance: readFrameProvenance(record, this.renderJobs.jobDirectory(record.projectId, record.jobId), provenanceBudget),
@@ -5569,6 +5738,7 @@ export default class BlenderStudio extends Service {
       outputManifest: record.outputManifest ?? null,
       errorCode: record.errorCode ?? null,
       message: record.message ?? null,
+      ...(record.persistencePending === true ? { persistencePending: true, persistenceErrorCode: record.persistenceErrorCode } : {}),
       // The warnings were already stored with the record; M4 surfaces them
       // because one of them IS the approval requirement (SPEC §15.1 "高成本最终
       // 渲染达阈值审批"). Recomputing that judgement in the UI from a threshold

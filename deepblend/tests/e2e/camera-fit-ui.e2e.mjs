@@ -86,7 +86,7 @@ try {
   await clickWorkbenchControl(page, '[data-field="fit-frame"]')
   check('page refresh sends no write and restores the same immutable request', await page.evaluate(`window.__fitWrites.length===1&&document.querySelector('[data-field="fit-frame"]').disabled&&!document.querySelector('[data-action="fit-save"]').disabled`))
   await clickWorkbenchControl(page, '[data-action="fit-save"]')
-  await page.waitFor(`document.querySelector('[data-result-kind="camera-fit"]')!==null&&document.querySelector('[data-compare="current"] img')?.naturalWidth>0`, 60000)
+  await page.waitFor(`document.querySelector('[data-result-kind="camera-fit"]')!==null&&document.querySelector('[data-lighttable-revision="r0004"] [data-compare="current"] img[data-artifact-revision="r0004"]')?.naturalWidth>0`, 60000)
   const writes = await page.evaluate('window.__fitWrites'); json('browser-writes.json', writes)
   check('the retry is byte-equivalent logical intent and creates only one new revision', writes.length === 2 && isDeepStrictEqual(writes[0], writes[1])
     && read('project.json').currentRevision === 'r0004' && read('project.json').revisionCount === 4)

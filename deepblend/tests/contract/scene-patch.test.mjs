@@ -1001,6 +1001,11 @@ check(
   frameRangeSet.result.digestAfter === frameRangeSet.result.digestBefore,
 )
 
+const aspectSet = applied('project.aspectRatio.set', [{ op: 'project.aspectRatio.set', aspectRatio: '16:9' }])
+check('project.aspectRatio.set changes only the informational project aspect',
+  aspectSet.next.project.aspectRatio === '16:9' && JSON.stringify(aspectSet.next.renderProfiles) === JSON.stringify(aspectSet.spec.renderProfiles)
+    && JSON.stringify(aspectSet.next.entities) === JSON.stringify(aspectSet.spec.entities))
+
 const profileSet = applied('render.profile.set on an existing profile', [{
   op: 'render.profile.set',
   profileName: 'preview',
@@ -1212,8 +1217,8 @@ check('SCENE_OPERATION_NAMES is frozen', Object.isFrozen(SCENE_OPERATION_NAMES))
 }
 
 check(
-  'SCENE_OPERATION_NAMES lists the 32 operations in their documented order',
-  SCENE_OPERATION_NAMES.length === 32 && SCENE_OPERATION_NAMES[31] === 'entity.uv.project' && SCENE_OPERATION_NAMES[30] === 'project.reviewSubject.set'
+  'SCENE_OPERATION_NAMES lists the 33 operations in their documented order',
+  SCENE_OPERATION_NAMES.length === 33 && SCENE_OPERATION_NAMES[32] === 'project.aspectRatio.set' && SCENE_OPERATION_NAMES[31] === 'entity.uv.project' && SCENE_OPERATION_NAMES[30] === 'project.reviewSubject.set'
     && SCENE_OPERATION_NAMES[29] === 'project.brief.set'
     && SCENE_OPERATION_NAMES[0] === 'entity.transform.update'
     && SCENE_OPERATION_NAMES[2] === 'entity.tags.set'
