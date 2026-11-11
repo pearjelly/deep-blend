@@ -1,0 +1,274 @@
+{
+  "schemaVersion": "deepblend.release-publication-status/v1",
+  "releaseLabel": "0.24.0",
+  "recordedAt": "2026-11-11T09:09:55.888529+00:00",
+  "publishedAt": "2026-11-11T08:51:37Z",
+  "mergedSourceCommit": "b3ce642f09fa235fd46fec03404801c223cd8a03",
+  "acceptedSourceCommit": "cbda75645b4ee3bda51448134f3df6c225117e30",
+  "sourceTree": "2599aae6bf343f4f4e51575298079a24a7c42a15",
+  "releaseUrl": "https://github.com/pearjelly/deep-blend/releases/tag/v0.24.0",
+  "status": "GitHub and npm published; three public installation routes verified; community listing update submitted",
+  "fullAcceptanceSuitesPassed": 56,
+  "unitAndContractFilesPassed": 159,
+  "sourceCIChecksPassed": 5,
+  "sourceCIRunUrl": "https://github.com/pearjelly/deep-blend/actions/runs/42983943452",
+  "sourcePullRequest": "https://github.com/pearjelly/deep-blend/pull/78",
+  "acceptance": {
+    "acceptanceSource": "cbda75645b4ee3bda51448134f3df6c225117e30",
+    "exitCode": 0,
+    "suitesPassed": 56,
+    "unitContractFilesPassed": 159,
+    "acceptanceLogSha256": "c30ffec32f6a47aef5ab78d9c01a49dda54ab65ae691d7333865498a349cf626",
+    "candidateSource": "b493bc3f2fb01d3556e8e9e6f77d5878db72f597",
+    "acceptanceToCandidateChangedPaths": [
+      "packages/deepblend/bundle/README.md"
+    ],
+    "candidateWorkflow": "https://github.com/pearjelly/deep-blend/actions/runs/42983943452",
+    "candidateWorkflowResult": "success"
+  },
+  "candidateCiArchives": [
+    {
+      "name": "linux-render-photography-42983943452-1",
+      "bytes": 60571381,
+      "sha256": "ea079e27b225525c4992f47a724d2f94715726c0775792cf020be4658cd36cc2",
+      "members": 583
+    },
+    {
+      "name": "linux-cup-parameters-42983943452-1",
+      "bytes": 10107164,
+      "sha256": "29b0a4d03ab32130d928c9e6e5c9308d38908df95f65ad62b56422d0a61a1d97",
+      "members": 99
+    },
+    {
+      "name": "harness-021-42983943452-1",
+      "bytes": 3284944,
+      "sha256": "892166e52a137ff0281b3eb73966bac6579906b0103e4b6f3ffef55f55d9bd14",
+      "members": 62
+    },
+    {
+      "name": "linux-inspections-42983943452-1",
+      "bytes": 220956203,
+      "sha256": "903ab41436ff42888ad4c63958bf9e962b73554aa7233a84c3283e884ee1d9e2",
+      "members": 3634
+    }
+  ],
+  "candidateToMergedSourceChangedPaths": [
+    "deepblend/docs/daily-releases.md"
+  ],
+  "mainCiAtReadback": {
+    "conclusion": "",
+    "headSha": "b3ce642f09fa235fd46fec03404801c223cd8a03",
+    "status": "in_progress",
+    "url": "https://github.com/pearjelly/deep-blend/actions/runs/42989730021"
+  },
+  "github": {
+    "tagName": "v0.24.0",
+    "targetCommitish": "b3ce642f09fa235fd46fec03404801c223cd8a03",
+    "publishedAt": "2026-11-11T08:51:37Z",
+    "url": "https://github.com/pearjelly/deep-blend/releases/tag/v0.24.0",
+    "checkedAt": "2026-11-11T08:52:32.876264+00:00",
+    "notesVerified": true,
+    "assets": [
+      {
+        "name": "deepblend-bundle.tgz",
+        "url": "https://github.com/pearjelly/deep-blend/releases/download/v0.24.0/deepblend-bundle.tgz",
+        "bytes": 72787344,
+        "sha256": "fa3c4578a9d19d8b285916030d333d660aa5fa23ec6365cdba39b0e9d2b79544"
+      },
+      {
+        "name": "final-source-equivalence.json",
+        "url": "https://github.com/pearjelly/deep-blend/releases/download/v0.24.0/final-source-equivalence.json",
+        "bytes": 1584,
+        "sha256": "e2adfa8bac5493a111c60196822e4c5918ca0a30d82df0be2421e45d9bd1bff1"
+      },
+      {
+        "name": "native-payload-verification.json",
+        "url": "https://github.com/pearjelly/deep-blend/releases/download/v0.24.0/native-payload-verification.json",
+        "bytes": 8003,
+        "sha256": "27ace40e6381a97901a6c034ab074811562de821705639444cc056f8a7bb1482"
+      },
+      {
+        "name": "own-package-copy-verification.json",
+        "url": "https://github.com/pearjelly/deep-blend/releases/download/v0.24.0/own-package-copy-verification.json",
+        "bytes": 1199,
+        "sha256": "46099bb537b19b0e21e4859317b1c3838d53a208269efa7d34c39b2bf9db8af5"
+      },
+      {
+        "name": "SHA256SUMS",
+        "url": "https://github.com/pearjelly/deep-blend/releases/download/v0.24.0/SHA256SUMS",
+        "bytes": 474,
+        "sha256": "4ee83227970dd48e7d7e5e4dcd6e92b21626ebd0b82fef40be1e53689c387488"
+      },
+      {
+        "name": "software-acceptance.json",
+        "url": "https://github.com/pearjelly/deep-blend/releases/download/v0.24.0/software-acceptance.json",
+        "bytes": 5544,
+        "sha256": "29268a19ae36943b2dd9b23618f9e6f1a4666d89e97b662ed60e3e3b5a8e77d6"
+      }
+    ]
+  },
+  "bundle": {
+    "source": "b3ce642f09fa235fd46fec03404801c223cd8a03",
+    "artifactSha256": "fa3c4578a9d19d8b285916030d333d660aa5fa23ec6365cdba39b0e9d2b79544",
+    "artifactBytes": 72787344,
+    "files": 465,
+    "candidateFiles": 465,
+    "changedPackedFiles": [
+      "package/package.json"
+    ],
+    "ownPackageCopies": 7
+  },
+  "npm": {
+    "sourceCommit": "b3ce642f09fa235fd46fec03404801c223cd8a03",
+    "verifiedAt": "2026-11-11T09:04:49.040221+00:00",
+    "packageCount": 7,
+    "fileCount": 203,
+    "packages": [
+      {
+        "name": "@deepblend/dsh-blender-contracts",
+        "version": "0.24.0",
+        "latest": "0.24.0",
+        "fileCount": 46,
+        "bytes": 190654,
+        "integrity": "sha512-08RDduLpBs+qloV8hGJ6V39s6jCn2/4+NJpzpZzk1+9yEw2v7hlNwSM+JrlCy9EaANnMVLQXwBg78oZPRcSfAg==",
+        "sha256": "c81b08cd8e40a422a81fff30ade83934ae5668b054599e1d744f669029912c9a",
+        "tarball": "https://registry.npmjs.org/@deepblend/dsh-blender-contracts/-/dsh-blender-contracts-0.24.0.tgz"
+      },
+      {
+        "name": "@deepblend/dsh-blender-host",
+        "version": "0.24.0",
+        "latest": "0.24.0",
+        "fileCount": 62,
+        "bytes": 3034268,
+        "integrity": "sha512-3wCpVP5f5/NmLyoZqV6CONIYhNq7jRp7rYdQ3ofbhqhCVYIT9hORyVdeh9aIH5GcZvibQEEsAni8NNQ4tmpx+w==",
+        "sha256": "e592c40ae950e26c6f09e7dc34049d47ea38fde7890fa60a1c3faea3f6060c53",
+        "tarball": "https://registry.npmjs.org/@deepblend/dsh-blender-host/-/dsh-blender-host-0.24.0.tgz"
+      },
+      {
+        "name": "@deepblend/dsh-blender-preset",
+        "version": "0.24.0",
+        "latest": "0.24.0",
+        "fileCount": 9,
+        "bytes": 36526,
+        "integrity": "sha512-FrrerfsVkp12Dj83sd93ygLmZ4TLX0QFTvAba5rfN8qjOv8vB85Tf3polpVi0v7a5xLMtcTpVv68TV1Abjqwug==",
+        "sha256": "a5f4d52584b7668d9d1c360ad2cbb4b1425d203bebb022a41ea4300bd9aba878",
+        "tarball": "https://registry.npmjs.org/@deepblend/dsh-blender-preset/-/dsh-blender-preset-0.24.0.tgz"
+      },
+      {
+        "name": "@deepblend/dsh-blender-provider-local",
+        "version": "0.24.0",
+        "latest": "0.24.0",
+        "fileCount": 42,
+        "bytes": 189355,
+        "integrity": "sha512-hhlyNJvjIEQ1QWW84mWtfVDj010ong6T3GuypZK7/0lBO/E8ZCQ/PjmhQPmKt5AHOfya2Espkt1xhJHSb3Vwiw==",
+        "sha256": "a789dc5a265e87f77779193d7d960a2d8c4d0fb1e03410ebe55947a2fc7cfd7b",
+        "tarball": "https://registry.npmjs.org/@deepblend/dsh-blender-provider-local/-/dsh-blender-provider-local-0.24.0.tgz"
+      },
+      {
+        "name": "@deepblend/dsh-blender-tool",
+        "version": "0.24.0",
+        "latest": "0.24.0",
+        "fileCount": 14,
+        "bytes": 63339,
+        "integrity": "sha512-02USD7rUrgz2sj6HX48tflK3EMWf1IKgIvmPw5mWSXnhTcdhNnL7UlNL7vBCFvHy0p+p1qmuHitcy5kc4pVN5g==",
+        "sha256": "641a51e0f1927289c189678a712308ec2a698f89e46d54b07331dec508e0d969",
+        "tarball": "https://registry.npmjs.org/@deepblend/dsh-blender-tool/-/dsh-blender-tool-0.24.0.tgz"
+      },
+      {
+        "name": "@deepblend/dsh-blender-ui",
+        "version": "0.24.0",
+        "latest": "0.24.0",
+        "fileCount": 3,
+        "bytes": 174683,
+        "integrity": "sha512-O3Mpzof2yYqqW55PLsFNV5/+pnbKH9LOGWPDvKsctNSXTUaICzPIDs6E9YXZ39bOGAz3mBMuZEOfPyqyPTQ8AA==",
+        "sha256": "541911e22045c57060257856fe93176ddc04fcd120dca572821652974d019ac2",
+        "tarball": "https://registry.npmjs.org/@deepblend/dsh-blender-ui/-/dsh-blender-ui-0.24.0.tgz"
+      },
+      {
+        "name": "@deepblend/dsh-blender-bundle",
+        "version": "0.24.0",
+        "latest": "0.24.0",
+        "fileCount": 27,
+        "bytes": 474602,
+        "integrity": "sha512-HR8cQzsnuxdm65R5TBeDHTEy92f/PvkJiIUUUtMFYkf5W1lJwViCUPW2BsI+aYMkOQ+bg5Y4a/xb/pTEc+kTyQ==",
+        "sha256": "e11159dc6056d00d13767729b03fefaa69c097d97b184278c97375356f25f671",
+        "tarball": "https://registry.npmjs.org/@deepblend/dsh-blender-bundle/-/dsh-blender-bundle-0.24.0.tgz"
+      }
+    ],
+    "initialPublishLogSha256": "d4f2659a89444e69d8848ff9baa556d3f25778a64bf3386d830e5370a05e762c",
+    "initialWrite": {
+      "package": "@deepblend/dsh-blender-contracts",
+      "httpStatus": 202,
+      "firstPublicReadStatus": 404,
+      "laterArchiveVerified": true
+    },
+    "continuationLedgerSha256": "63cd43b42e75b4273a4ca0d1095bd404bda21e4d74e13e83d06ce14d44b3a34d",
+    "writeAttemptsPerPackage": 1
+  },
+  "installationComparison": {
+    "routes": {
+      "source": {
+        "version": "0.24.0",
+        "workbenchHttp": 200,
+        "packagesFetched": 19
+      },
+      "npm": {
+        "version": "0.24.0",
+        "workbenchHttp": 200,
+        "packagesFetched": 19
+      },
+      "tarball": {
+        "version": "0.24.0",
+        "workbenchHttp": 200,
+        "packagesFetched": 1
+      }
+    },
+    "presets": [
+      "deepblend",
+      "deepblend-dev"
+    ],
+    "logSha256": "78821955caec3c4250df5f1cac6b072f21a7b038f340c799a0d49081deba94df",
+    "exitCode": 0
+  },
+  "community": {
+    "url": "https://github.com/awesome-dsh-plugin/awesome-dsh-plugin/pull/14273",
+    "state": "OPEN",
+    "mergedAt": null,
+    "head": "c3f30fc6995d55e5a9ee725893ed825118bb3300",
+    "checks": [
+      {
+        "name": "check",
+        "status": "IN_PROGRESS",
+        "conclusion": "",
+        "url": "https://github.com/awesome-dsh-plugin/awesome-dsh-plugin/actions/runs/42992666828/job/130429059457"
+      }
+    ],
+    "catalogs": [
+      {
+        "url": "https://awesome-dsh-plugin.com/index.json",
+        "at": "2026-11-11T09:08:48.321430+00:00",
+        "httpStatus": 200,
+        "bytes": 4131498,
+        "sha256": "78abd703c458697ee8e1e62319dcb8620716fa9fd3436f503f8c9864290fe0c1",
+        "versions": [
+          "0.23.0"
+        ],
+        "mentionsEnglishGuides": false
+      },
+      {
+        "url": "https://awesome-dsh-plugin.com/plugins.json",
+        "at": "2026-11-11T09:08:49.886489+00:00",
+        "httpStatus": 200,
+        "bytes": 14018559,
+        "sha256": "4ff1a60b25ea06e4a606b63e67969222d2490f9e15c3ad71c78fe66b462d2754",
+        "versions": [
+          "0.23.0"
+        ],
+        "mentionsEnglishGuides": false
+      }
+    ],
+    "creation": "GitHub CLI after cross-fork connector 403"
+  },
+  "independentCreatorAcceptance": "not yet measured",
+  "artisticAcceptance": "not yet measured"
+}
