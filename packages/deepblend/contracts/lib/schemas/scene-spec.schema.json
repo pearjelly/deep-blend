@@ -20,6 +20,27 @@
     "project": {
       "$ref": "#/$defs/project"
     },
+    "halfLaps": {
+      "type": "array",
+      "maxItems": 32,
+      "description": "Complementary half-depth joints between static rectangular timber groups.",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "lowerEntityId",
+          "upperEntityId"
+        ],
+        "properties": {
+          "lowerEntityId": {
+            "$ref": "#/$defs/id"
+          },
+          "upperEntityId": {
+            "$ref": "#/$defs/id"
+          }
+        }
+      }
+    },
     "assets": {
       "type": "array",
       "items": {

@@ -283,5 +283,70 @@
       "native_lap.py": "ad63f5678d4e7db8147edce5d2872450e13565320a4d4698b166bfdf8f78dda4",
       "reopen_lap.py": "ce01c9ca5752817af4e76c2dbf08a32e7aaa6c2e51efd1e096db8edee7f74b51"
     }
+  },
+  "candidateImplementation": {
+    "recordedAt": "2026-11-11T09:51:31.734287+00:00",
+    "operation": "joint.halfLap.set",
+    "nativeCompilerSha256": "792ee9924d6f01140c227e52d8f9247f2d2b009bdae1bc73a6bf82dc8e7cc2b1",
+    "testPath": "Registered model-tool definition, real Host and Blender 5.2.1, independent checkpoint reopen",
+    "fixture": "Extracted r0075 geometry, original wood maps, original eave camera at frame 390",
+    "userPathChecks": [
+      "the extracted r0075 timbers, wood maps and original eave camera render from a saved baseline",
+      "the registered agent tool changes only the joint relation and renders the same camera and settings",
+      "retry returns the saved revision and creates no new one",
+      "an existing array edit recompiles the active joint",
+      "an unsupported angle is refused before publishing a checkpoint",
+      "the saved relation can be removed with both timber groups still editable",
+      "the joined revision can be restored and predecessor checkpoints and source assets retain their bytes"
+    ],
+    "nativeReadback": {
+      "initial": {
+        "sameUnionCells": 1960,
+        "beforeOverlapCells": 200,
+        "afterOverlapCells": 0,
+        "components": {
+          "pagoda-rafters-1": 50,
+          "pagoda-rafters-1-ew": 50
+        },
+        "zeroAreaUvTriangles": 0,
+        "exteriorUv": {
+          "checkedExteriorCorners": 10048,
+          "maxComponentError": 1.0123619667012917e-06
+        }
+      },
+      "arrayEdited": {
+        "sameUnionCells": 1704,
+        "beforeOverlapCells": 160,
+        "afterOverlapCells": 0,
+        "components": {
+          "pagoda-rafters-1": 46,
+          "pagoda-rafters-1-ew": 50
+        },
+        "zeroAreaUvTriangles": 0,
+        "exteriorUv": {
+          "checkedExteriorCorners": 8480,
+          "maxComponentError": 1.0123619667012917e-06
+        }
+      }
+    },
+    "previews": {
+      "before.png": {
+        "bytes": 248920,
+        "sha256": "a986948c7a5c03baaca1b6f0bbc0676ba7659431e196743ba8e0193339e2fac0"
+      },
+      "after.png": {
+        "bytes": 248557,
+        "sha256": "bed44b15737ce065f408aa2b57d6d3b3d55d1347e8d03ae9712be15fdad89182"
+      }
+    },
+    "previewSettings": {
+      "cameraId": "camera-eave",
+      "frame": 390,
+      "width": 640,
+      "height": 360,
+      "samples": 16
+    },
+    "firstPreviewCheck": "The original camera preview picked the timeline midpoint 645. The test used a timeline centered on frame 390 for both captures.",
+    "visualObservation": "The eave previews retain the same broad form and wood grain in the extracted scene. Exterior UV equivalence was checked independently."
   }
 }

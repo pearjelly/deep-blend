@@ -5,7 +5,7 @@ import bpy
 from deepblend_util import ActionError
 
 
-def apply_model_modifiers(entities, entity_meshes, animation_tracks=None):
+def apply_model_modifiers(entities, entity_meshes, animation_tracks=None, half_laps=None):
     """Apply dependency-ordered, bounded mesh operations to actual geometry."""
     by_id = {entity["id"]: entity for entity in entities}
     done, active = set(), set()
@@ -124,6 +124,30 @@ def apply_model_modifiers(entities, entity_meshes, animation_tracks=None):
             bpy.context.view_layer.update()
         active.remove(entity_id)
         done.add(entity_id)
+
+    if half_laps:
+        from deepblend_half_lap import apply_half_lap
+        joined = set()
+        animated = {track.get('targetEntityId') for track in animation_tracks or []
+                    if track.get('targetKind', 'entity') == 'entity' and
+                    str(track.get('property', '')).split('.')[0] in ('location', 'rotationEuler', 'scale')}
+        if not isinstance(half_laps, list) or len(half_laps) > 32:
+            raise ActionError('SCENE_SPEC_INVALID', 'a scene can have at most 32 half laps')
+        for pair in half_laps:
+            if not isinstance(pair, dict):
+                raise ActionError('SCENE_SPEC_INVALID', 'half lap needs a lower and an upper timber group')
+            ids = (pair.get('lowerEntityId'), pair.get('upperEntityId'))
+            for entity_id in ids:
+                entity = by_id.get(entity_id) if isinstance(entity_id, str) else None
+                if (entity is None or entity_id in joined or entity_id in animated or
+                        entity.get('type') != 'generator' or entity.get('generator', {}).get('shape') != 'mesh' or
+                        any(modifier['type'] not in ('array', 'mirror') for modifier in entity.get('modifiers', [])) or
+                        any(entity.get(field) is not None for field in ('armatureId', 'rigidBody', 'cloth', 'softBody', 'fluid'))):
+                    raise ActionError('SCENE_SPEC_INVALID', 'half laps require distinct, static mesh timber groups with optional array or mirror modifiers')
+                joined.add(entity_id)
+                visit(entity_id)
+            apply_half_lap(single_mesh(ids[0]), single_mesh(ids[1]))
+            bpy.context.view_layer.update()
 
     for entity in entities:
         visit(entity["id"])

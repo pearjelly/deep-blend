@@ -2141,7 +2141,8 @@ def build_scene(spec, options, guard):
             simulation_objects[entity_id] = meshes[0]
         entity_positions[entity_id] = [float(root.location[0]), float(root.location[1]), float(root.location[2])]
 
-    apply_model_modifiers(spec.get("entities") or [], entity_meshes, spec.get('animationTracks') or [])
+    apply_model_modifiers(spec.get("entities") or [], entity_meshes,
+                          spec.get('animationTracks') or [], spec.get('halfLaps'))
     scene['deepblend_requires_cycles'] = False
     for entry in spec.get('materials') or []:
         for surface in native_material_surfaces:

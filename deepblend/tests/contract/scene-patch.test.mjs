@@ -415,6 +415,41 @@ const uvEdit = runPatch([
 check('UV projection saves face coordinates on the existing entity and preserves the input',
   !uvEdit.error && uvEdit.specUnchanged && uvEdit.patchUnchanged && entity(uvEdit.next, 'watch-body').generator.faceUvs.length === 1)
 for (const operation of uvEdit.result?.operations ?? []) exercisedOperations.add(operation.op)
+const timber = {
+  shape: 'mesh',
+  vertices: [[0, 0, 0], [2, 0, 0], [2, .2, 0], [0, .2, 0],
+    [0, 0, .2], [2, 0, .2], [2, .2, .2], [0, .2, .2]],
+  faces: [[0, 3, 2, 1], [4, 5, 6, 7], [0, 1, 5, 4], [1, 2, 6, 5], [2, 3, 7, 6], [3, 0, 4, 7]],
+}
+const timberScene = runPatch(['beam-low', 'beam-high', 'beam-other'].map(id => ({
+  op: 'entity.add', entity: { id, type: 'generator', generator: timber },
+}))).next
+const joint = { op: 'joint.halfLap.set', lowerEntityId: 'beam-low', upperEntityId: 'beam-high' }
+const joined = runPatch([joint], { spec: timberScene })
+for (const operation of joined.result?.operations ?? []) exercisedOperations.add(operation.op)
+check('a half lap changes the scene digest and records a single relation without replacing the timber definitions',
+  validateScenePatch(joined.patch).ok && validateSceneSpec(joined.next).ok && joined.specUnchanged && joined.patchUnchanged &&
+  joined.result.digestBefore !== joined.result.digestAfter &&
+  JSON.stringify(joined.result.operations[0].changedPaths) === JSON.stringify(['halfLaps']) &&
+  JSON.stringify(joined.next.entities) === JSON.stringify(timberScene.entities) &&
+  summarizeSceneSpec(joined.next).halfLaps?.[0].upperEntityId === 'beam-high')
+const replayedJoint = runPatch([joint], { spec: joined.next })
+check('reapplying the same timber pair leaves the document and scene digest unchanged',
+  replayedJoint.result?.digestBefore === replayedJoint.result?.digestAfter &&
+  replayedJoint.result?.specHashBefore === replayedJoint.result?.specHashAfter)
+const removedJoint = runPatch([{ ...joint, enabled: false }], { spec: joined.next })
+check('disabling a half lap restores both original hashes with no empty collection',
+  !Object.hasOwn(removedJoint.next, 'halfLaps') &&
+  removedJoint.result.digestAfter === joined.result.digestBefore &&
+  removedJoint.result.specHashAfter === joined.result.specHashBefore)
+check('a timber group cannot have two active joints or be deleted while a joint references it',
+  runPatch([{ ...joint, upperEntityId: 'beam-other' }], { spec: joined.next }).errorCode === 'PATCH_TARGET_IN_USE' &&
+  runPatch([{ op: 'entity.remove', entityId: 'beam-high' }], { spec: joined.next }).errorCode === 'PATCH_TARGET_IN_USE')
+check('a half lap refuses identical endpoints and detects an incompatible stack on later edits',
+  !validateScenePatch(patchWith([{ ...joint, upperEntityId: joint.lowerEntityId }])).ok &&
+  validateSceneSpec(runPatch([{ op: 'entity.modifiers.set', entityId: 'beam-low',
+    modifiers: [{ type: 'bevel', width: .01 }] }], { spec: joined.next }).next)
+    .errors.some(issue => issue.code === 'SCENE_HALF_LAP_INVALID'))
 const briefEdit = runPatch([{ op: 'project.brief.set', goal: 'A rounded product silhouette', referenceImages: [] }])
 check('project.brief.set preserves unrelated project fields and records both authored input paths',
   briefEdit.next?.project.goal === 'A rounded product silhouette' && briefEdit.specUnchanged && briefEdit.patchUnchanged
@@ -1217,8 +1252,8 @@ check('SCENE_OPERATION_NAMES is frozen', Object.isFrozen(SCENE_OPERATION_NAMES))
 }
 
 check(
-  'SCENE_OPERATION_NAMES lists the 33 operations in their documented order',
-  SCENE_OPERATION_NAMES.length === 33 && SCENE_OPERATION_NAMES[32] === 'project.aspectRatio.set' && SCENE_OPERATION_NAMES[31] === 'entity.uv.project' && SCENE_OPERATION_NAMES[30] === 'project.reviewSubject.set'
+  'SCENE_OPERATION_NAMES lists the 34 operations in their documented order',
+  SCENE_OPERATION_NAMES.length === 34 && SCENE_OPERATION_NAMES[33] === 'joint.halfLap.set' && SCENE_OPERATION_NAMES[32] === 'project.aspectRatio.set' && SCENE_OPERATION_NAMES[31] === 'entity.uv.project' && SCENE_OPERATION_NAMES[30] === 'project.reviewSubject.set'
     && SCENE_OPERATION_NAMES[29] === 'project.brief.set'
     && SCENE_OPERATION_NAMES[0] === 'entity.transform.update'
     && SCENE_OPERATION_NAMES[2] === 'entity.tags.set'

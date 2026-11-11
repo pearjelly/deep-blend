@@ -672,7 +672,7 @@ checkpoint 优先；当前 revision 没有 checkpoint 时，会先从 spec 编�
 
 ## 5. ScenePatch v1 操作词汇表
 
-共 33 个操作。**操作名不可重命名**（它们是线协议的一部分，与错误码同理）。
+共 34 个操作。**操作名不可重命名**（它们是线协议的一部分，与错误码同理）。
 
 ### 5.1 实体
 
@@ -753,6 +753,7 @@ checkpoint 优先；当前 revision 没有 checkpoint 时，会先从 spec 编�
 | `project.reviewSubject.set` | `entityId`（实体 ID 或 `null`）；保存主要评审对象，null 恢复自动选择；实体须存在且非 empty，不移动相机 |
 | `entity.uv.project` | `entityId`（仅 mesh 生成器），`quarterTurns?`（0–3，缺省 0），`scale?`（0.0001–10000，缺省 1）；逐面重建 `faceUvs`，最长局部网格跨度对应 scale 次重复。仅用于平面面片，拒绝非平面面片；UV 岛重叠，不打包。保留几何、变换、材质与摄影 |
 | `project.aspectRatio.set` | `aspectRatio`（如 `16:9`）；仅更新项目参考标记，实际画幅由渲染配置控制 |
+| `joint.halfLap.set` | `lowerEntityId`、`upperEntityId`、`enabled?`；对上下表面等高的两组正交长方体木条开互补槽。下组在交叠处保留下半，上组保留上半。支持静态 mesh、阵列和镜像。槽口随编辑重算，`enabled:false` 移除搭接 |
 
 逐面投影的 U 沿各面最长局部边，V 在面内与其垂直；`quarterTurns` 将投影后的 UV 坐标逆时针转动。缺省 0 将长边保留在 U 方向。统一按控制网格最长局部边界跨度归一化，保留各面比例与相对密度；修改器和物体变换在此后生效，因此旋转的副本可用同样选项。图片本身的木纹方向不自动识别，仍需实际材质预览。
 | `project.frameRange.set` | `frameStart`, `frameEnd`, `fps?` |
@@ -822,7 +823,7 @@ M3 新增的：
 | 高风险操作有审批记录 | 超过 `requireApprovalAboveFrames` 的交付渲染把要求写进 job 记录与工具结果 |
 | 每个错误有稳定 `errorCode` | 见 §6 |
 | 工具结果记录 Artifact、Revision 和 Job 引用 | revision 摘要含 `checkpoint`/`previews`/`job` |
-| 不接受任意 Python | 只接受 33 个固定操作名，无脚本入口 |
+| 不接受任意 Python | 只接受 34 个固定操作名，无脚本入口 |
 | 结果必须**可无损表示** | 工具边界把 `-0` 归一为 `0`，丢 `undefined`、换非有限数并报告 |
 | 不接受任意 Shell | 全部经 `ctx.subprocess` 的 argv 数组 |
 | 不写入项目工作区之外 | `paths.js` 的 `resolveInside()` 在 realpath 上强制 |
