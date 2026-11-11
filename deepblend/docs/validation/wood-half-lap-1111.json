@@ -348,5 +348,47 @@
     },
     "firstPreviewCheck": "The original camera preview picked the timeline midpoint 645. The test used a timeline centered on frame 390 for both captures.",
     "visualObservation": "The eave previews retain the same broad form and wood grain in the extracted scene. Exterior UV equivalence was checked independently."
+  },
+  "workbench": {
+    "recordedAt": "2026-11-11T10:08:08Z",
+    "fixture": "Same two extracted r0075 timber groups, original wood maps and eave camera as the agent acceptance",
+    "uiClientSha256": "84125e801791ba0d6d7baf545ea9bf923b1cacf0be66db0c20028a0b2be15178",
+    "uiSceneContractSha256": "9e6ab1a66d7a1c155c7f2583323fd3689091ef6562f634fffcfe2ee874a1b068",
+    "browser": {
+      "draftWrites": 0,
+      "createWrites": 1,
+      "removalWrites": 1,
+      "beforeRevision": "r0001",
+      "joinedRevision": "r0002",
+      "removedRevision": "r0003",
+      "sceneDiffChanges": 1,
+      "comparison": "matching",
+      "viewports": [[1440, 1100], [390, 844]],
+      "inputMethod": "The harness dispatched browser input events for select controls and real pointer events for Apply and preview. Native select keyboard interaction was not verified.",
+      "checks": [
+        "Selected timber and role remain a draft until Apply and preview",
+        "A single write changes only the joint relation and creates a saved native checkpoint",
+        "The result compares the same camera, frame and render settings",
+        "Reload exposes the saved partner and complementary role from the other timber group",
+        "One removal restores the original specification and preserves all baseline files and source assets"
+      ]
+    },
+    "independentNative": {
+      "beforeOverlapCells": 200,
+      "afterOverlapCells": 0,
+      "sameUnionCells": 1960,
+      "closedComponents": 100,
+      "checkedExteriorUvCorners": 10048,
+      "maximumExteriorUvComponentError": 0.0000010123619667012917,
+      "zeroAreaUvTriangles": 0,
+      "removedRevisionMatchesBaselineMeshesMaterialsTransformsAndUVs": true
+    },
+    "evidenceSha256": {
+      "browserResult": "0eb2f24cb8bef4a0ff355203b89edd76a6044854fec5bc94649c79e2ffe2450b",
+      "independentNative": "a1c23a2a312e194072c57f970d11fb3bba4a62c4a6467f99ef41e3061e115f6a",
+      "desktop": "e409c80c8c426dcd3ecd7a2b2f3e4f7bc4c3e9eae8c0979e911982fa7fbb680b",
+      "mobile": "346bdc935eabdb374f9aa7ea839d4cc4dde3325c40a9a627656f1b412103b7ab",
+      "comparison": "cfa7f0aa4154467148c07fdd1152fd34e1588cdbfcf16602250951e70f3700eb"
+    }
   }
 }

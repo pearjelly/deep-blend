@@ -293,9 +293,13 @@ const DIFF_COLLECTIONS = Object.freeze([
 export function buildRevisionDiff(from, to, context = {}) {
   /** @type {Record<string, unknown>} */
   const collections = {}
-  for (const { key, idField } of DIFF_COLLECTIONS) {
-    const before = new Map((from?.[key] ?? []).map(item => [item[idField], item]))
-    const after = new Map((to?.[key] ?? []).map(item => [item[idField], item]))
+  const comparable = DIFF_COLLECTIONS.map(({ key, idField }) => ({ key, identify: item => item[idField] }))
+  if (from?.halfLaps?.length || to?.halfLaps?.length) {
+    comparable.push({ key: 'halfLaps', identify: joint => [joint.lowerEntityId, joint.upperEntityId].sort().join(' / ') })
+  }
+  for (const { key, identify } of comparable) {
+    const before = new Map((from?.[key] ?? []).map(item => [identify(item), item]))
+    const after = new Map((to?.[key] ?? []).map(item => [identify(item), item]))
     const added = [...after.keys()].filter(id => !before.has(id)).sort()
     const removed = [...before.keys()].filter(id => !after.has(id)).sort()
     const changed = []
@@ -421,6 +425,7 @@ export function buildSceneTree(spec, context = {}) {
     },
     renderProfiles: clone(spec?.renderProfiles ?? null),
     world: clone(spec?.world ?? null),
+    ...(spec?.halfLaps?.length ? { halfLaps: clone(spec.halfLaps) } : {}),
     reviewSubject: clone(resolveSubject(spec)),
     assetParts: clone(assetParts),
     counts: {

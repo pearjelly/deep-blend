@@ -540,6 +540,14 @@ window.__ModuleLoader__.load({
       'editor.uv.scale': '纹理重复',
       'editor.uv.scaleInvalid': '请输入 0.0001 到 10000 之间的重复次数。',
       'editor.uv.scaleHelp': '最长局部网格边界跨度内的重复次数。只改变纹理坐标，保存后查看实际预览。',
+      'editor.halfLap.title': '半搭接',
+      'editor.halfLap.partner': '搭接对象',
+      'editor.halfLap.none': '无搭接',
+      'editor.halfLap.role': '当前木条组',
+      'editor.halfLap.lower': '保留下半部',
+      'editor.halfLap.upper': '保留上半部',
+      'editor.halfLap.help': '两组木条须正交，顶面和底面分别等高。保存后在交叉处切出搭接并生成预览。',
+      'editor.halfLap.invalid': '半搭接需要静态长方体网格。请移除不支持的修饰器，或将搭接对象设为「无搭接」。',
       'editor.subdivision': '曲面细分',
       'editor.surfaceScatter': '封闭表面布置',
       'editor.scatterTargets': '依附物体（逗号分隔）',
@@ -1438,6 +1446,14 @@ window.__ModuleLoader__.load({
       'editor.uv.scale': 'Texture repetitions',
       'editor.uv.scaleInvalid': 'Enter repetitions from 0.0001 to 10000.',
       'editor.uv.scaleHelp': 'Repetitions across the longest local mesh extent. Only texture coordinates change; check the saved preview.',
+      'editor.halfLap.title': 'Half lap',
+      'editor.halfLap.partner': 'Join with',
+      'editor.halfLap.none': 'No joint',
+      'editor.halfLap.role': 'Selected timber group',
+      'editor.halfLap.lower': 'Keep the lower half',
+      'editor.halfLap.upper': 'Keep the upper half',
+      'editor.halfLap.help': 'The groups must cross at right angles and share top and bottom heights. Save to cut the crossings and render a preview.',
+      'editor.halfLap.invalid': 'Half laps need static box meshes. Remove unsupported modifiers or set Join with to “No joint.”',
       'editor.subdivision': 'Surface subdivision',
       'editor.surfaceScatter': 'Closed surface placement',
       'editor.scatterTargets': 'Support objects (comma separated)',
@@ -2730,6 +2746,29 @@ window.__ModuleLoader__.load({
         && (track.property === property || (property === 'baseColor' && track.property?.startsWith('baseColor.'))))
     }
 
+    function editorHalfLapPartner(pair, entityId) {
+      if (pair?.lowerEntityId === entityId) return pair.upperEntityId
+      if (pair?.upperEntityId === entityId) return pair.lowerEntityId
+      return ''
+    }
+
+    function editorTimberCandidate(entity, tracks) {
+      const mesh = entity?.generator
+      return entity?.kind === 'generator' && mesh?.shape === 'mesh' && mesh.vertices?.length === 8 && mesh.faces?.length === 6
+        && !(entity.modifiers || []).some(modifier => !['array', 'mirror'].includes(modifier.type))
+        && !(entity.transform?.scale || []).some(value => value <= 0)
+        && !tracks.some(track => track.targetKind === 'entity' && track.targetId === entity.id
+          && ['location', 'rotationEuler', 'scale'].includes(track.property?.split('.')[0]))
+    }
+
+    function editorHalfLapPartners(draft) {
+      const saved = editorHalfLapPartner(draft.originalHalfLap, draft.entityId)
+      const canJoin = editorTimberCandidate(draft.entity, draft.tracks) && (saved || (draft.halfLaps?.length ?? 0) < 32)
+      const used = new Set((draft.halfLaps || []).flatMap(pair => [pair.lowerEntityId, pair.upperEntityId]))
+      return draft.entities.filter(entity => entity.id === saved || (canJoin && entity.id !== draft.entityId
+        && !used.has(entity.id) && editorTimberCandidate(entity, draft.tracks)))
+    }
+
     function createEditorDraft(scene, projectId, entityId) {
       const entity = scene.nodes.entities.find(item => item.id === entityId)
       if (!entity) return null
@@ -2738,11 +2777,14 @@ window.__ModuleLoader__.load({
       original.modifiers ||= []
       original.materialBindings ||= []
       const material = scene.nodes.materials.find(item => item.id === entity.materialId)
+      const halfLaps = editorClone(scene.halfLaps || [])
+      const originalHalfLap = halfLaps.find(pair => editorHalfLapPartner(pair, entityId)) || null
       let cloneId
       do { cloneId = `ui-material-${Date.now().toString(36)}-${++editorSequence}` }
       while (scene.nodes.materials.some(item => item.id === cloneId))
       return { projectId, entityId, baseRevision: scene.revision, original, entity: editorClone(original),
         uvProjection: null,
+        halfLaps, originalHalfLap, halfLap: editorClone(originalHalfLap),
         materials: editorClone(scene.nodes.materials), entities: editorClone(scene.nodes.entities),
         tracks: editorClone(scene.nodes.animationTracks || []), cloneId,
         material: { id: material?.id || '', definition: editorClone(material?.definition || null),
@@ -2803,6 +2845,12 @@ window.__ModuleLoader__.load({
         if (draft.entity.kind !== 'generator' || generator?.shape !== 'mesh') bad(t('editor.uv.title'))
         scalar(draft.uvProjection.quarterTurns, t('editor.uv.direction'), 0, 3, true)
         scalar(draft.uvProjection.scale, t('editor.uv.scale'), 0.0001, 10000)
+      }
+      if (draft.halfLap) {
+        const partner = editorHalfLapPartner(draft.halfLap, draft.entityId)
+        if (!editorTimberCandidate(draft.entity, draft.tracks) || !editorHalfLapPartners(draft).some(entity => entity.id === partner)) {
+          errors.push(t('editor.halfLap.invalid'))
+        }
       }
       if (generator) {
         if (generator.dimensions !== undefined) {
@@ -2929,6 +2977,13 @@ window.__ModuleLoader__.load({
       if (!editorEqual(entity.generator, original.generator)) operations.push({ op: 'entity.generator.set', entityId: draft.entityId, generator: editorClone(entity.generator) })
       if (draft.uvProjection != null) operations.push({ op: 'entity.uv.project', entityId: draft.entityId, ...editorClone(draft.uvProjection) })
       if (!editorEqual(entity.modifiers, original.modifiers)) operations.push({ op: 'entity.modifiers.set', entityId: draft.entityId, modifiers: editorClone(entity.modifiers) })
+      const { halfLap, originalHalfLap } = draft
+      if (halfLap?.lowerEntityId !== originalHalfLap?.lowerEntityId || halfLap?.upperEntityId !== originalHalfLap?.upperEntityId) {
+        if (originalHalfLap && editorHalfLapPartner(originalHalfLap, draft.entityId) !== editorHalfLapPartner(halfLap, draft.entityId)) {
+          operations.push({ op: 'joint.halfLap.set', ...originalHalfLap, enabled: false })
+        }
+        if (halfLap) operations.push({ op: 'joint.halfLap.set', ...halfLap })
+      }
       const material = draft.material.definition, baseMaterial = editorMaterialOriginal(draft)
       const changedProperties = material && baseMaterial ? ['baseColor', 'roughness'].filter(key => !editorEqual(material.parameters?.[key], baseMaterial.parameters?.[key])) : []
       const textureChanged = material && baseMaterial && !editorEqual(material.texture, baseMaterial.texture)
@@ -5387,6 +5442,16 @@ window.__ModuleLoader__.load({
           const draft = createEditorDraft(scene, current.projectId, current.entityId)
           set({ editorDrafts: { ...data.editorDrafts, [editorKey(current.projectId, current.entityId)]: draft }, notices: { ...data.notices, scene: null } })
         },
+        setEditorHalfLap: (partner, role) => {
+          const current = editorDraftFor(data)
+          if (!current || data.busy.editor || current.baseRevision !== data.selected?.scene?.revision) return
+          if (partner && !editorHalfLapPartners(current).some(entity => entity.id === partner)) return
+          const { entityId } = current
+          const halfLap = !partner ? null : role === 'upper'
+            ? { lowerEntityId: partner, upperEntityId: entityId }
+            : { lowerEntityId: entityId, upperEntityId: partner }
+          set({ editorDrafts: { ...data.editorDrafts, [editorKey(current.projectId, entityId)]: { ...current, halfLap } } })
+        },
         updateEditor: (section, path, value) => {
           const current = editorDraftFor(data)
           if (!current || data.busy.editor || !['transform', 'generator', 'modifiers', 'material', 'uvProjection'].includes(section)) return
@@ -6281,6 +6346,11 @@ window.__ModuleLoader__.load({
       const vector = (title, prefix, value, update, factor = 1000, locks = []) => el('div', null, el('strong', null, title),
         EDITOR_AXES.map((axis, index) => numeric(axis.toUpperCase(), `${prefix}-${axis}`, value?.[index], next => update(index, next), { factor, disabled: locks[index] })))
       const geometry = draft.entity.generator
+      const halfLapPartners = editorHalfLapPartners(draft)
+      const halfLapPartner = editorHalfLapPartner(draft.halfLap, draft.entityId)
+      const halfLapRole = draft.halfLap?.upperEntityId === draft.entityId ? 'upper' : 'lower'
+      const halfLapOptions = halfLapPartners.map(entity => [entity.id, entity.id])
+      if (halfLapPartner && !halfLapPartners.some(entity => entity.id === halfLapPartner)) halfLapOptions.push([halfLapPartner, halfLapPartner])
       const geometryField = key => {
         const bounds = generatorIntegerBounds(geometry, key)
         if (key === 'rootTension') return numeric(labels[key], `editor-generator-${key}`, geometry[key],
@@ -6366,7 +6436,14 @@ window.__ModuleLoader__.load({
                         invalid: draft.uvProjection.scale < 0.0001 || draft.uvProjection.scale > 10000,
                         error: t('editor.uv.scaleInvalid') }),
                     el('p', { className: 'db-muted', key: 'uv-scale-help' }, t('editor.uv.scaleHelp')),
-                  ] : null)] : null,
+                  ] : null),
+                halfLapOptions.length ? el('fieldset', { key: 'half-lap', 'data-half-lap-editor': true, disabled, style: { border: 0, padding: 0, margin: '16px 0' } },
+                  el('legend', null, t('editor.halfLap.title')),
+                  el('p', { className: 'db-muted' }, t('editor.halfLap.help')),
+                  choose(t('editor.halfLap.partner'), 'editor-half-lap-partner', halfLapPartner,
+                    [['', t('editor.halfLap.none')], ...halfLapOptions], partner => actions.setEditorHalfLap(partner, halfLapRole)),
+                  halfLapPartner ? choose(t('editor.halfLap.role'), 'editor-half-lap-role', halfLapRole,
+                    [['lower', t('editor.halfLap.lower')], ['upper', t('editor.halfLap.upper')]], role => actions.setEditorHalfLap(halfLapPartner, role)) : null) : null] : null,
               el('p', { className: 'db-muted', key: 'local-size' }, t('editor.localDimensions', { scale: (draft.entity.transform.scale || [1, 1, 1]).join(' × ') })),
               geometry.shape === 'rounded_box' ? el('p', { className: 'db-muted', key: 'rounded' }, t('editor.roundedRequired')) : null,
               geometry.shape === 'handled_cup' ? el('p', { className: 'db-muted', key: 'cup-help' }, t('editor.cupHelp')) : null,
@@ -7281,7 +7358,7 @@ window.__ModuleLoader__.load({
               Object.entries(state.diff.collections)
                 .filter(([, entry]) => entry.added.length + entry.removed.length + entry.changed.length > 0)
                 .map(([kind, entry]) => el('div', { key: kind },
-                  el('strong', null, kind),
+                  el('strong', null, kind === 'halfLaps' ? t('editor.halfLap.title') : kind),
                   entry.added.length > 0 ? el('div', { className: 'db-muted db-mono' }, `+ ${entry.added.join(', ')}`) : null,
                   entry.removed.length > 0 ? el('div', { className: 'db-muted db-mono' }, `- ${entry.removed.join(', ')}`) : null,
                   entry.changed.map(change => el('div', { key: change.id, className: 'db-muted db-mono' },
