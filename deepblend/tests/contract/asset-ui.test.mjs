@@ -123,6 +123,24 @@ test('GLB placement preserves original materials and camera, with one atomic che
   assert.deepEqual(result.spec.cameras, before.cameras); assert.deepEqual(result.spec.materials, before.materials); assert.deepEqual(spec, before)
 })
 
+test('imported model bounds explain source units and preview the effect of uniform scale', async t => {
+  const obj = entry('obj'), glb = entry('glb')
+  const { store, nodes } = await client(t, { seed: [obj, glb] })
+  await store.actions.loadAssets()
+  await store.actions.previewAsset(assets.key(obj.asset))
+  await store.actions.previewAsset(assets.key(glb.asset))
+  const unitText = type => JSON.stringify(nodes().find(node => node.props['data-asset-units'] === type))
+  assert.match(unitText('obj'), /OBJ.*(?:物理单位|physical units)/)
+  assert.match(unitText('glb'), /glTF.*(?:米|metres)/)
+  store.actions.chooseAsset(assets.key(obj.asset))
+  const scaled = () => JSON.stringify(nodes().find(node => node.props['data-asset-scaled-dimensions']))
+  assert.match(scaled(), /0\.1 × 0\.2 × 0\.3/)
+  store.actions.updateAsset('scale', 0.001)
+  assert.match(scaled(), /0\.0001 × 0\.0002 × 0\.0003/)
+  store.actions.updateAsset('scale', null)
+  assert.equal(nodes().find(node => node.props['data-asset-scaled-dimensions']), undefined)
+})
+
 test('asset licenses are carried only when explicitly supplied; alias changes never rewrite old declarations', () => {
   const { spec, value } = draft('glb'); assert.equal(assets.buildPatch(value).operations[0].asset.license, undefined)
   value.entry.license = 'CC BY 4.0: Original Author'; assert.deepEqual(clone(assets.buildPatch(value).operations[0].asset.license), { source: value.entry.license })
@@ -132,6 +150,8 @@ test('asset licenses are carried only when explicitly supplied; alias changes ne
   assert.equal(patch.operations[1].entity.assetId, patch.operations[0].asset.id); assert.deepEqual(clone(value.scene.nodes.assets), before)
   assert.deepEqual(patch.operations[0].asset.license, {source:value.entry.license})
 })
+
+test('model placement hides only an explicitly selected existing object and can set the new subject',()=>{const {spec,value}=draft('glb'),before=clone(spec);assert.deepEqual(clone(assets.buildPatch(value)).operations.map(op=>op.op),['asset.add','entity.add']);value.hideEntityId='shade-shell';value.makeSubject=true;const {patch,spec:next}=apply(spec,value);assert.deepEqual(patch.operations.map(op=>op.op),['asset.add','entity.add','entity.visibility.set','project.reviewSubject.set']);assert.equal(next.entities.find(e=>e.id==='shade-shell').visible,false);assert.equal(next.project.reviewSubjectId,value.newEntityId);assert.deepEqual(spec,before);value.makeSubject=false;value.scene.project.reviewSubjectId='shade-shell';assert.throws(()=>assets.buildPatch(value),/subject/i);value.hideEntityId='not-existing';assert.throws(()=>assets.buildPatch(value));value.hideEntityId='shade-shell';value.scene.nodes.entities.find(e=>e.id==='shade-shell').locked=true;assert.throws(()=>assets.buildPatch(value))})
 
 test('local image binding preserves alpha, anisotropy, tangents, other maps and the selected map UV transform', () => {
   const spec = source(), material = spec.materials.find(item => item.id === 'champagne-spun'); material.parameters.baseColor[3] = .37; delete material.texture

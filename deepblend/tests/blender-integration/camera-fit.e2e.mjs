@@ -195,6 +195,10 @@ try {
     && row.allVerticesInside && row.selectedWorldGeometryUnchanged && row.allOriginalObjectsUnchanged && row.sourceOpticsAndRollPreserved && row.newFocusDistance > 0, row)
   check('all prior native/spec/recipe/preview/manifest and imported asset bytes remain exact', Object.entries(history).every(([path, hash]) => sha(path) === hash))
   json('protected-history.json', history); json('calls.json', calls); json('receipts.json', receipts)
+  python('photography-snapshot-controls', readFileSync(join(root, 'deepblend/tests/blender-integration/photography-snapshot-fixture.py'), 'utf8'), [root, join(output, 'photography-snapshots')])
+  const photography = JSON.parse(readFileSync(join(output, 'photography-snapshots/report.json')))
+  check('native photography accepts default light nodes, static Boolean and 128 members, and refuses hidden, animated, extra-light and over-budget sources',
+    photography.passed && photography.checks.length === 14 && photography.checks.every(row => row.ok), photography.checks)
 } catch (error) { failure = { code: error.code, message: error.message, stack: error.stack }; json('failure.json', failure); console.error(error) }
 finally {
   try { await ctx.fiber.dispose() } catch (error) { failure ??= { message: error.message } }

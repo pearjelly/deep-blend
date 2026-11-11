@@ -71,6 +71,7 @@ export const SCENE_OPERATION_NAMES = Object.freeze([
   'project.brief.set',
   'project.reviewSubject.set',
   'entity.uv.project',
+  'project.aspectRatio.set',
 ])
 
 /** The `id` grammar shared with SceneSpec. */const ID_PATTERN = /^[a-zA-Z][a-zA-Z0-9._-]*$/
@@ -952,6 +953,13 @@ export function applyPatchToSpec(spec, patch) {
           summary: changed.join(', '),
           changedPaths: ['project.frameStart', 'project.frameEnd'],
         })
+        break
+      }
+
+      case 'project.aspectRatio.set': {
+        next.project = { ...next.project, aspectRatio: operation.aspectRatio }
+        applied.push({ op, target: next.project.id, summary: `set the project aspect ratio to ${operation.aspectRatio}`,
+          changedPaths: ['project.aspectRatio'] })
         break
       }
 

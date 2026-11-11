@@ -78,11 +78,11 @@ async function completed(jobId) {
   throw Error(`Render ${jobId} did not complete within 180 seconds`)
 }
 
-async function verifyJob(request, profileName, revision, frames) {
+async function verifyJob(request, profileName, revision, frames, cameraId, resolution) {
   const jobId = request.receipt.job.jobId, job = await completed(jobId)
   const plan = read('renders', jobId, 'plan.json'), envelope = read('renders', jobId, 'result.json')
   const manifest = read('renders', jobId, 'manifest.json'), spec = read('revisions', revision, 'scene-spec.json')
-  const expected = spec.renderProfiles[profileName], native = envelope.result
+  const expected = { ...spec.renderProfiles[profileName], ...(resolution ? { resolution } : {}) }, native = envelope.result
   check(`${profileName}: browser request pins the selected profile, revision and frame range`,
     request.body.profile === profileName && request.body.revision === revision
       && request.body.frameStart === frames[0] && request.body.frameEnd === frames.at(-1), request.body)
@@ -92,6 +92,9 @@ async function verifyJob(request, profileName, revision, frames) {
       && isDeepStrictEqual(plan.frames, frames) && isDeepStrictEqual(plan.profile.resolution, expected.resolution)
       && plan.profile.samples === expected.samples && job.renderConfig.samples === expected.samples
       && isDeepStrictEqual(job.renderConfig.resolution, expected.resolution), { job, plan })
+  if (cameraId) check(`${profileName}: the selected camera is used by the request, render plan and Blender`,
+    request.body.cameraId === cameraId && plan.cameraId === cameraId && native.cameraId === cameraId,
+    { request: request.body.cameraId, plan: plan.cameraId, actual: native.cameraId })
   check(`${profileName}: Blender reports the actual native samples and dimensions`,
     envelope.status === 'success' && native.profileName === profileName
       && native.renderConfig.samples === expected.samples
@@ -167,6 +170,9 @@ try {
   await page.click('[data-view-tab="jobs"]')
   await page.waitFor('document.querySelector("[data-action=start-render]") !== null')
   await page.fill('[data-field="frame-start"]', '1'); await page.fill('[data-field="frame-end"]', '2')
+  await page.evaluate(`(() => { const e = document.querySelector('[data-field="render-camera"]'); e.value = 'camera-top'; e.dispatchEvent(new Event('input', { bubbles: true })); e.dispatchEvent(new Event('change', { bubbles: true })) })()`)
+  await page.waitFor(`document.querySelector('[data-field="render-still-preset"] option[value="video-1920x1080"]')!==null`)
+  await page.evaluate(`(()=>{const e=document.querySelector('[data-field="render-still-preset"]');Object.getOwnPropertyDescriptor(HTMLSelectElement.prototype,'value').set.call(e,'video-1920x1080');e.dispatchEvent(new Event('input',{bubbles:true}));e.dispatchEvent(new Event('change',{bubbles:true}))})()`)
   await selectProfile('preview'); await page.screenshot(join(output, 'preview-selected.png'))
 
   // Hold the actual browser request after the click, before the real HTTP call.
@@ -177,26 +183,55 @@ try {
   await page.waitFor('typeof window.__releaseRender === "function"')
   const held = await page.evaluate('window.__renderRequests[0]')
   check('the clicked request already contains the loaded source before it reaches the Host',
-    held.body.revision === 'r0001' && held.body.profile === 'preview', held)
+    held.body.revision === 'r0001' && held.body.profile === 'preview' && held.body.cameraId === 'camera-top' && held.body.videoPreset === 'video-1920x1080', held)
   const update = await post(`/projects/${projectId}/patch`, { patch: { projectId, baseRevision: 'r0001',
     saveCheckpoint: false, renderPreview: false, operations: [
       { op: 'render.profile.set', profileName: 'preview', profile: { resolution: [96, 64], samples: 1 } },
       { op: 'entity.transform.update', entityId: 'watch-body', location: [0, -0.2, 0.02] },
+      { op: 'camera.remove', cameraId: 'camera-top' },
     ] } })
   check('another editor publishes a genuinely different current revision before the render request arrives',
     update.revision.revision === 'r0002' && read('project.json').currentRevision === 'r0002'
       && sceneSpecDigest(read('revisions', 'r0002', 'scene-spec.json')) !== sceneSpecDigest(read('revisions', 'r0001', 'scene-spec.json')), update)
   await page.evaluate('(() => { window.__releaseRender(); delete window.__releaseRender })()')
-  const preview = await verifyJob(await receipt(0), 'preview', 'r0001', [1, 2])
+  const preview = await verifyJob(await receipt(0), 'preview', 'r0001', [1, 2], 'camera-top', [1920, 1080])
+  execFileSync('ffmpeg', ['-v', 'error', '-i', file('renders', preview.jobId, 'encoded', `${preview.jobId}.mp4`), '-f', 'null', '-'], { timeout: 60000 })
+  check('the 1080p video is fully decoded independently', true)
+  check('the completed job displays the camera that produced the frames',
+    await page.evaluate(`document.querySelector('[data-job="${preview.jobId}"] [data-job-camera="camera-top"]') !== null`))
   check('the first task preserves its old checkpoint and sources after the newer revision is current',
     preview.plan.checkpoint === file('revisions', 'r0001', 'scene.blend') && read('project.json').currentRevision === 'r0002'
       && Object.entries(protectedSources).every(([name, hash]) => sha(readFileSync(file('revisions', 'r0001', name))) === hash))
 
   await page.click('[data-action="reload"]')
   await page.waitFor("document.querySelector('[data-lighttable-revision=r0002]') !== null")
+  await page.click('[data-action="start-render"]')
+  check('a camera removed from the current revision is refused without sending a new render request',
+    await page.evaluate(`window.__renderRequests.length === 1 && document.querySelector('[data-view="jobs"]').textContent.includes('所选相机在当前版本中不存在')`))
+  const refused = await fetch(`${base}/deepblend/projects/${projectId}/render`, { method: 'POST', headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({ revision: 'r0002', cameraId: 'camera-top', frameStart: 3, frameEnd: 3, profile: 'final' }) })
+  const refusedPayload = await refused.json()
+  check('the Host also refuses a missing camera before creating a job', !refused.ok && refusedPayload.error?.code === 'SCENE_CAMERA_MISSING'
+    && readdirSync(file('renders')).filter(name => /^render-[0-9]+$/.test(name)).length === 1, refusedPayload)
+  await page.evaluate(`(() => { const e = document.querySelector('[data-field="render-camera"]'); e.value = ''; e.dispatchEvent(new Event('input', { bubbles: true })); e.dispatchEvent(new Event('change', { bubbles: true })) })()`)
   await selectProfile('final'); await page.fill('[data-field="frame-start"]', '3'); await page.fill('[data-field="frame-end"]', '3')
+  await page.waitFor(`document.querySelector('[data-field="render-still-preset"]')!==null`)
+  await page.evaluate(`(()=>{const e=document.querySelector('[data-field="render-still-preset"]');Object.getOwnPropertyDescriptor(HTMLSelectElement.prototype,'value').set.call(e,'still-2560x1440');e.dispatchEvent(new Event('input',{bubbles:true}));e.dispatchEvent(new Event('change',{bubbles:true}))})()`)
   check('final is submitted by the visible native button', (await page.click('[data-action="start-render"]')).via === 'pointer')
-  await verifyJob(await receipt(1), 'final', 'r0002', [3])
+  const request = await receipt(1)
+  check('the browser explicitly requests the single-frame delivery preset', request.body.stillPreset === 'still-2560x1440')
+  const final = await verifyJob(request, 'final', 'r0002', [3], null, [2560, 1440])
+  const downloads = join(output, 'downloads'); mkdirSync(downloads)
+  await page.send('Browser.setDownloadBehavior', { behavior: 'allow', downloadPath: downloads, eventsEnabled: true })
+  const frameLink = `[data-action="download-frame:${final.jobId}"]`
+  await page.waitFor(`document.querySelector(${JSON.stringify(frameLink)}) !== null`, 30000)
+  check('the saved single-frame render can be downloaded through the real workbench', (await page.click(frameLink)).via === 'pointer')
+  const downloadDeadline = Date.now() + 30000
+  while (Date.now() < downloadDeadline && !readdirSync(downloads).some(name => name.endsWith('.png'))) await sleep(100)
+  const downloadedName = readdirSync(downloads).find(name => name.endsWith('.png'))
+  check('the browser receives the exact task PNG with its revision in the name', Boolean(downloadedName)
+    && downloadedName.includes('r0002') && sha(readFileSync(join(downloads, downloadedName))) === final.pixels[0].sha256,
+    { downloadedName, expected: final.pixels[0].sha256 })
   check('later rendering keeps the earlier job frames byte-identical', preview.pixels.every(frame => sha(readFileSync(frame.path)) === frame.sha256))
   requests = await page.evaluate('window.__renderRequests')
   check('the browser sent exactly the two requested render operations', requests.length === 2, requests)

@@ -402,6 +402,18 @@ try {
   check('a view role no camera fills produces a coded failure rather than an empty success',
     badRoles.isError === false && badRoles.value?.ok === false,
     { ok: badRoles.value?.ok, code: badRoles.value?.data?.errorCode })
+  const chosenView = reviewed.value.data.views.at(-1), chosenRevision = reviewed.value.data.revision
+  const chosenNative = join(root.get('blenderStudio').store.revisionDirectory(roomId, chosenRevision), 'scene.blend')
+  const originalNative = readFileSync(chosenNative)
+  const picked = [{ id: 'delivered-view', cameraId: chosenView.cameraId, frame: chosenView.frame }]
+  const selectedReview = await call('blender_visual_review', { projectId: roomId, revision: chosenRevision, views: picked })
+  const scope = selectedReview.value?.data?.inputScope
+  check('the real agent tool reviews the explicit saved camera and frame at the project aspect', selectedReview.value?.ok === true
+    && scope?.mode === 'selected-views' && scope.views.length === 1 && scope.views[0].cameraId === picked[0].cameraId
+    && scope.views[0].frame === picked[0].frame && scope.views[0].resolution[0] === 640 && scope.views[0].resolution[1] === 360
+    && scope.views[0].samples === 16, scope)
+  check('selected review returns its actual image and preserves the saved native source',
+    selectedReview.content.some(block => block.type === 'image') && readFileSync(chosenNative).equals(originalNative))
 } finally {
   const { rmSync } = await import('node:fs')
   rmSync(workspace, { recursive: true, force: true })

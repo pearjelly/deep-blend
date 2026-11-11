@@ -323,3 +323,15 @@ test('model tool keys reach capable Hosts, while older Hosts are refused without
     } finally { await plane.ctx.stop?.() }
   }
 })
+
+test('real Blender path and runtime errors explain the environment and expose recovery guidance', async t => {
+  for (const code of ['BLENDER_EXECUTABLE_OUTSIDE_ALLOWLIST', 'BLENDER_EXECUTABLE_NOT_EXECUTABLE', 'BLENDER_RUNTIME_UNAVAILABLE']) {
+    const h = await client(t, () => ({ ok: false, error: { code, message: 'safe diagnostic' } }))
+    await h.store.actions.createProject()
+    const message = h.store.getState().notices.projects.message
+    assert.match(message, /Blender/)
+    if (code === 'BLENDER_EXECUTABLE_OUTSIDE_ALLOWLIST') assert.match(message, /path|路径|许可/i)
+    assert.ok(h.nodes().some(n => n.tag === 'a' && String(n.props.href).includes('environment-check.md')))
+    assert.equal(h.store.getState().forms.title, 'Creation draft')
+  }
+})

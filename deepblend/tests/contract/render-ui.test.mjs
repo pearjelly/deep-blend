@@ -10,6 +10,7 @@ import BlenderStudio, { StudioConfig } from '@deepblend/dsh-blender-host'
 import { createHandlers } from '@deepblend/dsh-blender-ui'
 import { createImage, encodePng, matchUiRoute } from '@deepblend/dsh-blender-contracts'
 import { loadClientBundle } from '../lib/client-bundle.mjs'
+import { inspectProjectStorage, LOW_PROJECT_STORAGE_BYTES } from '../../../packages/deepblend/host/lib/storage-readiness.js'
 
 const clone = value => JSON.parse(JSON.stringify(value))
 const core = loadClientBundle().exports.workbench
@@ -58,7 +59,7 @@ async function harness(t, options = {}) {
     const original = studio[method].bind(studio)
     studio[method] = async request => { hostCalls.push({ method, request: clone(request) }); return original(request) }
   }
-  const project = await studio.transactions.createProject({ title: 'Render controls', sceneSpec: source, saveCheckpoint: options.saveCheckpoint ?? true })
+  const project = await studio.transactions.createProject({ title: 'Render controls', sceneSpec: options.scene ?? source, saveCheckpoint: options.saveCheckpoint ?? true })
   const projectId = project.projectId, revision = project.revision.revision
   const handlers = createHandlers({ blenderStudio: studio })
   const fetch = async (url, init = {}) => {
@@ -89,6 +90,93 @@ async function harness(t, options = {}) {
   return { store, studio, handlers, projectId, revision, renderer, posts, hostCalls, compiles, record, finished, advance }
 }
 
+test('project storage observation reports low, measured and unknown without claiming a reservation', () => {
+  const probe = bytes => inspectProjectStorage('/project-volume', { statfs: (path, options) => {
+    assert.equal(path, '/project-volume'); assert.equal(options.bigint, true)
+    return { bavail: BigInt(bytes), bsize: 1n }
+  } })
+  assert.equal(probe(LOW_PROJECT_STORAGE_BYTES - 1).status, 'low')
+  assert.equal(probe(LOW_PROJECT_STORAGE_BYTES).status, 'observed')
+  assert.equal(probe(0).availableBytes, 0)
+  assert.deepEqual(Object.keys(probe(123)).sort(), ['availableBytes', 'observedAt', 'status'])
+  for (const statfs of [() => { throw Error('no access') }, () => ({ bavail: -1n, bsize: 4096n }), () => ({ bavail: 1n, bsize: 0n }), () => ({ bavail: 1n << 62n, bsize: 4096n })]) {
+    const result = inspectProjectStorage('/project-volume', { statfs })
+    assert.equal(result.status, 'unverified'); assert.equal(result.availableBytes, null)
+  }
+})
+
+test('the workbench shows a storage warning and never treats a measurement as a guarantee', async t => {
+  const h = await harness(t)
+  const inspect = () => {
+    const walk = node => node && typeof node === 'object' ? [node, ...(node.children || []).flatMap(walk)] : []
+    return walk(core.renderView({ state: h.store.getState(), actions: h.store.actions })).find(node => node.props['data-project-storage'])
+  }
+  for (const sample of [{ status: 'low', availableBytes: 125 * 1024 ** 2 }, { status: 'observed', availableBytes: 20 * 1024 ** 3 }, { status: 'unverified', availableBytes: null }]) {
+    h.studio.getProjectStorage = () => sample; h.store.actions.reload()
+    await settle(() => h.store.getState().projectStorage?.status === sample.status)
+    h.store.actions.setView('jobs')
+    const notice = inspect(), text = JSON.stringify(notice)
+    assert.equal(notice.props['data-project-storage'], sample.status === 'unverified' ? 'unknown' : sample.status)
+    assert.match(text, /预留|reserved space/i)
+    if (sample.status === 'low') assert.match(text, /2 GiB/)
+  }
+  h.studio.getProjectStorage = undefined; h.store.actions.reload()
+  await settle(() => h.store.getState().projectStorage === null)
+  assert.equal(inspect().props['data-project-storage'], 'unknown')
+})
+
+test('the 16:9 preparation saves both profile dimensions and preserves source, quality and cameras', async t => {
+  const fixture = clone(source)
+  fixture.project.aspectRatio = '4:3'
+  fixture.renderProfiles.preview.resolution = [768, 576]
+  fixture.renderProfiles.final.resolution = [1024, 768]
+  const h = await harness(t, { scene: fixture }), before = clone(h.studio.store.readRevisionSpec(h.projectId, h.revision))
+  const actual = h.studio.applyScenePatch.bind(h.studio), calls = []
+  h.studio.applyScenePatch = async patch => { calls.push(clone(patch)); return actual({ ...patch, renderPreview: false }) }
+  const warning = () => {
+    const walk = node => node && typeof node === 'object' ? [node, ...(node.children || []).flatMap(walk)] : []
+    return walk(core.renderView({ state: h.store.getState(), actions: h.store.actions })).find(node => node.props['data-render-aspect-warning'])
+  }
+  h.store.actions.setView('jobs')
+  for (const preset of ['still-2560x1440', 'video-1920x1080']) {
+    h.store.actions.setForm('stillPreset', preset)
+    assert.equal(warning()?.props['data-render-aspect-warning'], 'mismatch')
+  }
+  const unknownState = clone(h.store.getState()); unknownState.selected.scene.renderProfiles = null
+  const walk = node => node && typeof node === 'object' ? [node, ...(node.children || []).flatMap(walk)] : []
+  assert.equal(walk(core.renderView({ state: unknownState, actions: h.store.actions })).find(node => node.props['data-render-aspect-warning'])?.props['data-render-aspect-warning'], 'unknown')
+  await h.store.actions.saveWideFrame()
+  await settle(() => h.store.getState().selected?.scene?.revision !== h.revision)
+  const saved = h.studio.store.readRevisionSpec(h.projectId, h.store.getState().currentRevision)
+  assert.equal(calls.length, 1); assert.equal(calls[0].renderPreview, true)
+  assert.deepEqual(calls[0].operations.map(op => op.op), ['render.profile.set', 'render.profile.set', 'project.aspectRatio.set'])
+  assert.deepEqual(saved.renderProfiles.preview.resolution, [768, 432]); assert.deepEqual(saved.renderProfiles.final.resolution, [1024, 576])
+  assert.equal(saved.project.aspectRatio, '16:9'); assert.deepEqual(saved.cameras, before.cameras); assert.deepEqual(saved.entities, before.entities)
+  assert.equal(saved.renderProfiles.preview.samples, before.renderProfiles.preview.samples); assert.equal(saved.renderProfiles.final.samples, before.renderProfiles.final.samples)
+  for (const name of ['preview', 'final']) {
+    const original = clone(before.renderProfiles[name]), changed = clone(saved.renderProfiles[name])
+    delete original.resolution; delete changed.resolution
+    assert.deepEqual(changed, original, `${name} engine, samples, color and budget remain unchanged`)
+  }
+  for (const key of ['lights', 'materials', 'world', 'animationTracks', 'shots']) assert.deepEqual(saved[key], before[key], `${key} remains unchanged`)
+  assert.deepEqual(h.studio.store.readRevisionSpec(h.projectId, h.revision), before)
+  assert.equal(Object.values(h.store.getState().motionDrafts).find(draft => draft.projectId === h.projectId)?.baseRevision, h.store.getState().currentRevision)
+  assert.equal(warning(), undefined, 'a matching saved 16:9 project no longer needs the mismatch warning')
+})
+
+test('16:9 preparation refuses a changed project store and is unavailable on an old Host', async t => {
+  const fixture = clone(source); fixture.project.aspectRatio = '4:3'; fixture.renderProfiles.preview.resolution = [768, 576]; fixture.renderProfiles.final.resolution = [1024, 768]
+  const h = await harness(t, { scene: fixture }), before = h.studio.store.readRecord(h.projectId).currentRevision
+  await assert.rejects(h.handlers['project.patch']({ params: { projectId: h.projectId }, body: { expectedStoreIdentity: 'f'.repeat(64), patch: { baseRevision: before, operations: [{ op: 'project.aspectRatio.set', aspectRatio: '16:9' }] } } }), { code: 'REVISION_CONFLICT' })
+  assert.equal(h.studio.store.readRecord(h.projectId).currentRevision, before)
+  h.store.actions.setMotionValue('seconds', '4')
+  await h.store.actions.saveWideFrame(); assert.equal(h.studio.store.readRecord(h.projectId).currentRevision, before)
+  assert.equal(Object.values(h.store.getState().motionDrafts).find(draft => draft.projectId === h.projectId)?.seconds, '4')
+  h.studio.deliveryAspectPresetSupported = false; h.store.actions.reload()
+  await settle(() => !h.store.getState().deliveryAspectPresetSupported)
+  await h.store.actions.saveWideFrame(); assert.equal(h.studio.store.readRecord(h.projectId).currentRevision, before)
+})
+
 for (const profile of ['preview', 'final']) test(`the ${profile} selection reaches the renderer even when the Host default is different`, async t => {
   const h = await harness(t, { defaultProfile: profile === 'preview' ? 'final' : 'preview' })
   h.store.actions.setForm('profile', profile); await h.store.actions.startRender(); await h.finished()
@@ -98,6 +186,94 @@ for (const profile of ['preview', 'final']) test(`the ${profile} selection reach
   assert.equal(h.hostCalls[0].request.profileName, profile); assert.equal(Object.hasOwn(h.hostCalls[0].request, 'profile'), false)
   assert.equal(h.record().profileName, profile); assert.deepEqual(h.record().renderConfig.resolution, source.renderProfiles[profile].resolution)
   assert.equal(h.record().renderConfig.samples, source.renderProfiles[profile].samples)
+})
+
+test('the still preset is job-scoped, pins one revision and survives a failed render and resume', async t => {
+  const h = await harness(t)
+  const originalSpec = clone(h.studio.store.readRevisionSpec(h.projectId, h.revision))
+  h.store.actions.setForm('profile', 'final'); h.store.actions.setForm('frameEnd', '2')
+  h.store.actions.setForm('stillPreset', 'still-2560x1440')
+  await h.store.actions.startRender(); await h.finished()
+  const original = h.record()
+  assert.equal(h.posts[0].body.stillPreset, 'still-2560x1440')
+  assert.equal(original.stillPreset, 'still-2560x1440'); assert.equal(original.revisionId, h.revision)
+  assert.deepEqual(original.renderConfig.resolution, [2560, 1440]); assert.deepEqual(h.renderer[0].profile.resolution, [2560, 1440])
+  assert.equal(h.renderer[0].profile.samples, originalSpec.renderProfiles.final.samples)
+  assert.deepEqual(h.studio.store.readRevisionSpec(h.projectId, h.revision), originalSpec)
+  await h.advance(); h.store.actions.reload(); await settle(() => h.store.getState().selected.scene.revision === 'r0002')
+  h.store.actions.setForm('stillPreset', ''); h.store.actions.setForm('profile', 'preview')
+  await h.store.actions.startRender(original.jobId); await h.finished()
+  assert.deepEqual(h.posts[1].body, { resumeJobId: original.jobId })
+  assert.equal(h.record().revisionId, h.revision); assert.deepEqual(h.renderer[1].profile.resolution, [2560, 1440])
+  assert.deepEqual(h.renderer[1].frames, [2]); assert.equal(h.renderer[1].checkpointPath, h.renderer[0].checkpointPath)
+})
+
+test('unknown and multi-frame still presets fail before allocating jobs or rendering', async t => {
+  const h = await harness(t)
+  for (const request of [
+    { frameStart: 2, frameEnd: 3, stillPreset: 'still-2560x1440' },
+    { frameStart: 2, frameEnd: 2, stillPreset: 'unknown' },
+  ]) await assert.rejects(h.studio.startFinalRender({ projectId: h.projectId, revision: h.revision, ...request }), error => error.code === 'RENDER_RANGE_INVALID')
+  assert.equal(h.renderer.length, 0); assert.equal(h.studio.renderJobs.list(h.projectId).length, 0)
+  h.store.actions.setForm('stillPreset', 'still-2560x1440'); await h.store.actions.startRender()
+  assert.equal(h.posts.length, 0, 'the client reports the invalid frame range without a request')
+  const oldHandlers = createHandlers({ blenderStudio: { startFinalRender: () => assert.fail('an older Host must not silently ignore a preset') } })
+  await assert.rejects(oldHandlers['project.render']({ params: { projectId: h.projectId }, body: { stillPreset: 'still-2560x1440' } }), error => error.code === 'UI_HOST_API_STALE')
+})
+
+test('a preset that disagrees with the recorded dimensions cannot be resumed', async t => {
+  const h = await harness(t)
+  const job = await h.studio.startFinalRender({ projectId: h.projectId, revision: h.revision, frameStart: 2, frameEnd: 2, stillPreset: 'still-2560x1440' })
+  await h.finished(); const old = h.record(), changed = clone(old); changed.renderConfig.resolution = [1920, 1080]
+  h.studio.renderJobs.write(changed, { previous: old })
+  await assert.rejects(h.studio.resumeRenderJob({ projectId: h.projectId, jobId: job.jobId }), error => error.code === 'RENDER_JOB_STATE_INVALID')
+  assert.equal(h.renderer.length, 1)
+})
+
+test('the 1080p video preset preserves the scene frame rate and resumes the original job settings', async t => {
+  const h = await harness(t), originalSpec = clone(h.studio.store.readRevisionSpec(h.projectId, h.revision))
+  h.store.actions.setForm('profile', 'final'); h.store.actions.setForm('stillPreset', 'video-1920x1080')
+  await h.store.actions.startRender(); await h.finished()
+  const original = h.record()
+  assert.equal(h.posts[0].body.videoPreset, 'video-1920x1080'); assert.equal(h.posts[0].body.stillPreset, undefined)
+  assert.deepEqual(original.renderConfig.resolution, [1920, 1080]); assert.equal(original.fps, originalSpec.project.fps)
+  assert.deepEqual(h.renderer[0].profile.resolution, [1920, 1080]); assert.equal(h.renderer[0].profile.samples, originalSpec.renderProfiles.final.samples)
+  assert.deepEqual(h.studio.store.readRevisionSpec(h.projectId, h.revision), originalSpec)
+  await h.advance(); h.store.actions.setForm('stillPreset', ''); h.store.actions.setForm('profile', 'preview')
+  await h.store.actions.startRender(original.jobId); await h.finished()
+  assert.deepEqual(h.posts[1].body, { resumeJobId: original.jobId }); assert.equal(h.record().revisionId, h.revision)
+  assert.deepEqual(h.renderer[1].profile.resolution, [1920, 1080]); assert.equal(h.renderer[1].checkpointPath, h.renderer[0].checkpointPath)
+})
+
+test('incompatible, unknown, stale and tampered video presets never silently render or resume', async t => {
+  const h = await harness(t)
+  for (const extra of [{ videoPreset: 'unknown' }, { videoPreset: 'video-1920x1080', deliveryKind: 'still', frameEnd: 2 },
+    { videoPreset: 'video-1920x1080', stillPreset: 'still-2560x1440', frameEnd: 2 }])
+    await assert.rejects(h.studio.startFinalRender({ projectId: h.projectId, revision: h.revision, frameStart: 2, frameEnd: 3, ...extra }), error => error.code === 'RENDER_RANGE_INVALID')
+  assert.equal(h.renderer.length, 0)
+  const oldHandlers = createHandlers({ blenderStudio: { startFinalRender: () => assert.fail('old Host cannot ignore a video preset') } })
+  await assert.rejects(oldHandlers['project.render']({ params: { projectId: h.projectId }, body: { videoPreset: 'video-1920x1080' } }), error => error.code === 'UI_HOST_API_STALE')
+  h.store.actions.setForm('stillPreset', 'video-1920x1080'); h.store.actions.setForm('deliveryKind', 'still')
+  await h.store.actions.startRender(); assert.equal(h.posts.length, 0)
+  const job = await h.studio.startFinalRender({ projectId: h.projectId, revision: h.revision, frameStart: 2, frameEnd: 3, videoPreset: 'video-1920x1080' })
+  await h.finished(); const old = h.record(), changed = clone(old); changed.renderConfig.resolution = [960, 720]
+  h.studio.renderJobs.write(changed, { previous: old })
+  await assert.rejects(h.studio.resumeRenderJob({ projectId: h.projectId, jobId: job.jobId }), error => error.code === 'RENDER_JOB_STATE_INVALID')
+  assert.equal(h.renderer.length, 1)
+})
+
+test('image delivery is explicit, single frame and remains bound on resume', async t => {
+  const h = await harness(t)
+  h.store.actions.setForm('deliveryKind', 'still'); await h.store.actions.startRender()
+  assert.equal(h.posts.length, 0, 'multi-frame image selection is refused in the workbench')
+  h.store.actions.setForm('frameEnd', '2'); await h.store.actions.startRender(); await h.finished()
+  const original = h.record(); assert.equal(h.posts[0].body.deliveryKind, 'still'); assert.equal(original.deliveryKind, 'still')
+  h.store.actions.setForm('deliveryKind', ''); await h.store.actions.startRender(original.jobId); await h.finished()
+  assert.deepEqual(h.posts[1].body, { resumeJobId: original.jobId }); assert.equal(h.record().deliveryKind, 'still')
+  await assert.rejects(h.studio.exportProject({ projectId: h.projectId, jobId: original.jobId }), error => error.code === 'RENDER_JOB_STATE_INVALID')
+  await assert.rejects(h.studio.exportProject({ projectId: h.projectId }), error => error.code === 'RENDER_JOB_NOT_FOUND', 'automatic video export must not choose an image job')
+  const oldHandlers = createHandlers({ blenderStudio: { startFinalRender: () => assert.fail('old Host must not encode a silently downgraded image request') } })
+  await assert.rejects(oldHandlers['project.render']({ params: { projectId: h.projectId }, body: { deliveryKind: 'still' } }), error => error.code === 'UI_HOST_API_STALE')
 })
 
 test('a concurrent scene edit cannot change the loaded revision submitted for rendering', async t => {

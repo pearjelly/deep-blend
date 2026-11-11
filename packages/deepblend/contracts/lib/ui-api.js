@@ -45,6 +45,7 @@ export const UI_REST_MARKER = '*'
  * @type {ReadonlyArray<{ id: string, method: string, path: string, write: boolean, summary: string }>}
  */
 export const UI_ROUTES = Object.freeze([
+  { id: 'readiness.imageInput', method: 'POST', path: '/deepblend/readiness/image-input', write: true, summary: 'Explicitly test the configured review route with one randomized image input challenge.' },
   { id: 'capabilities', method: 'GET', path: '/deepblend/capabilities', write: false, summary: 'Blender capabilities and the settings card.' },
   // The first route this product serves FOR SOMEBODY ELSE TO READ. Everything else on this surface
   // exists so the workbench can render itself; this one exists so a user can hand a maintainer the
@@ -87,9 +88,16 @@ export const UI_ROUTES = Object.freeze([
   { id: 'project.recipeParameters.update', method: 'POST', path: '/deepblend/projects/:projectId/recipe-parameters', write: true, summary: 'Save bounded assembly dimensions as an atomic revision.' },
   { id: 'project.surfacePlacement', method: 'POST', path: '/deepblend/projects/:projectId/surface-placement', write: true, summary: 'Measure and save an explicit entity or complete supported lamp placement.' },
   { id: 'project.cameraFit', method: 'POST', path: '/deepblend/projects/:projectId/camera-fit', write: true, summary: 'Save a new static camera after independently verifying complete selected geometry fits the frame.' },
+  { id: 'project.photographyReuse', method: 'POST', path: '/deepblend/projects/:projectId/photography-reuse', write: true, summary: 'Explicitly inspect saved product bounds and return an adapted photography draft without saving a scene.' },
   { id: 'project.restore', method: 'POST', path: '/deepblend/projects/:projectId/restore', write: true, summary: 'Move the current revision pointer to a saved revision, preserving history without creating a new revision.' },
   { id: 'project.jobs', method: 'GET', path: '/deepblend/projects/:projectId/jobs', write: false, summary: 'Render/export jobs of a project.' },
   { id: 'project.job', method: 'GET', path: '/deepblend/projects/:projectId/jobs/:jobId', write: false, summary: 'One job with its live progress.' },
+  { id: 'project.job.video', method: 'GET', path: '/deepblend/projects/:projectId/jobs/:jobId/video', write: false, summary: 'Download the verified video for one explicit job and revision.' },
+  { id: 'project.job.frame', method: 'GET', path: '/deepblend/projects/:projectId/jobs/:jobId/frames/:frame', write: false, summary: 'Download a provenance-bound frame from a completed render job.' },
+  { id: 'project.motionPreview.create', method: 'POST', path: '/deepblend/projects/:projectId/motion-previews', write: true, summary: 'Render a private camera motion candidate without publishing a revision.' },
+  { id: 'project.motionPreview.video', method: 'GET', path: '/deepblend/projects/:projectId/motion-previews/:candidateId/video', write: false, summary: 'Play a verified private camera motion preview.' },
+  { id: 'project.motionPreview.save', method: 'POST', path: '/deepblend/projects/:projectId/motion-previews/:candidateId/save', write: true, summary: 'Save the explicitly accepted camera motion candidate.' },
+  { id: 'project.motionPreview.discard', method: 'POST', path: '/deepblend/projects/:projectId/motion-previews/:candidateId/discard', write: true, summary: 'Discard an unpublished camera motion candidate.' },
   { id: 'project.job.cancel', method: 'POST', path: '/deepblend/projects/:projectId/jobs/:jobId/cancel', write: true, summary: 'Cancel a running job and verify the process is gone.' },
   { id: 'project.render', method: 'POST', path: '/deepblend/projects/:projectId/render', write: true, summary: 'Start a delivery render (or resume one).' },
   { id: 'project.editableSnapshots.create', method: 'POST', path: '/deepblend/projects/:projectId/editable-snapshots', write: true, summary: 'Prepare or resume an immutable editable snapshot of one explicit revision.' },
@@ -408,8 +416,10 @@ export function buildSceneTree(spec, context = {}) {
       fps: spec?.project?.fps ?? null,
       frameStart: spec?.project?.frameStart ?? null,
       frameEnd: spec?.project?.frameEnd ?? null,
+      aspectRatio: spec?.project?.aspectRatio ?? null,
       activeCamera: spec?.project?.activeCamera ?? null,
     },
+    renderProfiles: clone(spec?.renderProfiles ?? null),
     world: clone(spec?.world ?? null),
     reviewSubject: clone(resolveSubject(spec)),
     assetParts: clone(assetParts),
@@ -483,6 +493,7 @@ export function buildQaView({ projectId, revision, validation = null, review = n
       artistic: clone(review?.referenceInputError ? { status: 'unassessable', dimensions: {} } : review?.artistic ?? { status: 'unassessable', dimensions: {} }),
       referenceImages: clone(review?.referenceImages ?? []),
       reviewInputsDigest: review?.reviewInputsDigest ?? null,
+      inputScope: clone(review?.inputScope ?? null),
       referenceInputError: clone(review?.referenceInputError ?? null),
       iteration: review?.iteration ?? null,
       subjectId: review?.subjectId ?? null,
@@ -580,7 +591,7 @@ export function buildJobView(job, options) {
     // from a list written here: a second opinion about which statuses are
     // terminal is exactly the copy that rots (D38, D43, D57, D60).
     cancelable: live,
-    resumable: ['failed', 'cancelled', 'recovering'].includes(job.status),
+    resumable: job.persistencePending !== true && ['failed', 'cancelled', 'recovering'].includes(job.status),
     deliverable: job.status === 'completed' && job.delivery !== null,
     approval: buildApprovalView({ record: { expectedFrames: expected, warnings: job.warnings ?? [] }, threshold: options?.threshold ?? Number.POSITIVE_INFINITY }),
     detail: describeJobForHuman(job),
@@ -622,6 +633,7 @@ function describeFrameProvenance(provenance) {
  */
 export function describeJobForHuman(job) {
   const frames = `${job.completedFrames ?? 0}/${job.expectedFrames ?? 0} 帧`
+  if (job.persistencePending === true) return `任务已停止，但结果尚未保存：${frames}。请检查磁盘空间及写入权限后刷新，再继续任务。`
   switch (job.status) {
     case 'queued': return `排队中：${frames}`
     case 'running': return job.estimatedRemainingMs === null || job.estimatedRemainingMs === undefined
@@ -629,7 +641,8 @@ export function describeJobForHuman(job) {
       : `渲染中：${frames}，预计还剩 ${formatDuration(job.estimatedRemainingMs)}`
     case 'stopping': return `正在停止：${frames}`
     case 'recovering': return `进程已消失，可从缺失帧继续：${frames}`
-    case 'completed': return job.delivery === null ? `已完成：${frames}` : `已交付：${frames}，视频已校验`
+    case 'completed': return job.delivery === null ? `已完成：${frames}`
+      : job.delivery?.kind === 'still' ? `已交付：${frames}，图片来源已核验` : `已交付：${frames}，视频已校验`
     case 'failed': return `失败（${job.errorCode ?? '未分类'}）：${frames}，可继续渲染`
     case 'cancelled': return `已取消：${frames}，可继续渲染`
     default: return `${job.status}：${frames}`

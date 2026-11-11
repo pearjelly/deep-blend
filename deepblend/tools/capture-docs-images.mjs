@@ -41,6 +41,8 @@
  * Run: node deepblend/tools/capture-docs-images.mjs
  *      node deepblend/tools/capture-docs-images.mjs --out deepblend/docs/images
  *      node deepblend/tools/capture-docs-images.mjs --out /absolute/evidence --keep-store
+ *      DEEPBLEND_BLENDER_PATH=/absolute/path/to/blender node deepblend/tools/capture-docs-images.mjs
+ * The optional path is applied only to this isolated workbench; user profiles are not modified.
  *
  * REPRODUCIBLE IN CONTENT, NOT IN BYTES
  * -------------------------------------
@@ -63,6 +65,7 @@ import { applyPatchToSpec, decodePng, encodePng } from '@deepblend/dsh-blender-c
 
 import { Browser } from './browser-driver.mjs'
 import { ensureWorkbenchCaptureReady } from './docs-capture-visibility.mjs'
+import { revealWorkbenchControl } from '../tests/e2e/workbench-navigation.mjs'
 import { REPO_ROOT, dismissFirstRunDialogs, startWeb, storePatch } from './dsh-web-harness.mjs'
 
 const OUT = (() => {
@@ -232,6 +235,7 @@ async function submitPatch(page, store, projectId, operations, label) {
     throw new Error(`the ${label} patch is not valid against ${projectId}@${current}: ${error.message}`)
   }
 
+  await revealWorkbenchControl(page, '[data-field="scene-patch"]')
   await page.fill('[data-field="scene-patch"]', JSON.stringify({ baseRevision: current, operations }, null, 2))
   const result = await clickForResult(page, '[data-result]', '[data-action="apply-patch"]', `the ${label} patch to commit`, 300000)
   const next = storeJson(store, projectId, 'project.json')?.currentRevision
@@ -240,7 +244,7 @@ async function submitPatch(page, store, projectId, operations, label) {
   }
   // A save receipt arrives before the Host refresh. Rendering immediately can still
   // ask for the previous revision; wait for the revision the user actually sees.
-  await waitFor(page, `document.querySelector('.db-project-context .db-badge')?.textContent === ${JSON.stringify(next)}`, 'the saved revision in the workbench header')
+  await waitFor(page, `document.querySelector('[data-lighttable-revision]')?.getAttribute('data-lighttable-revision') === ${JSON.stringify(next)}`, 'the saved revision in the workbench')
   step(`${label} patch committed — ${(result ?? '').replace(/\s+/g, ' ').slice(0, 70)}`)
   return next
 }
@@ -249,6 +253,7 @@ async function submitPatch(page, store, projectId, operations, label) {
 async function renderPreview(page, label) {
   // Seven views at 960x540 and 64 samples is tens of seconds of Cycles, so this is the one
   // wait that is deliberately generous.
+  await revealWorkbenchControl(page, '[data-action="render-preview"]')
   const result = await clickForResult(page, '[data-result]', '[data-action="render-preview"]', `the ${label} preview`, 900000)
   step(`${label} preview — ${(result ?? '').replace(/\s+/g, ' ').slice(0, 90)}`)
 }
@@ -306,7 +311,11 @@ try {
   mkdirSync(OUT, { recursive: true })
   step(`capturing into ${OUT}`)
 
-  server = await startWeb({ workspacePath: REPO_ROOT, patch: await storePatch(store), keepHome: true })
+  const overrides = JSON.parse(await storePatch(store))
+  if (process.env.DEEPBLEND_BLENDER_PATH) {
+    overrides.find(row => row.id === 'deepblend-blender-runtime').config.blenderPath = resolve(process.env.DEEPBLEND_BLENDER_PATH)
+  }
+  server = await startWeb({ workspacePath: REPO_ROOT, patch: JSON.stringify(overrides), keepHome: true })
   step(`a real dsh web on ${server.url.split('?')[0]} (store ${store})`)
 
   browser = await Browser.launch({ args: [`--window-size=${VIEWPORT.width},${VIEWPORT.height}`] })
@@ -336,6 +345,7 @@ try {
   const created = await clickForResult(page, '[data-result]', '[data-action="create-project"]', 'the project to be created', 300000)
   step(`project created through the UI — ${(created ?? '').replace(/\s+/g, ' ').slice(0, 60)}`)
 
+  await waitFor(page, `document.querySelector('[data-field="lighttable-project"]')?.value === ${JSON.stringify(PROJECT_TITLE)} && !document.querySelector('[data-view-tab="scene"]')?.disabled`, 'the created project to become active')
   await page.click('[data-view-tab="scene"]')
   await waitFor(page, 'document.querySelector(\'[data-field="scene-patch"]\') !== null', 'the patch box')
   const beforeRevision = await submitPatch(page, store, PROJECT_TITLE, DEMO_PATCH, 'demo scene')
@@ -367,6 +377,7 @@ try {
   await page.click('[data-view-tab="scene"]')
   await waitFor(page, 'document.querySelector(\'[data-view="scene"]\') !== null', 'the Scene view')
   await page.evaluate('document.querySelector(".db-body").scrollTop=0')
+  await revealWorkbenchControl(page, '[data-action="select-entity:monolith"]')
   await page.click('[data-action="select-entity:monolith"]')
   await waitFor(page, `document.querySelector('[data-scene-editor]')?.textContent.includes("monolith")`, 'the selected object editor')
   await page.evaluate('document.querySelector(".db-body").scrollTop=0')

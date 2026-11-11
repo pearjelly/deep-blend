@@ -23,16 +23,21 @@
 
 **0.23.0 已在 GitHub 和 npm 发布**，可以逐面修复平面网格的重复纹理坐标，保持几何与摄影；也包含完整台灯表面放置和完整取景。完整验收、全新安装和公开三路安装均已核验；10 月 28 日两份社区公开目录均已读回 0.23.0。详见[发布记录](deepblend/docs/releases/0.23.0.md)与[社区收尾记录](deepblend/docs/validation/release-0.23.0-closeout.json)。
 
+[独立创作候选](deepblend/docs/first-product-creation.md)新增运动预览、直接图片／影片交付及指定机位评审；这些候选改动尚未公开发布，也不代表已经通过独立用户或美术验收。
+
+
 在「版本」页使用「保存可编辑副本」，下载一个已保存版本的 ZIP，可选附带已核验的同版本完成影片。准备支持取消、重试和刷新恢复。详见[使用步骤](deepblend/docs/usage.md#editable-snapshot)。
 
 ## 安装并开始
 
-准备好 **Node.js 22.23.3 或更新版本**、**DSH 0.1.5-rc.2**、**pnpm** 和 **Blender 5.2.1** 后：
+准备好 **Node.js 22.23.3 或更新版本**、**DSH 0.1.5-rc.2**、**pnpm 10.28.2** 和 **Blender 5.2.1** 后：
 
 ```sh
-dsh plugin --profile web add @deepblend/dsh-blender-bundle
+npm_config_ignore_workspace_root_check=true npm_config_auto_install_peers=false dsh plugin --profile web add @deepblend/dsh-blender-bundle
 dsh web
 ```
+
+上述两个临时参数允许 pnpm 向 DSH profile 的工作区根安装，并使用已安装 DSH 提供的 peer；只作用于这一条命令，不改全局 pnpm 配置。
 
 已运行的 `dsh web` 需要重启。在新会话中选择 **DeepBlend Studio** 预设，从侧栏打开 **Blender** 工作台。
 安装会同时加入工作台与智能体预设。
@@ -46,13 +51,13 @@ dsh web
 预构建包：
 
 ```sh
-dsh plugin --profile web add https://github.com/pearjelly/deep-blend/releases/latest/download/deepblend-bundle.tgz
+npm_config_ignore_workspace_root_check=true npm_config_auto_install_peers=false dsh plugin --profile web add https://github.com/pearjelly/deep-blend/releases/latest/download/deepblend-bundle.tgz
 ```
 
 当前源码：
 
 ```sh
-dsh plugin --profile web add 'github:pearjelly/deep-blend#path:/packages/deepblend/bundle'
+npm_config_ignore_workspace_root_check=true npm_config_auto_install_peers=false dsh plugin --profile web add 'github:pearjelly/deep-blend#path:/packages/deepblend/bundle'
 ```
 
 0.9.0 的公开三路验证使用 DSH 0.1.5-rc.2 与 pnpm 9.15。源码/npm 路线在临时 profile 中明确允许工作区根安装，并使用已安装 DSH 提供的 peer 依赖；自动补装较新 peer 曾遇到 `dsh-type-meta` 获取失败。以下设置只作用于本次命令，不写个人配置：
@@ -68,7 +73,7 @@ npm_config_ignore_workspace_root_check=true npm_config_auto_install_peers=false 
 
 ```sh
 dsh plugin --profile web remove @deepblend/dsh-blender-bundle
-dsh plugin --profile web add @deepblend/dsh-blender-bundle
+npm_config_ignore_workspace_root_check=true npm_config_auto_install_peers=false dsh plugin --profile web add @deepblend/dsh-blender-bundle
 ```
 
 配置、存储与升级细节见[安装指南](deepblend/docs/install.md)。
@@ -122,9 +127,8 @@ dsh plugin --profile web add @deepblend/dsh-blender-bundle
 创建失败时保留输入，按提示修复后可重试原请求；已保存但回执丢失的项目会直接恢复，避免重复创建。[浏览器创建草稿](deepblend/docs/creation-drafts.md)可在重载或重新打开后明确选择继续，多个页面各自保留输入。
 也可以导入自己的 glTF、GLB、OBJ 模型和外部贴图。
 
-**跟做一次完整创作：** [青釉杯图文教程](deepblend/docs/creator-tutorial.md)带你改高度、对照灰模、
-分别调整釉面与主灯，最后输出一帧。杯柄根部仍有可见凸起，教程保留了这个问题。
-该配方没有动画轨道，增加帧数不会自动生成转台运动。
+**从产品首作开始：** 创建香槟金属桌灯，再在同一保存作品中继续改稿。
+[候选版本台灯教程](deepblend/docs/first-product-creation.md)覆盖三张图片、真实六秒短片和可编辑 ZIP，并标明尚未发布的入口。[青釉杯教程](deepblend/docs/creator-tutorial.md)保留为几何练习；已知杯柄根部凸起尚未通过质量审阅，不作为推荐首作。
 
 ## 选择你的使用方式
 
@@ -191,7 +195,7 @@ dsh plugin --profile web add @deepblend/dsh-blender-bundle
 | 我想…… | 从这里看 |
 | --- | --- |
 | 安装、配置 Blender 或更新插件 | [快速上手](deepblend/docs/quick-start.md) · [安装与自检](deepblend/docs/install.md) |
-| 完成第一次创作 | [青釉杯教程](deepblend/docs/creator-tutorial.md) |
+| 完成第一次创作 | [台灯首作（候选版本）](deepblend/docs/first-product-creation.md) |
 | 导入自己的模型与贴图 | [素材库](deepblend/docs/assets.md) |
 | 调整造型、相机与灯光 | [建模指南](deepblend/docs/modeling.md) · [摄影编辑](deepblend/docs/photography-editor.md) |
 | 对照版本，定位粗糙的原因 | [固定视角检查](deepblend/docs/inspection.md) · [参考图片](deepblend/docs/reference-images.md) |
@@ -307,7 +311,7 @@ deepblend/
                       coverage-merge.mjs —— 那份读数的合并规则：行级判定写在模块里，因为它在四轮里错过四次
                                             （`contract/probe-merge.test.mjs` 用合成的 V8 报告驱动它）
   tests/              单元、契约、Blender 集成、组合激活、真实模型 e2e
-    contract/         155 个 *.test.mjs（当前源码）
+    contract/         159 个 *.test.mjs（当前源码）
     lib/              dsh-deployment.mjs —— 定位并加载运行中的 DSH 部署
                       command-claims.mjs —— 「文档里点名的命令是否存在」只有一份（模板与证据日志共用）
                       milestone-claims.mjs —— 「不许复述里程碑状态」只有一份（README / CONTRIBUTING / 模板共用）
@@ -324,7 +328,7 @@ packages/deepblend/
   contracts/          纯数据与纯规则：Schema、语义校验、digest、稳定错误码、Canonical 投影、
                       PNG 编解码 + contact sheet 合成、VisualIssue 评分器、修复循环控制器
   provider-local/     BlenderRuntime：ctx.subprocess 传输层 + python/ 运行时
-    python/           bootstrap.py 分派器 + 9 个动作模块（另有 deepblend_util.py 这一份工具）
+    python/           bootstrap.py 分派器 + 10 个动作模块（另有 deepblend_util.py 这一份工具）
                       deepblend_geometry.py 提供参数化网格，deepblend_images.py 构造图片材质，deepblend_bridge.py 提供实时连接
   host/               blenderStudio 门面、Project Store、Revision 事务、路径守卫
   tool/               20 个模型可见工具（Agent preset 平面，不发布服务）
@@ -366,7 +370,7 @@ packages/deepblend/
 ```
 $ node deepblend/tests/run.mjs
 Error [ERR_MODULE_NOT_FOUND]: Cannot find package '@deepblend/dsh-blender-contracts'
-DeepBlend tests: 30/155 file(s) passed
+DeepBlend tests: 30/159 file(s) passed
 ```
 
 （这两个数字**由检查钉住** ✓：`contract/readme-fresh-clone.test.mjs` 会造一份没有 `node_modules` 的树、
@@ -426,8 +430,8 @@ CI 另有固定 Linux 运行时的真实检查，覆盖 Host 灰模/材质、Age
 Linux 专用安装器 `deepblend/tools/install-ci-runtimes.mjs` 提供 `npm run ci:runtimes:install` 与只读的 `npm run ci:runtimes:check`。
 范围与证据保留见[CI 说明](deepblend/docs/ci.md)；它不替代完整本地验收或在线美术评审。
 
-预期：**49 个套件、203 个文件**全部通过。其中契约层（`run.mjs`，不需要 Blender）的当前文件结构与实际断言快照分别记录为
-**155 个文件 = 2132 项自计断言（34 个文件打印计数）+ 2156 个 `node:test` 用例（121 个文件）**。
+预期：**56 个套件、214 个文件**全部通过。其中契约层（`run.mjs`，不需要 Blender）的当前文件结构与实际断言快照分别记录为
+**159 个文件 = 2134 项自计断言（34 个文件打印计数）+ 2222 个 `node:test` 用例（125 个文件）**。
 需要 Blender 的那几层把总断言数推到 **1400 项以上**（M4 那一次完整 run 记为 1400；
 M5 之后重测过一次，逐套件数字见 `deepblend/docs/milestone-status.md` §14）。
 
@@ -438,7 +442,7 @@ M5 之后重测过一次，逐套件数字见 `deepblend/docs/milestone-status.m
 它是多少，而一个「为了数其它套件而跑其它套件」的测试会让整套的成本翻倍。所以**上面那两个数字**是
 快照，不是承诺；你机器上的数字以你自己的 run 为准。
 **2026-10-27 计数快照**：自计套件在隔离且已安装当前 preset 的 `DSH_HOME` 中运行；
-断言和用例数从 0.23 候选 `41eedff` 提交前同一次完整 155/155 成功日志逐文件提取，未为计数额外重跑；来源与原始日志摘要见[逐面 UV 实现记录](deepblend/docs/validation/mesh-uv-implementation-1027.json)。当前完整 49 套验收仍须另行核对。0.21 的完整 149 文件与 46 套发布验收另行记录，0.20 发布来源的完整契约为 146/146。
+上述数量由当前源码的计数工具核对，不代表完整验收结果。0.23 候选 `41eedff` 的历史 155/155 运行及原始日志摘要见[逐面 UV 实现记录](deepblend/docs/validation/mesh-uv-implementation-1027.json)。当前工作区的运行记录见[独立创作执行记录](deepblend/docs/independent-creation-baseline-2026-10-28.md)。0.21 的完整 149 文件与 46 套发布验收另行记录，0.20 发布来源的完整契约为 146/146。
 此前迭代的文档耦合失败及来源冻结失败保留在[表面放置记录](deepblend/docs/surface-placement.md)，不记作整轮通过。
 最终冻结来源的完整验收和公开发布状态见对应 Release 的证据记录。
 **取这个快照的命令是 `node deepblend/tools/count-assertions.mjs`**：它按 `run.mjs` 的规则发现文件、
@@ -714,7 +718,7 @@ handover：可继续工作的 revision、未解决问题、未采纳的尝试及
 
 [参考图片指南](deepblend/docs/reference-images.md)说明上传、版本绑定、证据引用与有限自动修正。
 
-[青釉杯创作教程](deepblend/docs/creator-tutorial.md)：从配方开始，分别修改尺寸、粗糙度与主灯，比较保存版本并交付一帧。
+[台灯首作（候选版本）](deepblend/docs/first-product-creation.md)：在同一作品改稿，准备摄影与运动，交付三图、短片和可编辑工程；[青釉杯练习](deepblend/docs/creator-tutorial.md)保留固定视角和几何对比。
 
 [真人验收指南](deepblend/docs/human-validation.md)提供用自己的素材完成作品、外部投稿与他人复用、公开接口采用的实际执行步骤及空白记录，分别观察几何、材质、灯光和目标吻合。
 
@@ -746,7 +750,7 @@ SPEC 增删一条要求、表里指到的文件或片段消失、或者某条缺
 **这个仓库的当前状态就是一条命令的输出**，不是这一段文字：
 
 ```bash
-bash deepblend/tests/run-all.sh      # 49 个套件；上面「快速开始」给了预期
+bash deepblend/tests/run-all.sh      # 56 个套件；上面「快速开始」给了预期
 ```
 
 **逐里程碑的结论、每条验收的证据、以及已知的偏差与缺口**（包括 SPEC §15 里没做到的那几条、

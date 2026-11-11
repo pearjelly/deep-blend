@@ -4,6 +4,7 @@
  */
 import { existsSync, mkdirSync, readFileSync, writeFileSync, appendFileSync, copyFileSync, readdirSync, readlinkSync } from 'node:fs'
 import { join, resolve, dirname, relative } from 'node:path'
+import { homedir } from 'node:os'
 import { spawnSync } from 'node:child_process'
 import { createHash } from 'node:crypto'
 import { decodePng } from '@deepblend/dsh-blender-contracts'
@@ -268,6 +269,8 @@ async function inspect(row, name, narrow = false) {
   await idle(); const result = (await inventory()).find(item => item.asset.id === row.asset.id && item.asset.path === row.asset.path)
   const bytes = readFileSync(path(result.preview.path)), image = decodePng(bytes)
   check(`${name}: native inspection reports UV/materials and an actual matching PNG`, result.inspection?.kind === 'model' && result.inspection.parts.some(part => part.uvMaps?.length && part.sourceMaterialSlots?.length) && result.preview.sha256 === sha(bytes) && image.width === result.preview.width && image.height === result.preview.height && current() === revision)
+  const units = await page.evaluate(`document.querySelector(${JSON.stringify(card(row) + ' [data-asset-units]')})?.textContent || ''`)
+  check(`${name}: the inspection explains the source unit boundary`, name === 'obj' ? /OBJ.*物理单位/.test(units) : /glTF.*米/.test(units), units)
   copyFileSync(path(result.preview.path), join(directory, `${name}-preview.png`)); json(`${name}-inspection.json`, result)
   await capture(`${name}-preview-ui`, card(row), narrow); return result
 }
@@ -402,17 +405,35 @@ function ownProcessTree() {
   do { changed = false; for (const row of table.rows) if (ids.has(row.ppid) && !ids.has(row.pid)) { ids.add(row.pid); changed = true } } while (changed)
   return { rows: table.rows.filter(row => ids.has(row.pid)) }
 }
-async function waitForOwnedExit(observed, { timeoutMs = 12000, pollMs = 100, read = readProcessRows, now = Date.now, pause = ms => new Promise(resolve => setTimeout(resolve, ms)) } = {}) {
-  const started = now(), snapshots = [], identityErrors = new Map(); let remaining = observed.rows
-  let lastObservedAliveAt = null, firstObservedAllExitedAt = null
-  const finish = errors => ({ remaining, snapshots, errors, elapsedMs: now() - started, budgetMs: timeoutMs,
-    startedAt: started, finishedAt: now(), lastObservedAliveAt, firstObservedAllExitedAt })
+async function waitForOwnedExit(observed, { timeoutMs = 12000, pollMs = 100, read = readProcessRows, now = Date.now, pause = ms => new Promise(resolve => setTimeout(resolve, ms)), externalUpdaterRoot = null } = {}) {
+  const started = now(), snapshots = [], identityErrors = new Map(); let remaining = observed.rows, detachedExternal = []
+  let lastObservedAliveAt = null, firstObservedAllExitedAt = null, firstObservedOwnedExitedAt = null
+  const finish = errors => ({ remaining, detachedExternal, snapshots, errors, elapsedMs: now() - started, budgetMs: timeoutMs,
+    startedAt: started, finishedAt: now(), lastObservedAliveAt, firstObservedAllExitedAt, firstObservedOwnedExitedAt })
   if (observed.error) return finish([observed.error])
   for (;;) {
     const table = read()
     if (table.error) return finish([...identityErrors.values(), table.error])
     remaining = []
+    // Chrome on macOS can launch the user's installed Google updater, which
+    // is adopted by launchd and continues after Chrome exits. Preserve it as
+    // explicit external evidence, never terminate it or count it as ours.
+    // Match the exact installed path and original PID/start identity; children
+    // qualify only if they are the same updater under an already detached root.
+    const eligible = owner => {
+      const current = table.rows.find(row => row.pid === owner.pid)
+      return externalUpdaterRoot && current && current.start === owner.start && current.command === owner.command
+        && current.command.startsWith(externalUpdaterRoot + '/')
+        && current.command.endsWith('/GoogleUpdater.app/Contents/MacOS/GoogleUpdater') ? current : null
+    }
+    const external = new Map()
+    for (const owner of observed.rows) { const current = eligible(owner); if (current?.ppid === 1) external.set(current.pid, current) }
+    let changed
+    do { changed = false; for (const owner of observed.rows) { const current = eligible(owner)
+      if (current && external.has(current.ppid) && !external.has(current.pid)) { external.set(current.pid, current); changed = true } } } while (changed)
+    detachedExternal = [...external.values()]
     for (const owner of observed.rows) {
+      if (external.has(owner.pid)) continue
       const current = table.rows.find(row => row.pid === owner.pid)
       if (!current) continue
       // Darwin ps falls back to (kernel name) when argv reading fails. Keep
@@ -430,8 +451,8 @@ async function waitForOwnedExit(observed, { timeoutMs = 12000, pollMs = 100, rea
     }
     const at = now()
     if (remaining.length) lastObservedAliveAt = at
-    else if (!identityErrors.size) firstObservedAllExitedAt = at
-    snapshots.push({ at, elapsedMs: at - started, remaining, identityErrors: [...identityErrors.values()] })
+    else if (!identityErrors.size) { firstObservedOwnedExitedAt = at; if (!detachedExternal.length) firstObservedAllExitedAt = at }
+    snapshots.push({ at, elapsedMs: at - started, remaining, detachedExternal, identityErrors: [...identityErrors.values()] })
     if (!remaining.length || at - started >= timeoutMs) return finish([...identityErrors.values()])
     await pause(pollMs)
   }
@@ -570,7 +591,8 @@ try {
   const processes = ownProcessTree(); json('owned-processes-before-close.json', processes)
   try { await browser?.close() } catch (error) { outcome = 'failed'; checks.push({ name: 'browser shutdown', ok: false, detail: String(error) }) }
   try { shutdown = await server?.stop() } catch (error) { outcome = 'failed'; checks.push({ name: 'server shutdown', ok: false, detail: String(error) }) }
-  const exitWait = await waitForOwnedExit(processes); json('owned-processes-exit-wait.json', exitWait)
+  const exitWait = await waitForOwnedExit(processes, { externalUpdaterRoot: process.platform === 'darwin'
+    ? join(homedir(), 'Library', 'Application Support', 'Google', 'GoogleUpdater') : null }); json('owned-processes-exit-wait.json', exitWait)
   const residual = exitWait.remaining
   json('shutdown.json', { shutdown, residual, observationErrors: exitWait.errors, host: server && { pid: server.child.pid, exitCode: server.child.exitCode, signalCode: server.child.signalCode }, chrome: browser && { pid: browser.child.pid, exitCode: browser.child.exitCode, signalCode: browser.child.signalCode } })
   if (residual.length || exitWait.errors.length) { outcome = 'failed'; checks.push({ name: 'owned processes exited', ok: false, detail: exitWait }) }

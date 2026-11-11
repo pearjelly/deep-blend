@@ -21,14 +21,15 @@ Follow the [quick start](quick-start.md), then choose the task below. These are 
 | --- | --- |
 | Install the published plugin / 安装正式插件 | [Quick start · 快速开始](quick-start.md) |
 | Check tools and find installation blockers / 检查工具与安装问题 | [Environment check · 环境自检](environment-check.md) |
-| Make your first product scene / 完成第一件作品 | [Glazed cup walkthrough · 青釉杯图文教程](creator-tutorial.md) |
+| Make your first product scene / 完成第一件作品 | [Lamp creation · 台灯完整首作（候选版本）](first-product-creation.md) |
+| Practice geometry and fixed-view comparison / 练习几何和固定视角对比 | [Glazed cup exercise · 青釉杯练习](creator-tutorial.md) |
 | Learn the workbench / 熟悉工作台 | [Usage · 操作指南](usage.md) |
 | Continue after creation fails / 创建失败后继续 | [Creation recovery · 创建恢复](creation-recovery.md) |
 | Continue after reload or reopening / 重载或重新打开后继续 | [Creation drafts · 浏览器创建草稿](creation-drafts.md) |
 | Choose and customize a starting point / 选择并调整配方 | [Recipes · 作品配方](recipes.md) |
 | Compare starting points without losing edits / 比较配方并保留调整 | [Recipe comparison · 配方比较](recipe-comparison.md) |
 | Compare saved versions and continue editing / 查看保存版本并继续修改 | [Version comparison · 版本对比](version-comparison.md) |
-- [预览读取恢复](preview-recovery.md)：切换项目、失败后刷新与保留编辑。
+| Recover preview loading / 恢复预览读取 | [Preview recovery · 预览恢复](preview-recovery.md) |
 | Import models, textures and environments / 导入模型、贴图与环境光 | [Assets · 素材库](assets.md) |
 | Change shape and materials / 修改造型和材质 | [Modeling · 对象编辑](modeling.md) |
 | Compose and light a shot / 调整构图与灯光 | [Photography · 摄影编辑](photography-editor.md) |
@@ -37,7 +38,7 @@ Follow the [quick start](quick-start.md), then choose the task below. These are 
 | Recover a render or continue delivery / 恢复渲染与交付 | [Recovery · 故障与恢复](recovery.md) |
 
 Use the English guides above for the core workflow. Specialist guides and original experiment records below are primarily in Chinese; commands and API names remain in English.
-首次使用推荐先完成青釉杯教程；安装错误、空面板和中断任务的下一步都在恢复指南中。
+首次使用先从台灯创建实际预览；候选版本的完整首作教程继续到三图、短片和可编辑工程。杯子保留为练习，已知接缝问题尚未质量放行。安装错误、空面板和中断任务的下一步见恢复指南。
 
 ## Build on DeepBlend / 扩展与贡献
 

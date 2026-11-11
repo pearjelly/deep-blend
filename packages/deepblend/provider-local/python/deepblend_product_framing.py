@@ -106,6 +106,8 @@ def _capture(path, expected, selection, camera_id):
         _refuse('The native scene exceeds the original-object verification budget.', 'SCENE_TOO_HEAVY')
     if bpy.data.libraries or abs(scene.unit_settings.scale_length-1) > 1e-8:
         _refuse('A self-contained checkpoint with metre units is required.', 'BLENDER_UNSUPPORTED_ACTION')
+    if 'photography' in selection:
+        _verify_static_product(selection)
     scene.frame_set(selection['frame'])
     if scene.frame_current != selection['frame']:
         _refuse('The requested frame was not evaluated.')
@@ -236,6 +238,164 @@ def _near_tree(a, b):
     return type(a) is type(b) and a == b
 
 
+def _verify_static_product(selection):
+    """Prove time-independent product evaluation, including modifier operands.
+
+    Unlike placement, this read never translates geometry. Static Boolean,
+    Mirror and Array dependencies can therefore be measured without dropping
+    them or treating their hidden tools as visible product members.
+    """
+    import bpy
+    from deepblend_surface_placement import _active_animation
+    visited, collections, vertices, polygons = set(), set(), 0, 0
+    allowed = {'BEVEL', 'ARRAY', 'SUBSURF', 'SOLIDIFY', 'MIRROR', 'TRIANGULATE', 'DECIMATE',
+               'WELD', 'WEIGHTED_NORMAL', 'EDGE_SPLIT', 'SMOOTH', 'BOOLEAN'}
+    def collection_members(collection):
+        pointer = collection.as_pointer()
+        if pointer in collections:
+            return
+        collections.add(pointer)
+        for obj in collection.objects:
+            visit(obj)
+        for child in collection.children:
+            collection_members(child)
+    def visit(obj):
+        nonlocal vertices, polygons
+        pointer = obj.as_pointer()
+        if pointer in visited:
+            return
+        if len(visited) >= 4096:
+            _refuse('Static product dependencies exceed the inspection budget.', 'SCENE_TOO_HEAVY')
+        visited.add(pointer)
+        if (_active_animation(obj) or _active_animation(obj.data) or
+                _active_animation(getattr(obj.data, 'shape_keys', None)) or obj.constraints or
+                obj.rigid_body is not None or obj.rigid_body_constraint is not None):
+            _refuse('Selected product geometry or its dependencies are animated, constrained or simulated.', 'BLENDER_UNSUPPORTED_ACTION')
+        if obj.type == 'MESH':
+            vertices += len(obj.data.vertices); polygons += len(obj.data.polygons)
+            if vertices > 2_000_000 or polygons > 2_000_000:
+                _refuse('Static product dependencies exceed the mesh budget.', 'SCENE_TOO_HEAVY')
+        if obj.parent is not None:
+            visit(obj.parent)
+        for modifier in obj.modifiers:
+            if (modifier.type not in allowed or modifier.show_viewport != modifier.show_render or
+                    modifier.type == 'SUBSURF' and modifier.levels != modifier.render_levels):
+                _refuse('The product has unsupported or different viewport/render geometry.', 'BLENDER_UNSUPPORTED_ACTION')
+            for prop in modifier.bl_rna.properties:
+                if prop.type != 'POINTER' or prop.identifier == 'rna_type':
+                    continue
+                reference = getattr(modifier, prop.identifier, None)
+                if isinstance(reference, bpy.types.Object):
+                    visit(reference)
+                elif isinstance(reference, bpy.types.Collection):
+                    collection_members(reference)
+                elif isinstance(reference, bpy.types.ID):
+                    _refuse('An unsupported product modifier dependency cannot be ignored.', 'BLENDER_UNSUPPORTED_ACTION')
+    for entity_id in selection['entityIds']:
+        obj = bpy.data.objects.get('db_entity__'+entity_id)
+        if obj is None:
+            _refuse('A selected native product member is missing.', 'SCENE_SPEC_INVALID')
+        for part in [obj, *obj.children_recursive]:
+            visit(part)
+
+
+def _photography_snapshot(selection):
+    """Sample named lighting and prove that the selected product is static.
+
+    The source camera may be sampled at one explicit frame. A destination
+    camera must be static so replacing its draft cannot erase native motion.
+    """
+    import bpy
+    from deepblend_surface_placement import _active_animation
+    requested = selection['photography']
+    if (not isinstance(requested, dict) or set(requested) != {'lightIds', 'cameraMustBeStatic'} or
+            type(requested.get('cameraMustBeStatic')) is not bool or
+            not isinstance(requested.get('lightIds'), list) or len(requested['lightIds']) > 32 or
+            len(set(requested['lightIds'])) != len(requested['lightIds']) or
+            any(not isinstance(x, str) or not re.fullmatch(r'[A-Za-z][A-Za-z0-9._-]{0,127}', x) for x in requested['lightIds'])):
+        _refuse('Expected named lighting and an explicit static-camera requirement.', 'SCENE_SPEC_INVALID')
+    visited = set()
+    def static_chain(obj):
+        while obj is not None:
+            pointer = obj.as_pointer()
+            if pointer not in visited:
+                if (_active_animation(obj) or _active_animation(obj.data) or obj.constraints or
+                      obj.rigid_body is not None or obj.rigid_body_constraint is not None):
+                    _refuse('Animated or constrained destination cameras and lighting cannot be replaced.', 'BLENDER_UNSUPPORTED_ACTION')
+                visited.add(pointer)
+            obj = obj.parent
+    camera = bpy.data.objects['db_camera__'+selection['cameraId']]
+    current, camera_static = camera, True
+    while current is not None:
+        if (_active_animation(current) or _active_animation(current.data) or current.constraints or
+                current.rigid_body is not None or current.rigid_body_constraint is not None):
+            camera_static = False
+        current = current.parent
+    if requested['cameraMustBeStatic'] and not camera_static:
+        _refuse('Choose a static destination camera before adapting photography.', 'BLENDER_UNSUPPORTED_ACTION')
+    render_visible, collections, pending = set(), set(), [bpy.context.scene.collection]
+    while pending:
+        collection = pending.pop()
+        pointer = collection.as_pointer()
+        if pointer in collections or collection.hide_render:
+            continue
+        collections.add(pointer)
+        render_visible.update(o.as_pointer() for o in collection.objects)
+        pending.extend(collection.children)
+    named = {bpy.data.objects.get('db_light__'+i) for i in requested['lightIds']}
+    if None in named or any(o.type == 'LIGHT' and not o.hide_render and o.as_pointer() in render_visible and o not in named for o in bpy.context.scene.objects):
+        _refuse('The selected scene has missing or additional native lighting; isolate it before reuse.', 'BLENDER_UNSUPPORTED_ACTION')
+    graph = bpy.context.evaluated_depsgraph_get()
+    lights = []
+    for light_id in requested['lightIds']:
+        obj = bpy.data.objects['db_light__'+light_id]
+        static_chain(obj)
+        evaluated = obj.evaluated_get(graph)
+        data = evaluated.data
+        if obj.hide_render or obj.as_pointer() not in render_visible or not obj.visible_get(view_layer=bpy.context.view_layer):
+            _refuse('Hidden or node-driven lighting cannot be represented by this reuse plan.', 'BLENDER_UNSUPPORTED_ACTION')
+        # Blender 5.x enables the default light node tree. It is representable
+        # only while the emission remains the identity multiplier of the light
+        # datablock's energy/color; arbitrary shader lighting is not copied.
+        if data.use_nodes:
+            tree = data.node_tree
+            emission = next((n for n in tree.nodes if n.bl_idname == 'ShaderNodeEmission'), None) if tree else None
+            output = next((n for n in tree.nodes if n.bl_idname == 'ShaderNodeOutputLight'), None) if tree else None
+            if (tree is None or _active_animation(tree) or len(tree.nodes) != 2 or len(tree.links) != 1 or
+                    emission is None or output is None or
+                    any(abs(float(v)-1) > 1e-8 for v in emission.inputs['Color'].default_value) or
+                    abs(float(emission.inputs['Strength'].default_value)-1) > 1e-8 or
+                    emission.inputs.get('Weight') is not None and abs(float(emission.inputs['Weight'].default_value)) > 1e-8 or
+                    tree.links[0].from_node != emission or tree.links[0].to_node != output or
+                    tree.links[0].from_socket.name != 'Emission' or tree.links[0].to_socket.name != 'Surface'):
+                _refuse('Custom or animated light emission cannot be represented by this reuse plan.', 'BLENDER_UNSUPPORTED_ACTION')
+        matrix = evaluated.matrix_world.copy()
+        basis = matrix.normalized()
+        if (basis.to_3x3().determinant() <= 0 or
+                any(abs(basis.col[a].to_3d().dot(basis.col[b].to_3d())) > 1e-6 for a in range(3) for b in range(a+1, 3))):
+            _refuse('Sheared or mirrored light transforms are unsupported.', 'BLENDER_UNSUPPORTED_ACTION')
+        position, rotation, scale = matrix.decompose()
+        light = {'id': light_id, 'type': data.type.lower(), 'energy': float(data.energy),
+                 'color': list(data.color), 'transform': {'location': list(position),
+                 'rotationEuler': list(rotation.to_euler('XYZ')), 'scale': list(scale)}}
+        if data.type == 'AREA':
+            if data.shape != 'SQUARE':
+                _refuse('Only the supported square-area light definition can be reused.', 'BLENDER_UNSUPPORTED_ACTION')
+            light['size'] = float(data.size)
+        elif data.type in ('POINT', 'SPOT'):
+            light['size'] = float(data.shadow_soft_size)
+            if data.type == 'SPOT':
+                light.update(spotSize=float(data.spot_size), spotBlend=float(data.spot_blend))
+        elif data.type == 'SUN':
+            light['angle'] = float(data.angle)
+        else:
+            _refuse('Unsupported native light type.', 'BLENDER_UNSUPPORTED_ACTION')
+        lights.append(light)
+    return {'schemaVersion': 'deepblend.photography-snapshot/v1', 'staticGeometry': True,
+            'staticLights': True, 'cameraStatic': camera_static,
+            'cameraRotationEuler': list(camera.evaluated_get(graph).matrix_world.normalized().to_euler('XYZ')), 'lights': lights}
+
+
 def inspect_camera_fit(request, options):
     """Read-only proposal or independent candidate verification in a private batch."""
     import bpy
@@ -243,9 +403,10 @@ def inspect_camera_fit(request, options):
     payload = request.get('payload')
     required = {'entityIds', 'assetInstanceIds', 'frame', 'cameraId', 'fittedCameraId', 'margin', 'checkpointSha256'}
     baseline_keys = {'baselineCheckpointPath', 'baselineCheckpointSha256'}
+    photography_keys = {'photography'} if isinstance(payload, dict) and 'photography' in payload else set()
     candidate = isinstance(payload, dict) and bool(baseline_keys & payload.keys())
-    if (not isinstance(payload, dict) or set(payload) != required | (baseline_keys if candidate else set()) or
-            not isinstance(payload.get('entityIds'), list) or not 1 <= len(payload['entityIds']) <= 64 or
+    if (not isinstance(payload, dict) or set(payload) != required | photography_keys | (baseline_keys if candidate else set()) or
+            not isinstance(payload.get('entityIds'), list) or not 1 <= len(payload['entityIds']) <= (128 if photography_keys else 64) or
             len(set(payload['entityIds'])) != len(payload['entityIds']) or
             not isinstance(payload.get('assetInstanceIds'), list) or len(set(payload['assetInstanceIds'])) != len(payload['assetInstanceIds']) or
             not set(payload['assetInstanceIds']) <= set(payload['entityIds']) or
@@ -255,7 +416,7 @@ def inspect_camera_fit(request, options):
             type(payload.get('frame')) is not int or not 0 <= payload['frame'] <= 1_000_000 or
             type(payload.get('margin')) not in (int, float) or not math.isfinite(payload['margin']) or not 0 <= payload['margin'] <= .25 or
             not isinstance(payload.get('checkpointSha256'), str) or not re.fullmatch(r'[a-f0-9]{64}', payload['checkpointSha256']) or
-            candidate and (not isinstance(payload.get('baselineCheckpointSha256'), str) or not re.fullmatch(r'[a-f0-9]{64}', payload['baselineCheckpointSha256']))):
+            candidate and (photography_keys or not isinstance(payload.get('baselineCheckpointSha256'), str) or not re.fullmatch(r'[a-f0-9]{64}', payload['baselineCheckpointSha256']))):
         _refuse('Expected one bounded frame, camera, distinct new camera and complete selection.', 'SCENE_SPEC_INVALID')
     path = options.get('blend')
     measured = _capture(path, payload['checkpointSha256'], payload, payload['fittedCameraId'] if candidate else payload['cameraId'])
@@ -302,5 +463,9 @@ def inspect_camera_fit(request, options):
         if 'fStop' in camera:
             camera['focusDistance'] = fitted['distanceMeters']
         report['proposal'] = camera
+    if photography_keys:
+        if candidate:
+            _refuse('Photography sampling requires the saved source, not a fitted candidate.', 'SCENE_SPEC_INVALID')
+        report['photography'] = _photography_snapshot(payload)
     _hash_file(path, payload['checkpointSha256'])
     return report, [], []

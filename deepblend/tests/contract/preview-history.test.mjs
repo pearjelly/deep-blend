@@ -352,3 +352,46 @@ test('new work and returning brief keep distinct navigation names without losing
   assert.equal(f.store.getState().forms.title, 'draft cup')
   assert.equal(f.writes.length, 0)
 })
+
+const text = node => typeof node === 'string' ? node : (node?.children || []).map(text).join(' ')
+
+function render({ tracks = [], start = '', end = '', scene = true } = {}) {
+  const selected = scene ? { scene: { project: { frameStart: 1, frameEnd: 48 }, nodes: { animationTracks: tracks } } } : null
+  const tree = core.renderView({ state: { view: 'jobs', activeProjectId: 'cup', selected,
+    forms: { frameStart: start, frameEnd: end, profile: 'final' }, jobs: [], notices: {}, busy: { render: false } }, actions: {} })
+  return flatten(tree).find(node => node.props?.['data-motion-warning'] === 'no-declared-tracks')
+}
+
+test('a multi-frame scene without declared tracks warns before rendering', () => {
+  const warning = render()
+  assert.ok(warning)
+  assert.match(text(warning), /animation|motion/i)
+  assert.match(text(warning), /imported|source/i)
+})
+
+test('a single-frame task and an animated scene do not show the static-scene warning', () => {
+  assert.equal(render({ start: '1', end: '1' }), undefined)
+  assert.equal(render({ tracks: [{ id: 'move', targetKind: 'camera', targetEntityId: 'hero', property: 'location.x', keyframes: [] }] }), undefined)
+})
+
+test('missing scene data does not claim the scene has no animation', () => {
+  assert.equal(render({ scene: false }), undefined)
+})
+
+test('render camera choices do not cross project or store boundaries, and a missing camera cannot start a render', async t => {
+  const f = await comparisonClient(t)
+  const camera = f.store.getState().selected.scene.nodes.cameras[0].id
+  f.store.actions.setForm('renderCamera', 'not-in-revision')
+  await f.store.actions.startRender()
+  assert.equal(f.writes.length, 0)
+  assert.match(f.store.getState().notices.jobs.message, /camera/i)
+  f.store.actions.setForm('renderCamera', camera)
+  f.host.root = '/different-project-store'; f.store.actions.reload()
+  await f.wait(s => s.projectsRoot === '/different-project-store')
+  assert.equal(f.store.getState().forms.renderCamera, '')
+  f.store.actions.setForm('renderCamera', camera)
+  f.store.actions.selectProject('project-b')
+  await f.wait(s => s.activeProjectId === 'project-b')
+  assert.equal(f.store.getState().forms.renderCamera, '')
+  assert.equal(f.writes.length, 0)
+})

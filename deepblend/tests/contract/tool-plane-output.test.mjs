@@ -437,6 +437,25 @@ check('a coded probe failure keeps its own code and carries its detail into the 
   probeCoded.data)
 
 studio.describeCapabilities = async () => ({ installed: true, hostApiVersion: 4 })
+{
+  let selectedRequest, standardCalls = 0
+  const prior = studio.visualReview
+  studio.visualReview = async () => { standardCalls++; throw new Error('unexpected standard camera path') }
+  studio.visualReviewSelectedViews = async request => { selectedRequest = request; throw new Error('controlled stop after selected routing') }
+  const views = [{ id: 'delivered', cameraId: 'delivery-main', frame: 72 }]
+  await execute('blender_visual_review', { projectId: 'watch-commercial', revision: 'r0002', views, expectedDigest: 'a'.repeat(64) })
+  check('the agent tool routes explicit delivered camera/frame pairs to the selected Host method', standardCalls === 0
+    && JSON.stringify(selectedRequest?.views) === JSON.stringify(views) && selectedRequest.revision === 'r0002'
+    && selectedRequest.expectedDigest === 'a'.repeat(64) && selectedRequest.consultReviewer === true)
+  selectedRequest = null
+  const ambiguous = await execute('blender_visual_review', { projectId: 'watch-commercial', revision: 'r0002', views, frame: 1 })
+  check('ambiguous standard and selected review inputs refuse before Host IO', !ambiguous.ok && selectedRequest === null && standardCalls === 0)
+  delete studio.visualReviewSelectedViews
+  const stale = await execute('blender_visual_review', { projectId: 'watch-commercial', revision: 'r0002', views })
+  check('an older Host cannot silently replace the agent-selected cameras with defaults', !stale.ok && standardCalls === 0
+    && /no default-camera review was started/.test(stale.text))
+  studio.visualReview = prior
+}
 studio.visualReview = async () => { throw new Error('the render died before the sheet existed') }
 const reviewFailed = await execute('blender_visual_review', MINIMAL_ARGS.blender_visual_review)
 check('a visual review that throws becomes VISUAL_REVIEW_FAILED with no image, not with a stale one',

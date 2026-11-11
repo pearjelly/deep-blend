@@ -89,7 +89,7 @@ check('restore describes moving the current pointer while preserving history, wi
  * line, which is the whole point — "所有写操作经过 Host" is a claim about a set,
  * and a set nobody wrote down is a set that grows quietly.
  */
-const EXPECTED_WRITES = ['projects.create', 'project.preview', 'project.referenceImage.upload', 'project.assets.upload', 'project.assetUploads.create', 'project.assetUploads.file', 'project.assetUploads.complete', 'project.assetUploads.cancel', 'project.assets.preview', 'project.review', 'project.autofix', 'project.patch', 'project.recipeParameters.update', 'project.surfacePlacement', 'project.cameraFit', 'project.restore', 'project.job.cancel', 'project.render', 'project.editableSnapshots.create', 'project.editableSnapshots.cancel']
+const EXPECTED_WRITES = ['readiness.imageInput', 'projects.create', 'project.preview', 'project.referenceImage.upload', 'project.assets.upload', 'project.assetUploads.create', 'project.assetUploads.file', 'project.assetUploads.complete', 'project.assetUploads.cancel', 'project.assets.preview', 'project.review', 'project.autofix', 'project.patch', 'project.recipeParameters.update', 'project.surfacePlacement', 'project.cameraFit', 'project.photographyReuse', 'project.restore', 'project.motionPreview.create', 'project.motionPreview.save', 'project.motionPreview.discard', 'project.job.cancel', 'project.render', 'project.editableSnapshots.create', 'project.editableSnapshots.cancel']
 check('the write set is exactly the named routes', JSON.stringify(writeRouteIds()) === JSON.stringify(EXPECTED_WRITES), writeRouteIds())
 
 /** A concrete path for a declared route, from the route itself. */
@@ -98,6 +98,7 @@ function samplePath(route) {
     .replace(':projectId', 'watch-commercial')
     .replace(':revision', 'r0009')
     .replace(':jobId', 'render-0001')
+    .replace(':candidateId', '12345678-1234-4234-8234-123456789abc')
     .replace(/\/\*$/, '/revisions/r0009/contact-sheets/round-0.png')
 }
 
@@ -406,6 +407,9 @@ check('a completed job is neither cancelable nor resumable, and is deliverable w
     const view = buildJobView({ ...RUNNING, status: 'completed', completedFrames: 60, missingFrames: [], delivery: { videoPath: 'output/final.mp4' } }, { threshold: 900 })
     return view.cancelable === false && view.resumable === false && view.deliverable === true && view.progress.live === false
   })())
+check('a completed image is described as an image and not as a verified video',
+  describeJobForHuman({ ...RUNNING, status: 'completed', delivery: { kind: 'still', verified: true } }).includes('图片来源已核验')
+  && !describeJobForHuman({ ...RUNNING, status: 'completed', delivery: { kind: 'still', verified: true } }).includes('视频'))
 check('a failed job is resumable, because its frames are still on disk',
   buildJobView({ ...RUNNING, status: 'failed', errorCode: 'BLENDER_EXIT_NONZERO' }, { threshold: 900 }).resumable === true)
 check('a zero-frame job reports 0% rather than NaN or Infinity',

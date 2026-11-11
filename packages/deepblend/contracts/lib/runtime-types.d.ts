@@ -116,6 +116,7 @@ export interface GeometryInspectionReport {
 export type CameraFitRequest = RuntimeOptions & {
   checkpointPath: string; checkpointSha256: string; entityIds: string[]; assetInstanceIds: string[];
   frame: number; cameraId: string; fittedCameraId: string; margin: number; jobId?: string;
+  photography?: { lightIds: string[]; cameraMustBeStatic: boolean };
 } & ({ baselineCheckpointPath: string; baselineCheckpointSha256: string }
   | { baselineCheckpointPath?: never; baselineCheckpointSha256?: never });
 export interface CameraFitMember {
@@ -133,6 +134,8 @@ export interface CameraFitReport {
     shift: [number, number]; clipping: [number, number]; fStop?: number; matrixWorld: number[][];
     focusDistance: number; focusObject: string | null };
   proposal?: import('./schema-types.js').Camera;
+  photography?: { schemaVersion: 'deepblend.photography-snapshot/v1'; staticGeometry: true; staticLights: true;
+    cameraStatic: boolean; cameraRotationEuler: Vec3; lights: import('./schema-types.js').Light[] };
   baselineVerification?: { checkpointSha256: string; checkpointUnchanged: true; selectedGeometryUnchanged: true;
     originalObjectsUnchanged: true; opticsAndRotationPreserved: true; maxVertexErrorMeters: number;
     toleranceMeters: number; originalObjectCount: number };
@@ -231,6 +234,8 @@ export interface FrameSequenceHandle {
 export interface FrameSequenceRequest extends RuntimeOptions {
   checkpointPath: string; frames: number[]; jobDirectory: string; cameraId?: string; profileName?: string;
   profile?: RenderProfile; frameRange?: [number, number]; jobId?: string; attemptToken?: string;
+  motionFrameAudit?: { entityIds: string[]; assetInstanceIds: string[] };
+  motionFrameAuditOnly?: boolean;
   filePrefix?: string; padding?: number;
 }
 export interface ShotCameraSelection {

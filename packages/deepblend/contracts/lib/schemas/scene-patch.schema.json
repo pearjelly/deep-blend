@@ -1855,6 +1855,15 @@
               "description": "UV repetitions per longest local mesh extent; default 1. Larger values repeat the texture more often. Islands overlap and are not packed."
             }
           }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["op", "aspectRatio"],
+          "properties": {
+            "op": { "const": "project.aspectRatio.set" },
+            "aspectRatio": { "type": "string", "pattern": "^[0-9]+:[0-9]+$" }
+          }
         }
       ]
     },

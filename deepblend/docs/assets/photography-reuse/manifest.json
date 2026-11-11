@@ -1,54 +1,54 @@
 {
   "schemaVersion": "deepblend.photography-docs/v1",
-  "at": "2026-10-26T18:40:26.952974+00:00",
+  "at": "2026-11-01T05:56:43.560027+00:00",
   "sourceBase": "d68f6d452b476c8c0b4c8fb6739b13c7ef59112f",
-  "uiSha256": "1b5625048e51a9910d09e5cdd47b3f2ba5f524c9a2dfa0f8985582cb8f80f60b",
+  "uiSha256": "7f42aa96a4cb4bd7f7323ecc532bd4a8ab50bfd7371597b9cd22ea444b79c400",
   "nativeSource": ".tmp-photography-reuse-1022-v1",
   "nativeChecks": 36,
   "viewed": true,
-  "scope": "Actual current-client photography saved-source draft interaction and desktop/narrow CDP captures. Saved project r0001 hero camera60mm applied to the browser draft based onr0002. All30 copied Host files remain byte-identical; no save/render/model request. Historical36-check native evidence remains separately pinned.",
+  "scope": "Actual current-client saved-source photography draft capture, with an existing target preview. No save or model request during capture; historical native regression remains separately pinned.",
   "images": [
     {
       "file": "draft.png",
-      "original": "photography-desktop.png",
-      "sha256": "99fcb6cf33215af5ba27a41051798478d3b4a1766749f3ee0e5e4dfacb016341",
-      "bytes": 387866,
+      "original": "photography-desktop.jpg",
+      "sha256": "e0e7978b49e0cd0a833251ba292f178f856c9a705d59b0fb66d7e05c0688c6e6",
+      "bytes": 406097,
       "width": 1440,
       "height": 1013,
       "postProcessed": false,
       "encodingConversion": {
-        "sourceFile": "photography-desktop.png",
+        "sourceFile": "photography-desktop.jpg",
         "sourceFormat": "JPEG",
-        "sourceSha256": "c95b557e8762988f22709ac1a812b986f77694f00659dc00f68c95d4ee87bb28",
-        "decodedPixelsSha256": "ac074a0ff816d564953872fbd2dc781b3500a3b0673176890a4cf4ad7df9d607",
+        "sourceSha256": "1c7793fe2d992edc8b097f6fd61a2add42d6e870f832b23b7c93d676401a86cd",
+        "decodedPixelsSha256": "e4d7494237bd420891b01795507fd4bd9291dddb482f2399beff27f7f906e022",
         "pixelMode": "RGB",
         "decodedPixelsIdentical": true,
         "cropped": false,
         "resized": false,
         "colorAdjusted": false,
-        "pngSha256": "99fcb6cf33215af5ba27a41051798478d3b4a1766749f3ee0e5e4dfacb016341"
+        "pngSha256": "e0e7978b49e0cd0a833251ba292f178f856c9a705d59b0fb66d7e05c0688c6e6"
       },
       "metadataOnlyOriginEmbedded": true
     },
     {
       "file": "narrow.png",
-      "original": "photography-narrow-final.png",
-      "sha256": "ee819ad8d8584a654a44dc5921e41db6d84d3ce629b1592252641ccd49bebd1a",
-      "bytes": 181098,
+      "original": "photography-narrow.jpg",
+      "sha256": "87bcf786dc003c3a7d2a56e5a6ba3ed218f64623c5be625b0a76f99099df7345",
+      "bytes": 175782,
       "width": 390,
       "height": 844,
       "postProcessed": false,
       "encodingConversion": {
-        "sourceFile": "photography-narrow-final.png",
+        "sourceFile": "photography-narrow.jpg",
         "sourceFormat": "JPEG",
-        "sourceSha256": "c0c4fe30b0263c828fec420a50befc31e4308290d19669bc12e8003ea1f77898",
-        "decodedPixelsSha256": "55c8ca1934a5f1b70a7e4429aa46d09e7661e7b99a985c409d6df2d649c5821e",
+        "sourceSha256": "93c9b06903d4e95aac68802a0d1c01fbb6b790a398f7b828b209ae60f6c6a208",
+        "decodedPixelsSha256": "86a7faedad2ff675fef534068d32eed375e1964f12d6d0c1e509b6dff7525004",
         "pixelMode": "RGB",
         "decodedPixelsIdentical": true,
         "cropped": false,
         "resized": false,
         "colorAdjusted": false,
-        "pngSha256": "ee819ad8d8584a654a44dc5921e41db6d84d3ce629b1592252641ccd49bebd1a"
+        "pngSha256": "87bcf786dc003c3a7d2a56e5a6ba3ed218f64623c5be625b0a76f99099df7345"
       },
       "metadataOnlyOriginEmbedded": true
     }
@@ -74,13 +74,14 @@
   },
   "capture": {
     "interaction": "cdp-browser-ui",
-    "source": ".tmp-uv-lighttable-docs-v1",
+    "source": ".deepblend/photography-capture-20261101-photography-bounds",
     "report": "capture-report.json",
-    "reportSha256": "72bcfac2ad3068bd325ce360d6670f191a7e95abf614ac7c30e3dee58de037f5",
-    "uiSha256": "1b5625048e51a9910d09e5cdd47b3f2ba5f524c9a2dfa0f8985582cb8f80f60b",
+    "reportSha256": "8d87149172b4a21b2c4f3b5a911985181fb20441a2d4b03b74ffef1dfb919ffa",
+    "uiSha256": "7f42aa96a4cb4bd7f7323ecc532bd4a8ab50bfd7371597b9cd22ea444b79c400",
     "nativeRegressionRerun": false,
-    "scope": "Actual current-client photography saved-source draft interaction and desktop/narrow CDP captures. Saved project r0001 hero camera60mm applied to the browser draft based onr0002. All30 copied Host files remain byte-identical; no save/render/model request. Historical36-check native evidence remains separately pinned.",
-    "encodingNote": "Actual CDP JPEG screenshots converted at the same dimensions and RGB mode with every decoded pixel identical; source metadata embedded separately."
+    "scope": "Actual current-client saved-source photography draft capture, with an existing target preview. No save or model request during capture; historical native regression remains separately pinned.",
+    "encodingNote": "Actual CDP JPEG screenshots converted at the same dimensions and RGB mode with every decoded pixel identical; source metadata embedded separately.",
+    "at": "2026-11-01T05:56:43.560027+00:00"
   },
-  "viewedAt": "2026-10-26T18:43:24.212972+00:00"
+  "viewedAt": "2026-11-01T05:56:43.560027+00:00"
 }

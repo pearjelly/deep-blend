@@ -373,6 +373,14 @@ def render_frames(plan, guard, require_camera_selection=False):
 
     entries = []
     written = []
+    audit = plan.get('motionFrameAudit')
+    audit_only = plan.get('motionFrameAuditOnly', False)
+    if type(audit_only) is not bool or audit_only and audit is None:
+        raise ActionError('MOTION_FRAME_UNVERIFIABLE', 'An audit-only run requires a complete motion selection.')
+    if audit is not None:
+        from deepblend_motion_frame_audit import validate_audit, audit_frame
+        validate_audit(audit, requested, camera_selection)
+    audited = []
     total = len(requested)
     total_bytes = 0
     for index, frame in enumerate(requested):
@@ -384,6 +392,14 @@ def render_frames(plan, guard, require_camera_selection=False):
             # Apply AFTER native animation/marker evaluation; no native file is
             # saved and the legacy single-camera route remains unchanged.
             scene.camera = camera
+        if audit is not None:
+            # Frame changes can activate a scene marker camera. The audit and
+            # render must both use the explicitly selected motion camera.
+            scene.camera = camera
+            audit_frame(scene, camera, audit, frame)
+            audited.append(frame)
+        if audit_only:
+            continue
         path = frame_path(output_directory, frame, prefix, padding)
         # Explicit, absolute, WITH the extension — see the naming trap above.
         scene.render.filepath = path
@@ -398,6 +414,8 @@ def render_frames(plan, guard, require_camera_selection=False):
                 {"frame": frame, "engine": scene.render.engine},
             )
         elapsed_ms = int((time.time() - started) * 1000)
+        if audit is not None and scene.camera != camera:
+            raise ActionError('MOTION_FRAME_UNVERIFIABLE', 'The inspected camera changed while rendering.', {'frame': frame})
         camera_evidence = {}
         if camera_selection is not None:
             actual_id = scene.camera.get("deepblend_id") if scene.camera is not None else None
@@ -440,7 +458,7 @@ def render_frames(plan, guard, require_camera_selection=False):
     append_event(events_path, {"type": "frames_done", "rendered": written})
 
     return {
-        "renderKind": "frame-sequence",
+        "renderKind": "motion-frame-audit" if audit_only else "frame-sequence",
         "profileName": plan.get("profileName"),
         "checkpoint": checkpoint,
         "cameraId": (camera.get("deepblend_id") or camera.name) if camera_selection is None else None,
@@ -452,6 +470,12 @@ def render_frames(plan, guard, require_camera_selection=False):
         "frames": entries,
         "renderedFrames": written,
         "renderedCount": len(written),
+        **({"motionFrameAudit": {"schemaVersion": "deepblend.motion-frame-audit/v1",
+            "entityIds": audit['entityIds'], "assetInstanceIds": audit['assetInstanceIds'],
+            "frames": audited, "scope": "evaluated-mesh-vertices",
+            "cameraId": camera.get('deepblend_id') or camera.name,
+            "resolution": [expected_width, expected_height],
+            "pixelAspect": [float(scene.render.pixel_aspect_x), float(scene.render.pixel_aspect_y)]}} if audit is not None else {}),
         "totalBytes": total_bytes,
         "sceneFrameRange": scene_range,
         "renderConfig": actual,

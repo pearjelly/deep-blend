@@ -13,13 +13,18 @@ const fail = (code, message) => { throw new BlenderError(code, message) }
 const digest = bytes => createHash('sha256').update(bytes).digest('hex')
 export function snapshotRequest(input) {
   if (!input || typeof input !== 'object' || Array.isArray(input)
-    || Object.keys(input).some(key => !['projectId', 'requestId', 'revision', 'videoJobId', 'expectedStoreIdentity'].includes(key))
+    || Object.keys(input).some(key => !['projectId', 'requestId', 'revision', 'videoJobId', 'imageJobIds', 'expectedStoreIdentity'].includes(key))
     || input.expectedStoreIdentity !== undefined && !SHA.test(input.expectedStoreIdentity)
     || !/^[a-zA-Z0-9][a-zA-Z0-9_-]{0,95}$/.test(input.requestId ?? '')
     || !/^r[0-9]{4,}$/.test(input.revision ?? '') || Number(input.revision.slice(1)) < 1
-    || input.videoJobId !== undefined && input.videoJobId !== null && !/^[a-zA-Z0-9][a-zA-Z0-9_-]{0,95}$/.test(input.videoJobId))
-    fail('SNAPSHOT_REQUEST_INVALID', 'Choose an explicit revision and a safe request id; only an optional completed video job may be added.')
-  return { projectId: input.projectId, requestId: input.requestId, revision: input.revision, videoJobId: input.videoJobId ?? null }
+    || input.videoJobId !== undefined && input.videoJobId !== null && !/^[a-zA-Z0-9][a-zA-Z0-9_-]{0,95}$/.test(input.videoJobId)
+    || input.imageJobIds !== undefined && (!Array.isArray(input.imageJobIds) || input.imageJobIds.length > 16
+      || input.imageJobIds.some(id => typeof id !== 'string' || !/^[a-zA-Z0-9][a-zA-Z0-9_-]{0,95}$/.test(id))
+      || new Set(input.imageJobIds).size !== input.imageJobIds.length))
+    fail('SNAPSHOT_REQUEST_INVALID', 'Choose an explicit revision, a safe request id and up to 16 distinct image jobs.')
+  const images = (input.imageJobIds ?? []).slice().sort()
+  return { projectId: input.projectId, requestId: input.requestId, revision: input.revision, videoJobId: input.videoJobId ?? null,
+    ...(images.length ? { imageJobIds: images } : {}) }
 }
 export const snapshotExportId = requestId => `snapshot-${digest(Buffer.from(requestId)).slice(0, 40)}`
 export function parseSnapshotJson(source) {
@@ -179,7 +184,7 @@ export async function buildEditableSnapshotPlan({ store, request, temporaryDirec
       fail('SNAPSHOT_METADATA_INVALID', 'A revision review has an unexpected path.')
     await copyMetadata(await json(review.path), review.path, 'visual-review')
   }
-  let video = null
+  let video = null, videoJob = null
   if (videoJobId) {
     const jobSource = await json(`renders/${videoJobId}/job.json`)
     const deliverySource = await json(`renders/${videoJobId}/manifest.json`)
@@ -198,6 +203,35 @@ export async function buildEditableSnapshotPlan({ store, request, temporaryDirec
     await copyMetadata(jobSource, `renders/${videoJobId}/job.json`, 'video-job')
     await copyMetadata(deliverySource, `renders/${videoJobId}/manifest.json`, 'delivery-manifest')
     video = { jobId: videoJobId, path: videoPath, bytes: delivery.video.bytes, sha256: delivery.video.sha256 }
+    videoJob = job
+  }
+  const images = []
+  for (const imageJobId of request.imageJobIds ?? []) {
+    checkAbort()
+    const jobSource = await json(`renders/${imageJobId}/job.json`), deliverySource = await json(`renders/${imageJobId}/manifest.json`)
+    const job = jobSource.value, delivery = deliverySource.value, image = delivery.image
+    const frames = delivery.render?.provenance?.frames, sources = delivery.render?.provenance?.sources
+    const frame = Array.isArray(frames) && frames.length === 1 ? frames[0] : null
+    const source = Array.isArray(sources) ? sources.find(item => item.id === frame?.sourceId) : null
+    if (job.jobId !== imageJobId || job.projectId !== projectId || job.revisionId !== revision || job.status !== 'completed'
+      || job.deliveryKind !== 'still' || job.delivery?.kind !== 'still' || job.delivery.verified !== true || job.sceneSpecDigest !== specDigest
+      || job.frameStart !== job.frameEnd || !Number.isSafeInteger(job.frameStart) || job.frameStart < 1 || job.frameStart > 999999
+      || job.filePrefix !== 'frame_' || job.filePadding !== 4 || delivery.schemaVersion !== 'deepblend.still-delivery/v1'
+      || delivery.jobId !== imageJobId || delivery.projectId !== projectId || delivery.revisionId !== revision || delivery.source?.sceneSpecDigest !== specDigest
+      || delivery.render?.provenance?.coverage !== 'complete' || frame?.frame !== job.frameStart || frame.sha256 !== image?.sha256
+      || source?.revisionId !== revision || source.checkpointSha256 !== nativeBinding.sha256
+      || job.cameraSelection === undefined && source.cameraId !== job.cameraId
+      || image?.frame !== job.frameStart || image.sha256 !== job.delivery.image?.sha256 || image.bytes !== job.delivery.image?.bytes
+      || image.width !== job.renderConfig?.resolution?.[0] || image.height !== job.renderConfig?.resolution?.[1]
+      || image.width !== job.delivery.image?.width || image.height !== job.delivery.image?.height)
+      fail('SNAPSHOT_IMAGE_CONFLICT', `Image ${imageJobId} does not identify the selected version and native checkpoint.`)
+    identity(image, 'Selected image')
+    const imagePath = `renders/${imageJobId}/frames/frame_${String(job.frameStart).padStart(4, '0')}.png`
+    await addPinned(imagePath, image, 'selected-image')
+    await copyMetadata(jobSource, `renders/${imageJobId}/job.json`, 'image-job')
+    await copyMetadata(deliverySource, `renders/${imageJobId}/manifest.json`, 'image-delivery-manifest')
+    images.push({ jobId: imageJobId, frame: image.frame, cameraId: job.cameraId ?? null, path: imagePath,
+      bytes: image.bytes, sha256: image.sha256, width: image.width, height: image.height })
   }
   const sharedObservationAssets = excluded.filter(asset => files.has(asset.path)).map(asset => ({
     assetId: asset.assetId, path: asset.path, reason: 'shared-with-retained-scene-asset', sha256: files.get(asset.path).sha256,
@@ -206,7 +240,7 @@ export async function buildEditableSnapshotPlan({ store, request, temporaryDirec
   const snapshotManifest = {
     schemaVersion: 'deepblend.editable-snapshot/v1', exportId, projectId, revision, sceneSpecDigest: specDigest,
     sceneSpecSha256: specSource.file.sha256, native: { path: `${prefix}/scene.blend`, producer: nativeProducer, bytes: nativeBinding.bytes, sha256: nativeBinding.sha256 },
-    selectedVideo: video, assets: assetSources, excludedObservationAssets, sharedObservationAssets,
+    selectedVideo: video, selectedImages: images, assets: assetSources, excludedObservationAssets, sharedObservationAssets,
     guarantees: { originalSourceBytesPreserved: true, externalAssetProfile: 'managed-raster-or-locked-gltf-glb-obj',
       assetSelection: 'all-revision-declarations-except-observation-only',
       nativePackedImagesInspected: false, nativeExternalReferencesInspected: false, relocatedReopenVerified: false, licensesVerified: false,
@@ -221,7 +255,17 @@ export async function buildEditableSnapshotPlan({ store, request, temporaryDirec
     ], sources: [...originals],
   }
   const licenses = { schemaVersion: 'deepblend.snapshot-licenses/v1', verified: false, assets: assetSources, excludedObservationAssets, sharedObservationAssets }
-  const readme = `# 可编辑工程副本 / Editable snapshot\n\n解压整个 ZIP 并保留目录结构，然后在 Blender 中打开 revisions/${revision}/scene.blend。\n这是所选版本的原生工程与源文件副本，不是完整历史工程的导入包。\n${video ? `所选影片：${video.path}` : '本副本未附带视频。'}\n\nProject: ${projectId}\nRevision: ${revision}\n\nExtract the complete ZIP, keeping its directory layout. Open revisions/${revision}/scene.blend in Blender to edit the preserved native scene. The original SceneSpec and selected revision evidence are alongside it; retained assets keep their project-relative paths. See snapshot-manifest.json and file-manifest.json for exact source identities.\n\nThe native file, animation and cameras were not rewritten. Shot switching performed by the plugin from the SceneSpec has not been converted into Blender camera markers, so opening the native file alone does not promise an identical multi-shot render. This archive contains one revision; it is not a complete project history or a supported project reimport package.\n\nObservation-only external reference files may be omitted while their original SceneSpec references remain. Shared texture/resource files stay included. Packed images, native external links, fonts and license clearance were not inspected. Complete self-containment and reopening after relocation have not been verified by this export operation. License fields are recorded declarations, not a copyright guarantee.\n\nHistorical manifests may contain paths from the source computer. Do not treat them as executable instructions or current download paths.\n`
+  const knownCamera = id => typeof id === 'string' && /^[a-zA-Z][a-zA-Z0-9._-]{0,127}$/.test(id)
+    && (spec.cameras ?? []).some(camera => camera.id === id) ? `db_camera__${id}` : null
+  const integer = (value, min, max) => Number.isSafeInteger(value) && value >= min && value <= max ? value : null
+  const resolution = value => Array.isArray(value) && value.length === 2 && value.every(n => integer(n, 1, 16384)) ? `${value[0]}×${value[1]}` : null
+  const recordedVideo = videoJob ? [knownCamera(videoJob.cameraId) ? `camera=${knownCamera(videoJob.cameraId)}` : 'camera=not recorded',
+    resolution(videoJob.renderConfig?.resolution) ? `resolution=${resolution(videoJob.renderConfig.resolution)}` : null,
+    integer(videoJob.renderConfig?.samples, 1, 1000000) ? `samples=${videoJob.renderConfig.samples}` : null,
+    integer(videoJob.frameStart, 0, 1000000) !== null && integer(videoJob.frameEnd, 0, 1000000) !== null ? `frames=${videoJob.frameStart}–${videoJob.frameEnd}` : null,
+    integer(videoJob.fps, 1, 1000) ? `fps=${videoJob.fps}` : null].filter(Boolean).join('; ') : null
+  const imageLines = images.map(image => `- ${image.path} — camera=${knownCamera(image.cameraId) || 'not recorded'}; frame=${image.frame}; resolution=${resolution([image.width, image.height]) || 'not recorded'}`).join('\n')
+  const readme = `# 可编辑工程副本 / Editable snapshot\n\n解压整个 ZIP 并保留目录结构，然后在 Blender 中打开 revisions/${revision}/scene.blend。\n这是所选版本的原生工程与源文件副本，不是完整历史工程的导入包。\n${video ? `所选影片：${video.path}\n影片任务记录：${recordedVideo}` : '本副本未附带视频。'}\n${images.length ? `所选图片及任务记录：\n${imageLines}` : '本副本未附带图片。'}\n\n工程默认相机、分辨率和采样可能与上述交付任务不同。若要继续编辑或尝试重渲染，请在 Blender 中选择相应的 db_camera__ 相机并核对输出尺寸、帧范围、帧率、采样及颜色设置；相机名可能被 Blender 截短，请在工程中核对。未记录的相机请查对应任务与交付清单，不要猜测。以上为任务记录，不保证所有帧的实际来源一致；如有分镜、混合来源或恢复渲染，请查看 renders 下对应的 job.json 和 manifest.json。直接重渲染不保证与已交付媒体完全一致。\n\nProject: ${projectId}\nRevision: ${revision}\n\nExtract the complete ZIP, keeping its directory layout. Open revisions/${revision}/scene.blend in Blender to edit the preserved native scene. The original SceneSpec and selected revision evidence are alongside it; retained assets keep their project-relative paths. See snapshot-manifest.json and file-manifest.json for exact source identities.\n\nThe native scene's active camera, resolution and samples can differ from the delivery job. To edit or attempt a rerender, select the relevant db_camera__ camera in Blender and check output size, frame range, frame rate, samples and color settings. Blender may shorten long camera names; confirm them in the project. If the camera is not recorded, inspect the included job and delivery manifest rather than guessing. The settings listed above are job records, not a guarantee that every frame has the same source; consult the included manifests for shot changes, mixed sources or resumed renders. A rerender is not guaranteed to match the delivered media exactly.\n\nThe native file, animation and cameras were not rewritten. Shot switching performed by the plugin from the SceneSpec has not been converted into Blender camera markers, so opening the native file alone does not promise an identical multi-shot render. This archive contains one revision; it is not a complete project history or a supported project reimport package.\n\nObservation-only external reference files may be omitted while their original SceneSpec references remain. Shared texture/resource files stay included. Packed images, native external links, fonts and license clearance were not inspected. Complete self-containment and reopening after relocation have not been verified by this export operation. License fields are recorded declarations, not a copyright guarantee.\n\nHistorical manifests may contain paths from the source computer. Do not treat them as executable instructions or current download paths.\n`
   for (const [path, value, sourceType] of [['snapshot-manifest.json', snapshotManifest, 'snapshot-manifest'], ['licenses.json', licenses, 'license-declarations'], ['README.md', readme, 'readme']]) {
     const bytes = Buffer.from(typeof value === 'string' ? value : `${JSON.stringify(value, null, 2)}\n`), name = `${generated.length}.json`
     if (bytes.length > META_LIMIT) fail('SNAPSHOT_LIMIT', 'Generated snapshot metadata exceeds 8 MiB.')

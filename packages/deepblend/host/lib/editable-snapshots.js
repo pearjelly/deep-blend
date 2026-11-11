@@ -89,6 +89,7 @@ const statusBase = plan => ({ exportId: plan.exportId, projectId: plan.request.p
   storeIdentity: plan.storeIdentity,
   planFrozen: plan.schemaVersion === 'deepblend.snapshot-plan/v1',
   videoJobId: plan.request.videoJobId, requestId: plan.request.requestId, createdAt: plan.createdAt,
+  ...(plan.request.imageJobIds?.length ? { imageJobIds: plan.request.imageJobIds } : {}),
   totalBytes: plan.files.reduce((sum, file) => sum + file.bytes, 0) })
 
 export class EditableSnapshots {
@@ -154,6 +155,8 @@ export class EditableSnapshots {
     catch (error) { if (error.code !== 'ENOENT') throw errorFor(error) }
     if (receipt && ['exportId', 'projectId', 'revision', 'videoJobId', 'requestId'].some(field => receipt[field] !== statusBase(plan)[field]))
       fail('SNAPSHOT_METADATA_INVALID', 'The saved preparation status does not match its fixed plan.')
+    if (receipt && JSON.stringify(receipt.imageJobIds ?? []) !== JSON.stringify(plan.request.imageJobIds ?? []))
+      fail('SNAPSHOT_METADATA_INVALID', 'The saved image selection does not match its fixed plan.')
     const progress = receipt ? { phase: receipt.phase, writtenBytes: receipt.writtenBytes, verifiedBytes: receipt.verifiedBytes,
       ...(receipt.failureDirectory ? { failureDirectory: receipt.failureDirectory, partialPayloadRemoved: receipt.partialPayloadRemoved === true } : {}) } : {}
     const ownership = projectWriterState(join(root, requestPath(exportId)), this.store.workspaceRoot)
@@ -329,6 +332,62 @@ export class EditableSnapshots {
     try {
       const file = await openSnapshotFile(root, `exports/${exportId}/snapshot.zip`, status.archive, { signal })
       return { ...file, filename: `${exportId}.zip`, contentType: 'application/zip' }
+    } catch (error) { throw errorFor(error) }
+  }
+  /** Open the immutable, job-specific video, never the mutable output/final.mp4. */
+  async openVideo({ projectId, jobId, revision, sha256, expectedStoreIdentity, signal }) {
+    if (!/^[a-f0-9]{64}$/.test(expectedStoreIdentity ?? '') || !/^[a-f0-9]{64}$/.test(sha256 ?? '')
+      || !/^r[0-9]{4,}$/.test(revision ?? '') || !/^[a-zA-Z0-9][a-zA-Z0-9_-]{0,95}$/.test(jobId ?? ''))
+      fail('SNAPSHOT_REQUEST_INVALID', 'A video download requires the displayed project store, revision, job and SHA256.')
+    this.assertStore(expectedStoreIdentity)
+    const root = this.root(projectId)
+    try {
+      const job = (await snapshotJson(root, `renders/${jobId}/job.json`, 8 * 1024 ** 2, signal)).value
+      const manifest = (await snapshotJson(root, `renders/${jobId}/manifest.json`, 8 * 1024 ** 2, signal)).value
+      if (job.projectId !== projectId || job.jobId !== jobId || job.revisionId !== revision || job.status !== 'completed'
+        || job.delivery?.verified !== true || job.delivery?.sha256 !== sha256
+        || manifest.projectId !== projectId || manifest.jobId !== jobId || manifest.revisionId !== revision
+        || !/^[a-f0-9]{64}$/.test(job.sceneSpecDigest ?? '') || manifest.source?.sceneSpecDigest !== job.sceneSpecDigest
+        || manifest.video?.verified !== true || manifest.video?.sha256 !== sha256
+        || !Number.isSafeInteger(manifest.video?.bytes) || manifest.video.bytes < 1 || job.delivery?.bytes !== manifest.video.bytes)
+        fail('SNAPSHOT_VIDEO_CONFLICT', 'The completed video no longer matches the selected project, revision and job. Refresh the workbench.')
+      const file = await openSnapshotFile(root, `renders/${jobId}/encoded/${jobId}.mp4`, manifest.video, { signal })
+      return { ...file, filename: `deepblend-${revision}-${jobId}-${sha256.slice(0, 12)}.mp4`, contentType: 'video/mp4' }
+    } catch (error) { throw errorFor(error) }
+  }
+  /** Download only the exact frame recorded at publication, never a mutable output alias. */
+  async openFrame({ projectId, jobId, frame, revision, sha256, expectedStoreIdentity, signal }) {
+    if (!/^[a-f0-9]{64}$/.test(expectedStoreIdentity ?? '') || !/^[a-f0-9]{64}$/.test(sha256 ?? '')
+      || !/^r[0-9]{4,}$/.test(revision ?? '') || !/^[a-zA-Z0-9][a-zA-Z0-9_-]{0,95}$/.test(jobId ?? '')
+      || !/^[1-9][0-9]{0,5}$/.test(String(frame ?? '')))
+      fail('SNAPSHOT_REQUEST_INVALID', 'A frame download requires the displayed store, revision, job, frame and SHA256.')
+    this.assertStore(expectedStoreIdentity)
+    const number = Number(frame), root = this.root(projectId)
+    try {
+      const job = (await snapshotJson(root, `renders/${jobId}/job.json`, 8 * 1024 ** 2, signal)).value
+      const manifest = (await snapshotJson(root, `renders/${jobId}/manifest.json`, 8 * 1024 ** 2, signal)).value
+      const sources = (await snapshotJson(root, `renders/${jobId}/frame-sources.json`, 16 * 1024 ** 2, signal)).value
+      const frames = manifest.render?.provenance?.frames
+      const matches = Array.isArray(frames) ? frames.filter(item => item?.frame === number) : []
+      const binding = sources.frames?.[String(number)]
+      if (job.projectId !== projectId || job.jobId !== jobId || job.revisionId !== revision || job.status !== 'completed'
+        || job.filePrefix !== 'frame_' || job.filePadding !== 4 || !Number.isSafeInteger(job.frameStart) || !Number.isSafeInteger(job.frameEnd)
+        || number < job.frameStart || number > job.frameEnd || job.delivery?.verified !== true
+        || manifest.projectId !== projectId || manifest.jobId !== jobId || manifest.revisionId !== revision
+        || !/^[a-f0-9]{64}$/.test(job.sceneSpecDigest ?? '') || manifest.source?.sceneSpecDigest !== job.sceneSpecDigest
+        || sources.schemaVersion !== 'deepblend.frame-sources/v1' || sources.projectId !== projectId || sources.jobId !== jobId || sources.revisionId !== revision
+        || matches.length !== 1 || matches[0].sha256 !== sha256 || matches[0].sourceId !== binding?.sourceId
+        || binding?.sha256 !== sha256 || sources.sources?.[binding.sourceId]?.id !== binding.sourceId
+        || sources.sources?.[binding.sourceId]?.revisionId !== revision || !Number.isSafeInteger(binding.stat?.bytes) || binding.stat.bytes < 1
+        || (job.deliveryKind === 'still' && (job.frameStart !== job.frameEnd || job.delivery?.kind !== 'still'
+          || manifest.schemaVersion !== 'deepblend.still-delivery/v1' || manifest.image?.frame !== number
+          || manifest.image?.sha256 !== sha256 || manifest.image?.bytes !== binding.stat.bytes
+          || manifest.image?.width !== job.renderConfig?.resolution?.[0] || manifest.image?.height !== job.renderConfig?.resolution?.[1]
+          || job.delivery.image?.frame !== number || job.delivery.image?.sha256 !== sha256 || job.delivery.image?.bytes !== binding.stat.bytes
+          || job.delivery.image?.width !== manifest.image?.width || job.delivery.image?.height !== manifest.image?.height)))
+        fail('SNAPSHOT_FRAME_CONFLICT', 'The frame no longer matches the selected project, revision and render. Refresh the workbench.')
+      const file = await openSnapshotFile(root, `renders/${jobId}/frames/frame_${String(number).padStart(4, '0')}.png`, { bytes: binding.stat.bytes, sha256 }, { signal })
+      return { ...file, filename: `deepblend-${revision}-${jobId}-frame-${number}-${sha256.slice(0, 12)}.png`, contentType: 'image/png' }
     } catch (error) { throw errorFor(error) }
   }
   async dispose() {

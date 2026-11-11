@@ -4,6 +4,7 @@ import assert from 'node:assert/strict'
 import { readFileSync } from 'node:fs'
 import { compileSceneSpec, buildSceneTree, applyPatchToSpec, validateScenePatch, validateSceneSpec, HOST_API_VERSION } from '@deepblend/dsh-blender-contracts'
 import { loadClientBundle } from '../lib/client-bundle.mjs'
+import { createHandlers } from '@deepblend/dsh-blender-ui'
 
 const plain = value => JSON.parse(JSON.stringify(value))
 const core = loadClientBundle().exports.workbench, editor = core.photographyEditor
@@ -11,6 +12,16 @@ const source = (name = 'glazed-cup') => compileSceneSpec(JSON.parse(readFileSync
 const tree = (spec, revision = 'r0001') => buildSceneTree(spec, { revision, digest: revision.repeat(8) })
 const make = (spec = source()) => ({ spec, draft: editor.createDraft(tree(spec), 'one') })
 const flatten = node => node && typeof node === 'object' ? [node, ...(node.children || []).flatMap(flatten)] : []
+
+test('boundary planning route binds project and cancellation to Host without saving or silently using an old Host', async () => {
+  const calls=[], signal=new AbortController().signal
+  const handlers=createHandlers({blenderStudio:{planPhotographyReuse:async request=>{calls.push(request);return {scale:2}}}})
+  const body={projectId:'foreign',baseRevision:'r0001',expectedDigest:'a'.repeat(64),expectedStoreIdentity:'b'.repeat(64),
+    cameraId:'hero',frame:1,entityIds:['body'],source:{projectId:'source',revision:'r0001',digest:'c'.repeat(64),cameraId:'hero',frame:12,entityIds:['body']}}
+  assert.deepEqual(await handlers['project.photographyReuse']({params:{projectId:'one'},body,signal}),{plan:{scale:2}})
+  assert.deepEqual(calls,[{...body,projectId:'one',signal}])
+  await assert.rejects(createHandlers({blenderStudio:{}})['project.photographyReuse']({params:{projectId:'one'},body,signal}),{code:'UI_HOST_API_STALE'})
+})
 function apply(spec, draft) {
   const patch = plain(editor.buildPatch(draft)), validation = validateScenePatch(patch)
   assert.equal(validation.ok, true, validation.summary)
@@ -42,6 +53,9 @@ async function client(t, options = {}) {
           project.spec = applyPatchToSpec(project.spec, body.patch).spec; project.revision = 'r0002'
           payload = { ok: true, revision: { revision: project.revision, digest: 'saved-digest' } }
         }
+      } else if (route === 'photography-reuse') {
+        const result = options.plan ? await options.plan(body, projects) : boundaryPlan(body, projects)
+        payload = result.error ? { ok: false, error: result.error } : { ok: true, hostApiVersion: HOST_API_VERSION, route: 'project.photographyReuse', plan: result }
       } else if (route === 'preview') {
         if (previewFailure) payload = { ok: false, error: previewFailure }
         else payload = { ok: true, preview: { revision: body.revision, sourceRevision: body.revision, sourceDigest: 'saved-digest', mode: body.mode,
@@ -63,6 +77,11 @@ async function client(t, options = {}) {
     else if (path.pathname.endsWith('/previews')) payload = { ok: true, hostApiVersion: HOST_API_VERSION, route: 'project.previews', artifactBase: `/deepblend/artifacts/${projectId}/`, previews: { projectId, revisions: [] } }
     else payload = { ok: true, hostApiVersion: HOST_API_VERSION, route: 'state', cameraTargetResetSupported: options.legacy !== true, projectsRoot: typeof options.root === 'function' ? options.root() : null, projects: Object.keys(projects).map(projectId => ({ projectId })),
       selected: { project: { projectId, title: projectId }, currentRevision: project.revision, scene: tree(project.spec, project.revision), jobs: [], unfinishedJobs: [] } }
+    if (options.bounds && payload?.route === 'state') {
+      payload.photographyBoundaryReuseSupported = typeof options.bounds === 'function' ? options.bounds() : true
+      payload.storeIdentity = typeof options.storeIdentity === 'function' ? options.storeIdentity() : 'b'.repeat(64)
+      payload.selected.scene.digest = 'a'.repeat(64); payload.selected.scene.project.id = projectId
+    }
     if (init.method !== 'POST') { reads.push({ url: String(url), projectId }); if (options.onRead) await options.onRead({ path, payload, signal: init.signal }) }
     return { ok: payload.ok, status: payload.ok ? 200 : 409, text: async () => JSON.stringify(payload), json: async () => payload }
   } }
@@ -437,4 +456,117 @@ test('a saved light rig with identical definitions in a different order needs no
   assert.equal(editor.dirty(reused), false); assert.deepEqual(plain(editor.buildPatch(reused).operations), [])
   reused.lights.find(item => item.id === 'key').energy += .1
   assert.equal(editor.dirty(reused), true); assert(editor.buildPatch(reused).operations.some(item => item.op === 'light.add'))
+})
+
+
+// A literal API response exercises orchestration; native geometry is checked separately.
+function boundaryPlan(body, projects) {
+  const camera = plain(projects[body.projectId].spec.cameras.find(c => c.id === body.cameraId))
+  Object.assign(camera, { lens: 81, transform: { ...camera.transform, location: [9, 8, 7], rotationEuler: [.1, .2, .3] } })
+  delete camera.targetPoint; delete camera.targetEntityId
+  if (camera.fStop !== undefined) camera.focusDistance = 5
+  return { schemaVersion: 'deepblend.photography-reuse/v1', request: plain(body), camera,
+    lights: plain(projects[body.source.projectId].spec.lights).map(l => ({ ...l, energy: l.energy * 4 })), scale: 2,
+    sourceStaticCamera: true, provenance: { mode: 'product-bounds-v1', scale: 2, storeIdentity: body.expectedStoreIdentity,
+      sourceProject: body.source.projectId, sourceRevision: body.source.revision, sourceDigest: body.source.digest,
+      sourceCamera: body.source.cameraId, sourceFrame: body.source.frame, destinationDigest: body.expectedDigest, destinationFrame: body.frame } }
+}
+async function boundaryClient(t, options = {}) {
+  const c = await client(t, { bounds: true, ...options })
+  await c.store.actions.setPhotographySource('project', 'two')
+  c.field('source-mode').props.onChange({ target: { value: 'bounds' } })
+  assert.equal(c.store.getState().photographyReuse.one.mode, 'bounds')
+  const state = c.store.getState(), selected = state.photographyReuse.one
+  assert.equal(c.action('reuse').props.disabled, false, JSON.stringify({ sourceEntityIds: selected.sourceEntityIds, destinationEntityIds: selected.destinationEntityIds, sourceFrame: selected.sourceFrame }))
+  return c
+}
+
+test('explicit product-boundary reuse plans once, changes only a draft and saves its bound provenance', async t => {
+  const c = await boundaryClient(t), original = plain(c.projects.one.spec)
+  await c.store.actions.reusePhotography()
+  assert.deepEqual(c.calls.map(r => r.route), ['photography-reuse'])
+  const request = c.calls[0].body
+  assert.equal(request.expectedStoreIdentity, 'b'.repeat(64))
+  assert.equal(request.source.projectId, 'two'); assert.equal(request.source.digest, 'a'.repeat(64))
+  assert.equal(request.source.frame, 1); assert(request.entityIds.length > 0)
+  assert.equal(c.projects.one.revision, 'r0001'); assert.deepEqual(c.projects.one.spec, original)
+  assert.deepEqual(plain(c.draft().cameras.find(cam => cam.id === request.cameraId).transform.location), [9, 8, 7])
+  assert.equal(c.draft().boundaryReuse.scale, 2)
+  const result = apply(original, c.draft())
+  assert.equal(result.patch.operations.filter(op => op.op === 'camera.update').length, 1)
+  assert.deepEqual(result.next.entities, original.entities); assert.deepEqual(result.next.materials, original.materials)
+  assert.deepEqual(result.next.cameras.filter(cam => cam.id !== request.cameraId), original.cameras.filter(cam => cam.id !== request.cameraId))
+  assert.match(result.patch.note, /product-bounds-v1/); assert.match(result.patch.note, new RegExp(request.source.digest))
+  assert.match(c.nodes().find(n => n.props['data-photography-reused'])?.children.join('') || '', /2/)
+})
+
+test('native refusal in boundary mode keeps the draft and never falls back to absolute coordinates', async t => {
+  const c = await boundaryClient(t, { plan: () => ({ error: { code: 'BLENDER_UNSUPPORTED_ACTION', message: 'The imported product is animated.' } }) }), before = plain(c.draft())
+  await c.store.actions.reusePhotography()
+  assert.deepEqual(plain(c.draft()), before)
+  assert.deepEqual(c.calls.map(r => r.route), ['photography-reuse'])
+  assert.match(c.store.getState().photographyReuse.one.error, /BLENDER_UNSUPPORTED_ACTION/)
+  assert.equal(c.store.getState().photographyReuse.one.mode, 'bounds')
+})
+
+test('a late adaptation does not overwrite a changed photography draft', async t => {
+  let release
+  const c = await boundaryClient(t, { onPost: ({ route }) => route === 'photography-reuse' ? new Promise(r => { release = r }) : undefined })
+  const pending = c.store.actions.reusePhotography()
+  assert.equal(c.store.getState().photographyReuse.one.planning, true)
+  c.store.actions.updatePhotography('camera', ['lens'], 84)
+  release(); await pending
+  assert.equal(c.draft().cameras.find(cam => cam.id === c.draft().cameraId).lens, 84)
+  assert.equal(c.draft().boundaryReuse, undefined)
+  assert.match(c.store.getState().photographyReuse.one.error, /变化|changed/)
+  assert.equal(c.store.getState().photographyReuse.one.planning, false)
+})
+
+test('cancelling or changing the selected product members retires an in-flight adaptation', async t => {
+  for (const change of ['cancel', 'members']) {
+    let release
+    const c = await boundaryClient(t, { onPost: ({ route }) => route === 'photography-reuse' ? new Promise(r => { release = r }) : undefined }), before = plain(c.draft())
+    const pending = c.store.actions.reusePhotography()
+    if (change === 'cancel') c.store.actions.cancelPhotographyReuse()
+    else c.store.actions.setPhotographySource('sourceEntityIds', [])
+    release(); await pending
+    assert.deepEqual(plain(c.draft()), before)
+    assert.equal(c.store.getState().photographyReuse.one.planning, false)
+    assert.equal(c.calls.length, 1)
+  }
+})
+
+test('wrong source receipts and invalid product selections never change a photography draft', async t => {
+  const c = await boundaryClient(t, { plan: (body, projects) => {
+    const plan = boundaryPlan(body, projects); plan.provenance.sourceDigest = 'f'.repeat(64); return plan
+  } }), before = plain(c.draft())
+  await c.store.actions.reusePhotography()
+  assert.deepEqual(plain(c.draft()), before)
+  assert.match(c.store.getState().photographyReuse.one.error, /不一致|match/)
+  c.store.actions.setPhotographySource('destinationEntityIds', [])
+  assert.equal(c.action('reuse').props.disabled, true)
+  await c.store.actions.reusePhotography(); assert.equal(c.calls.length, 1)
+})
+
+test('an adapted choice is not silently downgraded when Host support disappears', async t => {
+  let supported = true
+  const c = await boundaryClient(t, { bounds: () => supported })
+  supported = false
+  await c.store.actions.reload(); await waitFor(c.store, s => !s.photographyBoundaryReuseSupported)
+  assert(c.action('use-absolute'))
+  await c.store.actions.reusePhotography(); assert.equal(c.calls.length, 0)
+  c.action('use-absolute').props.onClick()
+  assert.equal(c.store.getState().photographyReuse.one.mode, 'absolute')
+  await c.store.actions.reusePhotography(); assert.equal(c.calls.length, 0)
+})
+
+
+test('product member disclosures keep their stable identity and stay open while selections change', async t => {
+  const c = await boundaryClient(t)
+  const group = () => c.nodes().find(n => n.props['data-photography-members'] === 'sourceEntityIds')
+  const key = group().props['data-disclosure']; assert(key)
+  group().props.onToggle({ currentTarget: { open: true } })
+  c.store.actions.setPhotographySource('sourceFrame', 2)
+  assert.equal(group().props['data-disclosure'], key)
+  assert.equal(group().props.open, true)
 })
