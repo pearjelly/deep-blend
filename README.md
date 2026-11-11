@@ -21,9 +21,9 @@ Start with a product recipe or your own model. Shape the scene. Compare real ren
 
 [Quick start](#quick-start) · [See the workbench](#see-the-workbench) · [Documentation](deepblend/docs/README.md) · [Latest release](https://github.com/pearjelly/deep-blend/releases/latest) · [Contribute](CONTRIBUTING.md)
 
-**0.21.0 is published on GitHub and npm.** Move, turn and place a complete metal lamp on a measured surface in one save, then continue editing its dimensions. Full acceptance, fresh installation and the three public installation routes have been verified. The community catalogs still serve 0.20.0 as of October26; see the [release record](deepblend/docs/releases/0.21.0.md). The current [complete-view candidate](deepblend/docs/complete-view.md) saves a new static product view after a move, preserving the original cameras and animation; it is not yet released.
+**0.23.0 is published on GitHub and npm.** Repair repeating texture coordinates on planar mesh faces while preserving geometry and photography. It also includes whole-lamp surface placement and complete-view camera fitting. Full acceptance, fresh installation and all three public installation routes have been verified; both community catalogs serve 0.23.0 as of October 28. See the [release record](deepblend/docs/releases/0.23.0.md) and [community closeout](deepblend/docs/validation/release-0.23.0-closeout.json).
 
-Use **Save an editable copy** on the Revisions page to download a saved version as a ZIP, optionally with a verified completed video. Preparation supports cancellation, retry and recovery after a reload. [How to use it](deepblend/docs/usage.md#editable-snapshot).
+Use **Save an editable copy** on the Revisions page to download a saved version as a ZIP, optionally with a verified completed video. Preparation supports cancellation, retry and recovery after a reload. [How to use it](deepblend/docs/usage.en.md#editable-snapshot).
 
 ## Quick start
 
@@ -117,7 +117,7 @@ Pick a [recipe](deepblend/docs/recipes.md), adjust its exposed color, roughness 
 Creation errors keep your inputs and offer repair guidance and explicit retry. If a saved project's reply was lost, retry recovers it without creating another project. [Browser creation drafts](deepblend/docs/creation-drafts.md) can be explicitly continued after reload or reopening, with separate drafts for each page.
 Or start with your own glTF, GLB or OBJ model and its external textures.
 
-**Keep a setup you like:** [reuse photography from a saved work and version](deepblend/docs/photography-editor.md#复用已保存摄影设置), apply its camera settings and lights to a draft, then inspect and save. Models and materials stay with the destination work.
+**Keep a setup you like:** [reuse photography from a saved work and version](deepblend/docs/photography-editor.en.md#reuse-saved-photography), apply its camera settings and lights to a draft, then inspect and save. Models and materials stay with the destination work.
 
 **Follow a complete creation:** the [glazed cup walkthrough](deepblend/docs/creator-tutorial.md) changes height,
 compares clay views, adjusts the glaze and key light, and delivers a frame. Its handle roots still show visible
@@ -127,7 +127,7 @@ bulges; the tutorial preserves that limitation. The recipe has no animation trac
 
 | Start here | What you do | Guide |
 | --- | --- | --- |
-| **Create in the workbench** | Use a recipe or import a model; edit dimensions, materials, cameras and lights | [Workbench guide](deepblend/docs/usage.md) |
+| **Create in the workbench** | Use a recipe or import a model; edit dimensions, materials, cameras and lights | [Workbench guide](deepblend/docs/usage.en.md) |
 | **Work with an agent** | Describe a scene, inspect previews and make bounded changes with the DeepBlend Studio preset | [Agent creation guide](deepblend/docs/quick-start.md#work-with-an-agent) |
 | **Build your own recipes or tools** | Validate scene documents and content through the typed public SDK | [Authoring SDK](deepblend/docs/public-api.md) |
 
@@ -139,7 +139,7 @@ Try this in a session using the DeepBlend Studio preset:
 > List the available product recipes. Show me the glazed handled cup and its parameters before creating anything.
 > After I choose the values, create a preview. Keep later material and lighting changes in separate revisions.
 
-This is an example request, not a recorded run. Use the [tool guide](deepblend/docs/tool-contracts.md) to inspect what each operation does.
+This is an example request, not a recorded run. Use the [tool guide](deepblend/docs/tool-contracts.en.md) to inspect what each operation does.
 
 ## From a starting point to a saved result
 
@@ -150,7 +150,7 @@ This is an example request, not a recorded run. Use the [tool guide](deepblend/d
 | **Review** | Compare previews, inspect fixed-view beauty/clay images, and save reference images with a design goal | The actual image, camera, frame and render conditions |
 | **Deliver** | Render PNG frames and encode an MP4; cancel or resume a job | Frame progress, actual render settings and delivery provenance |
 
-[Assets](deepblend/docs/assets.md) · [Modeling](deepblend/docs/modeling.md) · [Photography](deepblend/docs/photography-editor.md) · [Inspection](deepblend/docs/inspection.md) · [Recovery](deepblend/docs/recovery.md)
+[Assets](deepblend/docs/assets.md) · [Modeling](deepblend/docs/modeling.en.md) · [Photography](deepblend/docs/photography-editor.en.md) · [Inspection](deepblend/docs/inspection.md) · [Recovery](deepblend/docs/recovery.en.md)
 
 The 0.9.0 public three-route check used paired DSH 0.1.5-rc.2 and pnpm 9.15. For source/npm installation, the temporary profile explicitly allowed workspace-root installation and used peers supplied by the installed DSH; fetching newer peers had failed on `dsh-type-meta`. These options apply only to this command:
 
@@ -188,7 +188,7 @@ The contact sheet combines animation sample frames with additional inspection vi
 - **Explicit render budgets.** Expensive operations use an approval gate, and the requested scene revision remains attached to the job.
 - **Separate kinds of evidence.** Technical measurements and image-backed artistic review are distinct; a higher score does not establish a better-looking result.
 
-[Artistic review](deepblend/docs/artistic-review.md) · [Runtime and recovery](deepblend/docs/recovery.md) · [Security controls](deepblend/docs/security.md)
+[Artistic review](deepblend/docs/artistic-review.md) · [Runtime and recovery](deepblend/docs/recovery.en.md) · [Security controls](deepblend/docs/security.md)
 
 ## Documentation by task
 
@@ -197,14 +197,15 @@ The contact sheet combines animation sample frames with additional inspection vi
 | Install, configure Blender, or update the plugin | [Quick start](deepblend/docs/quick-start.md) · [Installation](deepblend/docs/install.md) |
 | Complete my first creation | [Cup walkthrough](deepblend/docs/creator-tutorial.md) |
 | Import my own model, textures or environment | [Asset library](deepblend/docs/assets.md) |
-| Tune the shape or photography | [Modeling](deepblend/docs/modeling.md) · [Camera and light editing](deepblend/docs/photography-editor.md) |
+| Tune the shape or photography | [Modeling](deepblend/docs/modeling.en.md) · [Camera and light editing](deepblend/docs/photography-editor.en.md) |
 | Compare versions and investigate a rough result | [Fixed-view inspections](deepblend/docs/inspection.md) · [References](deepblend/docs/reference-images.md) |
-| Resume a render or recover a saved scene | [Recovery](deepblend/docs/recovery.md) |
+| Resume a render or recover a saved scene | [Recovery](deepblend/docs/recovery.en.md) |
 | Author a recipe or integrate the SDK | [Recipes](deepblend/docs/recipes.md) · [Public API](deepblend/docs/public-api.md) |
 | Contribute, reproduce evidence or inspect limitations | [Contributing](CONTRIBUTING.md) · [Acceptance register](deepblend/docs/milestone-status.md) |
 
-Browse the [documentation hub](deepblend/docs/README.md). Detailed operation manuals are primarily in Chinese;
-the quick-start guide and public authoring entry are available in English.
+Browse the [documentation hub](deepblend/docs/README.md#english-guides). English guides cover the workbench,
+modeling, photography, recovery and agent tools. Detailed experiment records and several specialist guides remain in Chinese;
+each English guide links to its Chinese companion and keeps commands, field names and limits consistent with the implementation.
 
 For a public, pinned recovery experiment, see the [minimal animation reproduction](deepblend/reproductions/recovery-v0.11.0/README.md): scripts, expected and observed results, logs, frame checksums, and the exact tested source commit.
 
@@ -221,7 +222,7 @@ The workbench gallery, editing controls and local renders can be used directly. 
 <summary><strong>Does this replace Blender's desktop editor?</strong></summary>
 
 DeepBlend builds and iterates declared scenes through its supported workbench controls and runtime contract.
-It requires a Blender installation. The [modeling guide](deepblend/docs/modeling.md) describes the supported generators and edits.
+It requires a Blender installation. The [modeling guide](deepblend/docs/modeling.en.md) describes the supported generators and edits.
 
 </details>
 

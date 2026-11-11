@@ -1,5 +1,7 @@
 # 使用
 
+[English guide](usage.en.md) · **简体中文**
+
 > 面向**用 DeepBlend Studio 做东西的人**。装法看 `install.md`，出故障看 `recovery.md`。
 > 模型自己读到的是 `deepblend/presets/deepblend/skills/deepblend-studio/SKILL.md`，
 > 那是同一套流程写给模型看的版本——两份都从实测来，任何一份失效都是缺陷。

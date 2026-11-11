@@ -3,6 +3,18 @@
 Create a scene, refine it against real Blender previews, and save a result you can return to.
 在 DSH 里创建场景，对照 Blender 实图调整，再保存可继续修改的作品。
 
+## English guides
+
+Follow the [quick start](quick-start.md), then choose the task below. These are practical guides for the existing product; the Chinese companions retain detailed historical experiments and provenance.
+
+| Task | English | 简体中文 |
+| --- | --- | --- |
+| Create, edit, compare and save an editable copy | [Workbench guide](usage.en.md) | [操作指南](usage.md) |
+| Build shapes, inspect seams and repair repeating UVs | [Modeling](modeling.en.md) | [建模](modeling.md) |
+| Edit/reuse cameras and lights, fit a complete product | [Photography](photography-editor.en.md) | [摄影](photography-editor.md) |
+| Resume jobs, restore versions and handle errors | [Recovery](recovery.en.md) | [恢复](recovery.md) |
+| Choose tools, parameters and scene operations | [Agent tool contracts](tool-contracts.en.md) | [工具契约](tool-contracts.md) |
+
 ## Start creating / 开始创作
 
 | What you want to do / 你想做什么 | Open / 阅读 |
@@ -24,7 +36,7 @@ Create a scene, refine it against real Blender previews, and save a result you c
 | Compare beauty, clay and references / 对照材质、灰模和参考图 | [Inspection · 视觉检查](inspection.md) |
 | Recover a render or continue delivery / 恢复渲染与交付 | [Recovery · 故障与恢复](recovery.md) |
 
-Most detailed guides are written in Chinese, with commands and API names kept in English.
+Use the English guides above for the core workflow. Specialist guides and original experiment records below are primarily in Chinese; commands and API names remain in English.
 首次使用推荐先完成青釉杯教程；安装错误、空面板和中断任务的下一步都在恢复指南中。
 
 ## Build on DeepBlend / 扩展与贡献

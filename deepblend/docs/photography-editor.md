@@ -1,5 +1,7 @@
 # 摄影编辑
 
+[English guide](photography-editor.en.md) · **简体中文**
+
 ## 改动前检查
 
 2026-10-04，在 main `0b24f58` 的独立工作树运行现有 `scene-editor.test.mjs`：40 项通过。检查场景投影发现相机缺少 transform/targetPoint 等完整字段，灯光缺少 color/size 等完整字段；场景页二者只有文字列表。最初先运行客户端与协议检查；后续真实浏览器与 Blender 专项结果见文末。

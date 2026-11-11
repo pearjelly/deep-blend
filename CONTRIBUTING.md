@@ -348,3 +348,28 @@ portability contract reject drift. The UI row must mount the bundle package root
 so the DSH browser scanner discovers its client. Server plane subpaths import
 the bundle’s own dependencies to keep packed installs independent of any other
 DeepBlend checkout on the machine.
+
+
+## English documentation and terminology
+
+The paired core manuals are linked from the [English documentation hub](deepblend/docs/README.md#english-guides).
+When changing a documented operation, update both language versions in the same change. Keep identifiers,
+JSON fields, units, limits and approval requirements identical; translate explanations rather than API names.
+The English manuals are task guides, while the Chinese companions also retain historical experiments.
+Do not translate an old candidate status into a claim about the current release.
+
+| English | 中文 | Meaning |
+| --- | --- | --- |
+| Workbench | 工作台 | The DSH interface for creating and inspecting saved work. |
+| Draft | 草稿 | Unapplied input; it is not a saved scene version. |
+| Revision / saved version | 修订 / 保存版本 | Immutable saved scene state; restoring moves the current pointer. |
+| Checkpoint | 检查点 | A saved native Blender file for a revision. |
+| Preview | 预览 | A rendered observation, not a final delivery. |
+| Delivery | 交付 | Verified encoded output and its manifest. |
+| Approval | 批准 | An explicit operator decision where required. |
+| Budget | 预算 | An execution limit, not proof of artistic quality. |
+| Complete view | 完整取景 | A fitted camera for explicit members and one frame. |
+
+Run `node deepblend/tests/contract/docs-consistency.test.mjs` to check English navigation, tool/parameter
+and operation inventories, runnable repository commands and shared JSON examples. These checks cannot
+judge translation quality; read both versions and verify the task and failure/recovery instructions.
