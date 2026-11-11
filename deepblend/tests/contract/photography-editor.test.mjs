@@ -113,7 +113,7 @@ test('scene projection and drafts retain complete independent camera and light d
 })
 
 test('untouched recipes have no photography patch and omitted optional fields remain absent', () => {
-  for (const name of ['glazed-cup', 'metal-lamp', 'glass-ceramic', 'modular-speaker']) {
+  for (const name of ['glazed-cup', 'metal-lamp', 'glass-ceramic', 'modular-speaker', 'walnut-trivet']) {
     const { draft } = make(source(name)); assert.deepEqual(plain(editor.errors(draft)), []); assert.deepEqual(plain(editor.buildPatch(draft).operations), [])
     assert.equal(editor.dirty(draft), false)
   }

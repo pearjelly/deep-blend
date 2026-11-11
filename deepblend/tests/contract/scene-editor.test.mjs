@@ -125,8 +125,8 @@ test('lost assembly replies retry the same frozen intent without a second revisi
   assert.equal(projects['project-a'].revision, 'r0002')
 })
 
-test('untouched drafts are no-ops for all four built-in recipes, isolated from the scene', () => {
-  for (const name of ['metal-lamp', 'glass-ceramic', 'modular-speaker', 'glazed-cup']) {
+test('untouched drafts are no-ops for the built-in recipes, isolated from the scene', () => {
+  for (const name of ['metal-lamp', 'glass-ceramic', 'modular-speaker', 'glazed-cup', 'walnut-trivet']) {
     const spec = source(name), scene = tree(spec), before = JSON.stringify(scene)
     for (const entity of scene.nodes.entities) {
       const draft = editor.createDraft(scene, 'project-a', entity.id)
