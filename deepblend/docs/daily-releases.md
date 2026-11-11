@@ -1021,3 +1021,10 @@ bai通过正式DeepBlend完成的新r75任务render-0002已结束：900帧、37.
 北京时间 16:51:37 从主线 `b3ce642f` 公开 0.24.0。连续 56 套本地验收及候选五项 CI 通过，六件 GitHub 资产和七个 npm 包已公开读回。三条实际安装路线均到达 0.24.0、工作台 HTTP 200 和同一对预设。[GitHub Release](https://github.com/pearjelly/deep-blend/releases/tag/v0.24.0) · [发布说明](releases/0.24.0.md)
 
 npm 首包写入后即时读回为 404。确认首包的公开版本和归档后继续发布其余包，每个版本写入一次。社区条目更新已提交，普通 index 和 plugins 目录本次仍显示 0.23.0。今日完成一个稳定发布，继续跟进社区审核与目录传播。[社区 PR #14273](https://github.com/awesome-dsh-plugin/awesome-dsh-plugin/pull/14273) · [发布证据](validation/release-0.24.0.json)
+
+
+### 2026-11-11 · 0.25.0 可编辑的木条半搭接
+
+北京时间 20:49:35 从主线 `d87eb61` 公开。工作台支持先检查交叉两侧槽口，再将草稿保存为可编辑版本。佛塔檐口的 100 个闭合部件在搭接和可编辑 ZIP 导出后均通过独立 Blender 核对，采样交叠格为零。[发布说明](releases/0.25.0.md)
+
+九件 GitHub 附件、七个 npm 包的 205 个文件已从公开渠道读回。三条安装路线均为 0.25.0，工作台和两项预设一致。英文指南与半搭接说明已在同一份社区投稿更新，两份公开目录在 20:58 仍为 0.23.0。[GitHub Release](https://github.com/pearjelly/deep-blend/releases/tag/v0.25.0) · [社区 PR #14273](https://github.com/awesome-dsh-plugin/awesome-dsh-plugin/pull/14273) · [发布证据](validation/release-0.25.0.json)
