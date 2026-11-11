@@ -8,7 +8,6 @@ import { sha256, canonicalStringify } from '../../../packages/deepblend/contract
 import { compileSceneSpec, HALF_LAP_FEATURE, validateSceneSpec } from '../../../packages/deepblend/contracts/lib/scene-spec.js'
 import {decodePng} from '../../../packages/deepblend/contracts/lib/png.js'
 import { RECIPE_CAPABILITIES, RecipeError, recipeCapabilitiesForScene, validateRecipeManifest, validateRecipePackage, instantiateRecipe } from '../../../packages/deepblend/contracts/lib/recipe.js'
-import { buildHalfLapFixture } from '../../examples/runtime-author/conformance.mjs'
 
 const root = resolve(import.meta.dirname, '../../..')
 const recipeRoot = join(root, 'deepblend/recipes')
@@ -60,19 +59,14 @@ test('schema mirror is byte identical and parameter surface is finite', () => {
 })
 
 test('recipes declare and preserve saved half laps when the consumer supports them', () => {
-  const bundle = load()
-  const spec = buildHalfLapFixture('timber-recipe')
-  const halfLaps = [{ lowerEntityId: 'timber-x', upperEntityId: 'timber-y' }]
-  spec.halfLaps = halfLaps
-  bundle.sceneBytes = Buffer.from(JSON.stringify(spec))
-  bundle.manifest.input.sha256 = sha256(bundle.sceneBytes)
-  bundle.manifest.parameters = []
-  bundle.manifest.compatibility.capabilities = recipeCapabilitiesForScene(spec)
+  const bundle = load('walnut-trivet')
+  const spec = JSON.parse(bundle.sceneBytes)
 
+  assert(recipeCapabilitiesForScene(spec).includes(HALF_LAP_FEATURE))
   assert(bundle.manifest.compatibility.capabilities.includes(HALF_LAP_FEATURE))
   const checked = validateRecipePackage(bundle)
   assert.equal(checked.ok, true, checked.summary)
-  assert.deepEqual(instantiateRecipe(bundle).spec.halfLaps, halfLaps)
+  assert.deepEqual(instantiateRecipe(bundle).spec.halfLaps, spec.halfLaps)
   const supportedCapabilities = RECIPE_CAPABILITIES.filter(value => value !== HALF_LAP_FEATURE)
   const unsupported = validateRecipePackage(bundle, { supportedCapabilities })
   assert(errorCodes(unsupported).includes('RECIPE_INCOMPATIBLE'), unsupported.summary)
@@ -211,9 +205,11 @@ test('a valid recipe can combine every supported capability', () => {
     spec.entities.push({ id: 'combined-surface', type: 'generator', generator: { shape: 'mesh',
       vertices: [[0, 0, 0], [.1, 0, 0], [0, .1, .02]], faces: [[0, 1, 2]] },
       modifiers: [{ type: 'subdivision', levels: 1 }, {type:'surface_scatter',targetEntityIds:['combined-box'],count:1,anchorVertexIndices:[0]}], materialId: spec.materials[0].id })
-    const timber = buildHalfLapFixture('combined-timber')
-    spec.entities.push(...timber.entities.map(entity => ({ ...entity, materialId: spec.materials[0].id })))
-    spec.halfLaps = [{ lowerEntityId: 'timber-x', upperEntityId: 'timber-y' }]
+    const timber = JSON.parse(load('walnut-trivet').sceneBytes)
+    const joinedIds = new Set(timber.halfLaps.flatMap(joint => [joint.lowerEntityId, joint.upperEntityId]))
+    spec.entities.push(...timber.entities.filter(entity => joinedIds.has(entity.id))
+      .map(entity => ({ ...entity, materialId: spec.materials[0].id })))
+    spec.halfLaps = timber.halfLaps
     const geometry = spec.entities.find(entity => entity.type === 'generator')
     for (const id of ['combined-glass', 'combined-emission']) {
       spec.entities.push({ ...structuredClone(geometry), id, materialId: id })
