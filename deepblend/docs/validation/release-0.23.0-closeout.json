@@ -1,0 +1,120 @@
+{
+  "schemaVersion": "deepblend.release-closeout/v1",
+  "releaseLabel": "0.23.0",
+  "recordedAt": "2026-10-28T03:16:54.021540+00:00",
+  "originalPublicationRecord": "release-0.23.0.json",
+  "originalRecordPreserved": true,
+  "releaseRecordPR": {
+    "url": "https://github.com/pearjelly/deep-blend/pull/74",
+    "head": "1b4d7ae8b91f2458026d6224917891e7204945ea",
+    "merged": true,
+    "mergedAt": "2026-10-27T08:35:54Z",
+    "mergeCommit": "1eee4d5adc341535ce308db8e1061c4726015915",
+    "changedFiles": 4,
+    "checksPassed": 5,
+    "checkRunUrl": "https://github.com/pearjelly/deep-blend/actions/runs/40449006248",
+    "unresolvedReviewThreads": 0
+  },
+  "communityPR": {
+    "url": "https://github.com/awesome-dsh-plugin/awesome-dsh-plugin/pull/9737",
+    "merged": true,
+    "mergedAt": "2026-10-27T17:19:29Z",
+    "mergeCommit": "a9483c494e44b86a3529cc083b57de8f968a862a"
+  },
+  "catalogs": [
+    {
+      "url": "https://awesome-dsh-plugin.com/index.json",
+      "httpStatus": 200,
+      "at": "2026-10-28T03:08:48.544542+00:00",
+      "bytes": 2954775,
+      "sha256": "33713471628e4dd6a199a2a5f88aad09346997e0ceefb546a5e93f34b0514f90",
+      "entry": {
+        "name": "@deepblend/dsh-blender-bundle",
+        "title": "pearjelly/deep-blend#bundle",
+        "homepage": "https://awesome-dsh-plugin.com/p/pearjelly/deep-blend--packages-deepblend-bundle/",
+        "repository": {
+          "url": "https://github.com/pearjelly/deep-blend",
+          "directory": "packages/deepblend/bundle"
+        },
+        "metadata": {
+          "category": "tools",
+          "keywords": [],
+          "labels": [],
+          "sortKeys": {}
+        },
+        "versions": [
+          {
+            "version": "0.23.0",
+            "publishTimestamp": 1793069003,
+            "source": {
+              "type": "npm"
+            },
+            "engines": {
+              "dsh": "0.1.5-rc.2 || 0.2.1-rc.1"
+            }
+          }
+        ],
+        "descriptionJsonSha256": "81f0c3dae14370a917c3160191d1858685db00d214ca08e3484c6061d324ecab"
+      },
+      "query": "",
+      "cacheBypassRequested": false,
+      "previousSelectorDidNotMatchIndexShape": true
+    },
+    {
+      "url": "https://awesome-dsh-plugin.com/plugins.json",
+      "httpStatus": 200,
+      "at": "2026-10-28T03:07:20.718125+00:00",
+      "bytes": 9510339,
+      "sha256": "cf740bd31cb0c86eaffeed4b433ea9d6656a24c0e2cb927a0519831d0a23d8e8",
+      "selected": [
+        {
+          "name": "deep-blend#bundle",
+          "owner": "pearjelly",
+          "url": "https://github.com/pearjelly/deep-blend/tree/main/packages/deepblend/bundle",
+          "page": "https://awesome-dsh-plugin.com/p/pearjelly/deep-blend--packages-deepblend-bundle/",
+          "category": "tools",
+          "npm": "@deepblend/dsh-blender-bundle",
+          "tarball": "https://github.com/pearjelly/deep-blend/releases/latest/download/deepblend-bundle.tgz",
+          "version": "0.23.0",
+          "stars": 101,
+          "downloads": 7058,
+          "downloadsStart": "2026-09-27",
+          "downloadsEnd": "2026-10-26",
+          "downloadsCheckedAt": "2026-10-27",
+          "capabilities": [],
+          "capabilityRedLines": [],
+          "capabilityCheckedAt": "2026-09-24T17:02:46.730Z",
+          "install": "dsh plugin --profile web add @deepblend/dsh-blender-bundle",
+          "added": "2026-09-21",
+          "screenshots": [
+            "https://raw.githubusercontent.com/pearjelly/deep-blend/main/deepblend/docs/brand/banner.png",
+            "https://raw.githubusercontent.com/pearjelly/deep-blend/main/deepblend/docs/assets/showcase/solstice-loop.webp",
+            "https://raw.githubusercontent.com/pearjelly/deep-blend/main/deepblend/docs/assets/showcase/amber-atlas-loop.webp",
+            "https://raw.githubusercontent.com/pearjelly/deep-blend/main/deepblend/docs/assets/showcase/nocturne-loop.webp",
+            "https://raw.githubusercontent.com/pearjelly/deep-blend/main/deepblend/docs/assets/showcase/pagoda/poster.png",
+            "https://raw.githubusercontent.com/pearjelly/deep-blend/main/deepblend/docs/assets/lighttable/workbench.png",
+            "https://raw.githubusercontent.com/pearjelly/deep-blend/main/deepblend/docs/images/render-contact-sheet.png",
+            "https://raw.githubusercontent.com/pearjelly/deep-blend/main/deepblend/docs/images/preview-compare.png"
+          ],
+          "descriptionJsonSha256": "eaee78108946a6d6d70852a3137ea1bc23f8910ca773f2d9f36338483168afd4"
+        }
+      ],
+      "query": "",
+      "cacheBypassRequested": false
+    }
+  ],
+  "initialIndexRead": {
+    "url": "https://awesome-dsh-plugin.com/index.json",
+    "httpStatus": 200,
+    "at": "2026-10-28T03:07:17.494315+00:00",
+    "bytes": 2954775,
+    "sha256": "33713471628e4dd6a199a2a5f88aad09346997e0ceefb546a5e93f34b0514f90",
+    "selected": [],
+    "query": "",
+    "cacheBypassRequested": false
+  },
+  "initialIndexSelectorFailure": "The first selector expected owner metadata absent from the index shape. The ordinary successful reread selected the exact npm name; no query or cache bypass was used.",
+  "current023InBothCatalogs": true,
+  "scope": "Dated follow-up to the original publication snapshot. No artifact was republished; historical pending observations and failures remain unchanged.",
+  "entryDescriptionBodies": "Omitted; the response hashes bind the original catalogs. Canonical descriptions remain in deepblend/docs/listing-entry.yml."
+}
