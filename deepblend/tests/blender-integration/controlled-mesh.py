@@ -1,6 +1,7 @@
 """Native control-surface invariants, including UV seams and bounded subdivision."""
 import copy
 import json
+import math
 import sys
 from pathlib import Path
 import bpy
@@ -94,4 +95,32 @@ for smooth in [False, True]:
     build_scene(spec, {}, Guard())
     obj = bpy.data.objects['db_entity__' + entity['id']]
     assert all(p.use_smooth == smooth for p in obj.data.polygons)
+
+reset_scene()
+timber = {**cube, 'vertices': [[x, .1*y, .1*z+.1] for x,y,z in cube['vertices']],
+          'faceUvs': [[[0,0], [1,0], [1,1], [0,1]] for _ in cube['faces']]}
+lower = create_generator('lower-timber', timber)
+upper = create_generator('upper-timber', timber)
+upper.rotation_euler.z = math.pi / 2
+pair = [{'lowerEntityId': 'lower', 'upperEntityId': 'upper'}]
+entries = [{'id': key, 'type': 'generator', 'generator': timber} for key in ('lower', 'upper')]
+apply_model_modifiers(entries, {'lower': [lower], 'upper': [upper]}, half_laps=pair)
+for member in (lower, upper):
+    assert abs(volume(member) - .076) < 1e-6
+    uv = member.data.uv_layers.active
+    member.data.calc_loop_triangles()
+    for triangle in member.data.loop_triangles:
+        a,b,c = [uv.data[i].uv for i in triangle.loops]
+        assert abs((b-a).cross(c-a)) > 1e-9
+
+reset_scene()
+lower = create_generator('lower-timber', timber)
+upper = create_generator('upper-timber', timber)
+upper.rotation_euler.z = 1.3
+try:
+    apply_model_modifiers(entries, {'lower': [lower], 'upper': [upper]}, half_laps=pair)
+    raise AssertionError('a skew timber group was accepted')
+except ActionError as error:
+    assert 'right-angle alignment' in str(error)
+assert all(len(member.data.polygons) == 6 for member in (lower, upper))
 print('CONTROLLED_MESH_PASSED')

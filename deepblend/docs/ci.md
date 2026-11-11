@@ -23,7 +23,7 @@
 | `deepblend/tests/e2e/camera-fit-ui.e2e.mjs` | 保留原动画的整灯取景：真实浏览器显式保存、提交后丢失回复、刷新恢复及完全相同重试；仅新增一版/一个静态相机，独立 Blender 重开核对全部 23 件投影、几何与原摄影及历史文件 |
 | `deepblend/tests/blender-integration/camera-fit.e2e.mjs` | 横竖画幅、非默认传感器方向、大幅镜头偏移、滚转动画及嵌套双网格导入资产的真实取景；独立投影逐顶点核对，远裁剪不足、隐藏部件及实际损坏候选机位原子拒绝 |
 | `deepblend/tests/blender-integration/asset-bundle.e2e.mjs` | 真实 Host 导入 glTF/GLB/OBJ 文件包、保存、渲染及旧修订重建；五种图片存储的正常保真、解码前超限/累计拒绝、WebP 来源选择及损坏像素拒绝；15 种 OBJ 图片、材质选择、AVIF 编码尺寸和累计预算；OBJ 数值/法线/颜色/Alpha、实际着色器输出与既有图片用户保护 |
-| `deepblend/tests/blender-integration/runtime-conformance.e2e.mjs` | 仓库外打包安装的公开检查工具，真实提供方九个方法、独立重开/参考像素、失败、取消与部分帧补渲 |
+| `deepblend/tests/blender-integration/runtime-conformance.e2e.mjs` | 仓库外打包安装的公开检查工具，验证必需运行时方法、可选槽口图交付和镜头渲染、独立重开、失败、取消与部分帧补渲 |
 | `deepblend/tests/blender-integration/surface-inspection.e2e.mjs` | 实际提供方的局部法线采样，解析2 mm壁面/间隔、旋转与斜种子、内部种子、未命中、开放/反向网格、重叠、遮挡、预算与原文件保护 |
 | `deepblend/tests/blender-integration/surface-placement.e2e.mjs` | 正式 Host 的平面、斜面及嵌套 GLB 放置；独立原生重开核对完整顶点的竖直间距、层级、UV、材质、旧修订保护与明确帧预览；无共同投影、孔洞、动画和相关几何依赖拒绝 |
 | `deepblend/tests/blender-integration/image-materials.py` | 六通道 PBR、色彩/UV/法线像素贡献、打包后源文件移除重开、解码前尺寸及同源累计预算拒绝、现有场景保护 |
@@ -31,6 +31,7 @@
 | `deepblend/tests/blender-integration/procedural-uv.py` | 实际程序 UV 节点、渲染层选择、缺失 UV 与求值修改器拒绝、独立保存重开像素 |
 | `deepblend/tests/e2e/material-texture-ui.e2e.mjs` | 实际纹理控件、UV 草稿、缺失层拒绝与修正、独立重开节点、像素变化、刷新与旧版本保护 |
 | `deepblend/tests/e2e/mesh-uv-ui.e2e.mjs` | 逐面 UV 草稿、真实保存、独立重开零面积三角形与几何保护、固定设置图片变化、请求重放、刷新及原修订保护；步骤限时三分钟 |
+| `deepblend/tests/e2e/half-lap-ui.e2e.mjs` | 预览两侧槽口、切换上下半部、拒绝过期草稿、确认保存及移除搭接；独立重开 Blender 核对切深、闭合部件与原几何恢复 |
 | `deepblend/tests/e2e/recipe-version-ui.e2e.mjs` | 同 ID 新旧配方共存、比较设置保留与明确重置、浏览器草稿重载恢复、所选输入的真实渲染与独立原生重开、新版 UV 默认值、旧版参数含义、过期选择及旧文件保护 |
 | `deepblend/tests/e2e/linked-speaker-ui.e2e.mjs` | 原版与联动版音箱分开选择；毫米输入、无效范围阻止提交、真实模型创建、来源锁与预览身份、独立重开尺寸及边界差、原项目源文件/锁/模型/预览保护 |
 | `deepblend/tests/e2e/workbench-page.e2e.mjs` | 独立全屏入口与原控制台共享客户端；实际项目管理、预览、取消及刷新；当前随包配方创建，玻璃陶瓷、音箱和桌灯部件编辑、像素对照、条件恢复及历史保护 |
@@ -134,6 +135,7 @@ Chrome 启动早退会记录退出码和有界 stderr，并清理临时浏览器
 - `environment.log` / `environment/`：实际 HDR/EXR 环境图、旋转/关闭照明对照、保存与打包重开 checkpoint。
 - `procedural-uv.log` / `procedural-uv/`：公开参数生成的对象与 UV 对照图、具不同 UV 层的实际选图、重开 checkpoint 和断言回执。
 - `runtime-conformance.log` / `runtime-conformance/`：打包身份、公开检查报告、实际 checkpoint/PNG、独立重开与参考图片、取消/补渲回执及失败日志。
+- `half-lap-browser.log` / `half-lap-browser/`：槽口 PNG、工作台保存及移除检查、独立 Blender 读取结果和失败截图。
 - `surface-native.log` / `surface-native/`：局部表面采样原生fixture、绑定来源的回执和不适用原因；不作全表面最小壁厚或净间隙认证。
 - `surface-placement.log` / `surface-placement/`：实际保存的放置修订、同帧前后图、独立完整几何读回、幂等重放与拒绝记录；只覆盖所选模型的竖直间距，不作为物理稳定性或全场景碰撞认证。
 

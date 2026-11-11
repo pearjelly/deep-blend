@@ -95,6 +95,7 @@ const WRITE_METHOD = {
   'projects.create': 'createProject',
   'project.preview': 'renderViews',
   'project.patch': 'applyScenePatch',
+  'project.halfLap.preview': 'previewHalfLap',
   'project.recipeParameters.update': 'updateRecipeParameters',
   'project.surfacePlacement': 'placeOnSurface',
   'project.cameraFit': 'fitCamera',
@@ -156,6 +157,7 @@ function createStudioStub() {
     async openRenderFrame(request) { record('openRenderFrame', request); return { bytes: 4, filename: 'frame.png', contentType: 'image/png', stream: Readable.from([Buffer.from([0x89, 0x50, 0x4e, 0x47])]), close: async () => {} } },
     async openMotionPreview(request) { record('openMotionPreview', request); return { bytes: 4, filename: 'preview.mp4', contentType: 'video/mp4', stream: Readable.from([Buffer.from('MP40')]), close: async () => {} } },
     async previewMotion(request) { record('previewMotion', request); return { id: 'candidate' } },
+    async previewHalfLap(request) { record('previewHalfLap', request); return { candidateSpecHash: 'b'.repeat(64) } },
     async probeImageInput(request) { record('probeImageInput', request); return { status: 'unavailable', reason: 'authentication' } },
     async saveMotionPreview(request) { record('saveMotionPreview', request); return { revision: 'r0003' } },
     async discardMotionPreview(request) { record('discardMotionPreview', request); return { discarded: true } },
@@ -502,12 +504,19 @@ function sampleUrl(route) {
     : route.id === 'project.assets.upload' ? `${path}?name=model.glb&license=MIT` : path
 }
 
+const halfLapDraft = {
+  patch: { baseRevision: 'r0002', operations: [{ op: 'joint.halfLap.set', lowerEntityId: 'timber-x', upperEntityId: 'timber-y' }] },
+  expectedDigest: 'a'.repeat(64),
+  expectedStoreIdentity: 'c'.repeat(64),
+}
+
 for (const route of UI_ROUTES) {
   studio.calls.length = 0
   const placement = route.id === 'project.surfacePlacement' ? { baseRevision: 'r0002', scope: 'recipe-assembly',
     subjectEntityId: 'weighted-base', supportEntityId: 'task-ramp', frame: 24, clearanceMm: 1.5,
     pose: { translationMm: [200, -100, 150], yawDegrees: 35, pivotMm: [80, -30, 0] } } : null
-  const { response, json } = await request(route.method, sampleUrl(route), placement ?? (route.method === 'POST' ? { title: 'Demo', patch: {}, revision: 'r0001', frameStart: 1, frameEnd: 3, jobId: 'render-0001', sha256: 'c'.repeat(64), entrypoint: 'model.glb', files: [{ path: 'model.glb', bytes: 3 }] } : undefined))
+  const sampleBody = route.id === 'project.halfLap.preview' ? halfLapDraft : placement
+  const { response, json } = await request(route.method, sampleUrl(route), sampleBody ?? (route.method === 'POST' ? { title: 'Demo', patch: {}, revision: 'r0001', frameStart: 1, frameEnd: 3, jobId: 'render-0001', sha256: 'c'.repeat(64), entrypoint: 'model.glb', files: [{ path: 'model.glb', bytes: 3 }] } : undefined))
   if (route.id === 'project.preview') {
     // The pair reaches the browser; the PNG buffers do not (a JSON body of image
     // bytes is not lossless, and the panel displays images through the artifact
@@ -591,6 +600,15 @@ for (const route of UI_ROUTES) {
     check('whole-placement forwards the complete intent through the guarded Host writer',
       forwarded?.projectId === 'demo' && forwarded.renderPreview === true
       && Object.entries(placement).every(([key, value]) => JSON.stringify(forwarded[key]) === JSON.stringify(value)), forwarded)
+  }
+  if (route.id === 'project.halfLap.preview') {
+    const forwarded = studio.calls[0]?.args
+    check('half-lap preview forwards the saved scene identity and a cancellable draft',
+      forwarded?.expectedDigest === halfLapDraft.expectedDigest && forwarded.expectedStoreIdentity === halfLapDraft.expectedStoreIdentity
+      && forwarded.signal instanceof AbortSignal && forwarded.patch?.projectId === 'demo'
+      && forwarded.patch.baseRevision === halfLapDraft.patch.baseRevision
+      && JSON.stringify(forwarded.patch.operations) === JSON.stringify(halfLapDraft.patch.operations)
+      && json?.preview?.candidateSpecHash === 'b'.repeat(64))
   }
   if (route.write === true) {
     check(`${route.id} is a write, and calls exactly ${WRITE_METHOD[route.id]} once`,

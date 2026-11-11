@@ -34,6 +34,7 @@ export const BOX_DIMENSIONS_FEATURE = 'geometry.primitive.dimensions'
 export const MESH_GEOMETRY_FEATURE = 'geometry.procedural.mesh'
 export const SUBDIVISION_FEATURE = 'geometry.modifier.subdivision'
 export const SURFACE_SCATTER_FEATURE = 'geometry.modifier.surface_scatter'
+export const HALF_LAP_FEATURE = 'geometry.joinery.half_lap'
 
 /** Features whose absence must refuse compilation rather than reinterpret the scene. */
 export function requiredSceneFeatures(spec) {
@@ -42,6 +43,7 @@ export function requiredSceneFeatures(spec) {
   if (entities.some(entity => entity.type === 'generator' && entity.generator?.shape === 'mesh')) features.push(MESH_GEOMETRY_FEATURE)
   if (entities.some(entity => entity.modifiers?.some(modifier => modifier.type === 'subdivision'))) features.push(SUBDIVISION_FEATURE)
   if (entities.some(entity => entity.modifiers?.some(modifier => modifier.type === 'surface_scatter'))) features.push(SURFACE_SCATTER_FEATURE)
+  if (spec.halfLaps?.length) features.push(HALF_LAP_FEATURE)
   return features
 }
 
@@ -515,6 +517,31 @@ export function validateSceneSpec(spec) {
     visitedModifiers.add(id)
   }
   for (const id of modifierEntities.keys()) visitModifiers(id)
+
+  const joinedEntities = new Set()
+  const movingEntities = new Set((document.animationTracks ?? []).filter(track =>
+    (track.targetKind ?? 'entity') === 'entity' && ['location', 'rotationEuler', 'scale'].includes(track.property.split('.')[0]),
+  ).map(track => track.targetEntityId))
+  for (const [index, joint] of (document.halfLaps ?? []).entries()) {
+    for (const field of ['lowerEntityId', 'upperEntityId']) {
+      const id = joint[field], path = `halfLaps[${index}].${field}`
+      requiresId('entities', id, path, 'half-lap timber group')
+      const timber = modifierEntities.get(id)
+      if (joinedEntities.has(id)) {
+        errors.push({ severity: 'error', code: 'SCENE_HALF_LAP_INVALID', path,
+          message: 'a timber group must be distinct and can belong to only one half lap' })
+      }
+      joinedEntities.add(id)
+      if (timber && (timber.type !== 'generator' || timber.generator?.shape !== 'mesh' ||
+          timber.generator.vertices.length !== 8 || timber.generator.faces.length !== 6 ||
+          timber.modifiers?.some(modifier => !['array', 'mirror'].includes(modifier.type)) ||
+          timber.transform?.scale?.some(value => value <= 0) || movingEntities.has(id) ||
+          ['armatureId', 'rigidBody', 'cloth', 'softBody', 'fluid'].some(key => timber[key] != null))) {
+        errors.push({ severity: 'error', code: 'SCENE_HALF_LAP_INVALID', path,
+          message: 'half laps require static box control meshes with positive scales and optional array or mirror modifiers' })
+      }
+    }
+  }
 
   ;(document.lights ?? []).forEach((light, position) => {
     checkScale(light.transform?.scale, `lights[${position}].transform.scale`, errors, light.id)
@@ -1013,6 +1040,7 @@ export function sceneProjection(spec) {
     shots: spec.shots ?? [],
     animationTracks: spec.animationTracks ?? [],
     renderProfiles: spec.renderProfiles ?? {},
+    ...(spec.halfLaps?.length ? { halfLaps: spec.halfLaps } : {}),
     // ABSENCE IS PRESERVED, for the same reason `applyPatchToSpec` preserves it: a
     // scene that never mentions a world must keep the digest it was recorded with.
     // `world: spec.world ?? null` here would silently re-digest every revision in
@@ -1134,6 +1162,7 @@ export function summarizeSceneSpec(document, context = {}) {
     // against the manifest and conclude the revision was corrupt.
     digest: context.digest ?? sceneSpecDigest(document),
     schemaVersion: spec.schemaVersion,
+    ...(spec.halfLaps?.length ? { halfLaps: structuredClone(spec.halfLaps) } : {}),
     project: {
       id: spec.project.id,
       title: spec.project.title,

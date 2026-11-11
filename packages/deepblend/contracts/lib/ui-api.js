@@ -84,6 +84,7 @@ export const UI_ROUTES = Object.freeze([
   { id: 'project.review', method: 'POST', path: '/deepblend/projects/:projectId/review', write: true, summary: 'Explicitly render and consult the visual reviewer for one revision.' },
   { id: 'project.autofix', method: 'POST', path: '/deepblend/projects/:projectId/autofix', write: true, summary: 'Explicitly run a bounded visual correction loop for one revision.' },
   { id: 'project.patch', method: 'POST', path: '/deepblend/projects/:projectId/patch', write: true, summary: 'Apply a ScenePatch as one atomic revision.' },
+  { id: 'project.halfLap.preview', method: 'POST', path: '/deepblend/projects/:projectId/half-lap-preview', write: true, summary: 'Render both slot faces of a draft timber joint without saving a revision.' },
   { id: 'project.recipeParameters', method: 'GET', path: '/deepblend/projects/:projectId/recipe-parameters', write: false, summary: 'Read saved assembly controls at one revision.' },
   { id: 'project.recipeParameters.update', method: 'POST', path: '/deepblend/projects/:projectId/recipe-parameters', write: true, summary: 'Save bounded assembly dimensions as an atomic revision.' },
   { id: 'project.surfacePlacement', method: 'POST', path: '/deepblend/projects/:projectId/surface-placement', write: true, summary: 'Measure and save an explicit entity or complete supported lamp placement.' },
@@ -293,9 +294,13 @@ const DIFF_COLLECTIONS = Object.freeze([
 export function buildRevisionDiff(from, to, context = {}) {
   /** @type {Record<string, unknown>} */
   const collections = {}
-  for (const { key, idField } of DIFF_COLLECTIONS) {
-    const before = new Map((from?.[key] ?? []).map(item => [item[idField], item]))
-    const after = new Map((to?.[key] ?? []).map(item => [item[idField], item]))
+  const comparable = DIFF_COLLECTIONS.map(({ key, idField }) => ({ key, identify: item => item[idField] }))
+  if (from?.halfLaps?.length || to?.halfLaps?.length) {
+    comparable.push({ key: 'halfLaps', identify: joint => [joint.lowerEntityId, joint.upperEntityId].sort().join(' / ') })
+  }
+  for (const { key, identify } of comparable) {
+    const before = new Map((from?.[key] ?? []).map(item => [identify(item), item]))
+    const after = new Map((to?.[key] ?? []).map(item => [identify(item), item]))
     const added = [...after.keys()].filter(id => !before.has(id)).sort()
     const removed = [...before.keys()].filter(id => !after.has(id)).sort()
     const changed = []
@@ -421,6 +426,7 @@ export function buildSceneTree(spec, context = {}) {
     },
     renderProfiles: clone(spec?.renderProfiles ?? null),
     world: clone(spec?.world ?? null),
+    ...(spec?.halfLaps?.length ? { halfLaps: clone(spec.halfLaps) } : {}),
     reviewSubject: clone(resolveSubject(spec)),
     assetParts: clone(assetParts),
     counts: {

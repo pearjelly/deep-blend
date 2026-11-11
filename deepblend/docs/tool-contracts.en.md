@@ -164,6 +164,7 @@ Use these exact wire names. Block-valued replacements replace the whole block, s
 | `project.brief.set` | Replace goal and up to four PNG/JPEG reference bindings. |
 | `project.reviewSubject.set` | Set a nonempty saved entity as review subject; null restores automatic selection. |
 | `project.aspectRatio.set` | Set the project's reference aspect-ratio label; render-profile resolution controls actual output. |
+| `joint.halfLap.set` | Set a half lap between `lowerEntityId` and `upperEntityId`. Use static rectangular mesh timber groups crossing at right angles with matching top and bottom heights. The lower group retains the lower half at crossings. Set `enabled:false` to remove the joint. |
 | `project.frameRange.set` | Set frameStart/frameEnd and optional fps. |
 | `render.profile.set` | Set preview/final profile; new profiles need resolution, omitted existing resolution is retained. |
 | `world.set` | Replace color/environment settings; environment uses an ingested declared image. |

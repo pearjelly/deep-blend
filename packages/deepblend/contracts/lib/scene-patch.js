@@ -72,6 +72,7 @@ export const SCENE_OPERATION_NAMES = Object.freeze([
   'project.reviewSubject.set',
   'entity.uv.project',
   'project.aspectRatio.set',
+  'joint.halfLap.set',
 ])
 
 /** The `id` grammar shared with SceneSpec. */const ID_PATTERN = /^[a-zA-Z][a-zA-Z0-9._-]*$/
@@ -146,6 +147,10 @@ export function validateScenePatch(patch) {
       for (const issue of referenceImageIssues(operation.referenceImages)) {
         errors.push({ code: 'PATCH_OPERATION_INVALID', path: `${at}.referenceImages${issue.path}`, message: issue.message })
       }
+    }
+
+    if (op === 'joint.halfLap.set' && operation.lowerEntityId === operation.upperEntityId) {
+      errors.push({ code: 'PATCH_OPERATION_INVALID', path: at, message: 'a half lap needs two distinct timber groups' })
     }
 
     if (op === 'entity.transform.update') {
@@ -548,6 +553,9 @@ export function applyPatchToSpec(spec, patch) {
         }
         const dependents = []
         if (next.project.reviewSubjectId === operation.entityId) dependents.push('review subject')
+        if (next.halfLaps?.some(joint => [joint.lowerEntityId, joint.upperEntityId].includes(operation.entityId))) {
+          dependents.push('half lap')
+        }
         if (next.entities.some(entity => (entity.modifiers ?? []).some(modifier =>
           modifier.type === 'boolean' && modifier.targetEntityId === operation.entityId))) {
           dependents.push('boolean operand')
@@ -952,6 +960,35 @@ export function applyPatchToSpec(spec, patch) {
           target: next.project.id,
           summary: changed.join(', '),
           changedPaths: ['project.frameStart', 'project.frameEnd'],
+        })
+        break
+      }
+
+      case 'joint.halfLap.set': {
+        const { lowerEntityId, upperEntityId, enabled = true } = operation
+        const ids = [lowerEntityId, upperEntityId]
+        if (lowerEntityId === upperEntityId) fail('PATCH_OPERATION_INVALID', 'a half lap needs two distinct timber groups')
+        const joints = next.halfLaps ?? []
+        const found = joints.find(joint => ids.includes(joint.lowerEntityId) && ids.includes(joint.upperEntityId))
+        if (enabled) {
+          for (const id of ids) {
+            if (indexOfId(next.entities, id) < 0) fail('PATCH_TARGET_MISSING', `no entity "${id}" exists in this scene`)
+          }
+          if (joints.some(joint => joint !== found && (ids.includes(joint.lowerEntityId) || ids.includes(joint.upperEntityId)))) {
+            fail('PATCH_TARGET_IN_USE', 'a timber group already belongs to a different half lap; remove that joint first')
+          }
+        }
+        const changed = enabled ? found?.lowerEntityId !== lowerEntityId : found !== undefined
+        if (changed) {
+          const remaining = joints.filter(joint => joint !== found)
+          if (enabled) remaining.push({ lowerEntityId, upperEntityId })
+          if (remaining.length) next.halfLaps = remaining.sort((a, b) => a.lowerEntityId.localeCompare(b.lowerEntityId))
+          else delete next.halfLaps
+        }
+        applied.push({
+          op, target: lowerEntityId,
+          summary: `${enabled ? 'set' : 'removed'} half lap between "${lowerEntityId}" and "${upperEntityId}"`,
+          changedPaths: changed ? ['halfLaps'] : [],
         })
         break
       }

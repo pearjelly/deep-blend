@@ -1864,6 +1864,31 @@
             "op": { "const": "project.aspectRatio.set" },
             "aspectRatio": { "type": "string", "pattern": "^[0-9]+:[0-9]+$" }
           }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "op",
+            "lowerEntityId",
+            "upperEntityId"
+          ],
+          "properties": {
+            "op": {
+              "const": "joint.halfLap.set"
+            },
+            "lowerEntityId": {
+              "$ref": "#/$defs/id"
+            },
+            "upperEntityId": {
+              "$ref": "#/$defs/id"
+            },
+            "enabled": {
+              "type": "boolean",
+              "default": true,
+              "description": "False removes the joint and restores the compiled timber groups."
+            }
+          }
         }
       ]
     },

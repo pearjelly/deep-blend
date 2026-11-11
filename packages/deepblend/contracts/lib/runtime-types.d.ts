@@ -90,6 +90,16 @@ export interface CompileSceneRequest extends RuntimeOptions {
   /** Copy or move result.blend before resolving; never retain a scratch path as a durable artifact. */
   onWorkingDirectory?: WorkingDirectoryCallback<CompileReport>;
 }
+export interface HalfLapInspectionReport extends CompileReport {
+  outputBlend: null;
+  halfLapInspection: {
+    schemaVersion: 'deepblend.half-lap-inspection/v1'; crossings: number; partialCrossings: number; sample: 'partial' | 'full';
+  };
+}
+export interface HalfLapInspectionRequest extends Omit<CompileSceneRequest, 'cameraFraming' | 'session' | 'onWorkingDirectory'> {
+  joint: { lowerEntityId: string; upperEntityId: string };
+  onWorkingDirectory: WorkingDirectoryCallback<HalfLapInspectionReport>;
+}
 export interface RenderOverrides { engine?: EngineKey; width?: number; height?: number; samples?: number }
 /** Default world-axis bounds; optional physical object axes include native scale. Neither certifies semantic body dimensions or wall thickness. */
 export interface GeometryInspectionRequest extends RuntimeOptions {
@@ -296,6 +306,8 @@ export interface BlenderRuntime {
   invalidateCapabilities(): void;
   resolveEngineKey(engineKey: EngineKey, options?: RuntimeOptions): Promise<EngineResolution>;
   compileScene(request: CompileSceneRequest): Promise<RuntimeActionResult<CompileReport>>;
+  /** Optional draft inspection. Two PNGs are available to the working-directory callback. */
+  compileHalfLapInspection?(request: HalfLapInspectionRequest): Promise<RuntimeActionResult<HalfLapInspectionReport>>;
   renderPreview(request: RenderPreviewRequest): Promise<RuntimeActionResult<PreviewReport>>;
   renderViews(request: RenderViewsRequest): Promise<RenderViewsResult>;
   startFrameSequence(request: FrameSequenceRequest): Promise<FrameSequenceRun>;

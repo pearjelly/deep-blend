@@ -177,6 +177,7 @@ test('the layout counts in the README are what the tree holds', () => {
     'deepblend_obj_resources.py': 'shared OBJ/MTL reference inspection without bpy, called by resource validation',
     'deepblend_scatter.py': 'bounded static surface placement helper, called by the existing scene compiler; it implements no action',
     'deepblend_geometry.py': 'shared deterministic mesh builders, called by the scene compiler',
+    'deepblend_half_lap.py': 'rectangular timber joint construction inside compile_scene; it implements no action',
     'deepblend_mesh.py': 'bounded declarative control-mesh construction, called by the scene compiler; it implements no action',
     'deepblend_images.py': 'shared image material node builder, called by the scene compiler',
     'deepblend_image_headers.py': 'bounded image metadata inspection before native pixel allocation',

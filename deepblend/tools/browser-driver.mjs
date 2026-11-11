@@ -430,6 +430,8 @@ export class Browser {
       '--no-default-browser-check',
       '--disable-extensions',
       '--disable-background-networking',
+      // Keep Chinese copy assertions and docs captures independent of the runner's locale.
+      '--accept-lang=zh-CN,zh',
       `--user-data-dir=${userDataDir}`,
       `--remote-debugging-port=${port}`,
       'about:blank',

@@ -2,7 +2,7 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
 import { readFileSync } from 'node:fs'
-import { compileSceneSpec, buildSceneTree, applyPatchToSpec, validateScenePatch, validateSceneSpec, HOST_API_VERSION } from '@deepblend/dsh-blender-contracts'
+import { compileSceneSpec, buildRevisionDiff, buildSceneTree, applyPatchToSpec, validateScenePatch, validateSceneSpec, HOST_API_VERSION } from '@deepblend/dsh-blender-contracts'
 import { loadClientBundle } from '../lib/client-bundle.mjs'
 
 const plain = value => JSON.parse(JSON.stringify(value))
@@ -372,6 +372,56 @@ test('real UI handlers use mm/degrees, initialize RGB color correctly and submit
   assert.equal(draft.entity.transform.location[0], .008); assert.ok(Math.abs(draft.entity.transform.rotationEuler[2] - Math.PI / 6) < 1e-12)
   assert.equal(draft.material.definition.parameters.baseColor[3], 1); assert.equal(calls.length, 0)
   await store.actions.applyEditor(); assert.equal(calls.length, 1); assert.equal(calls[0].body.patch.renderPreview, true)
+})
+
+test('workbench half laps save both sides together, reload from either member, and can be replaced or removed', async t => {
+  const spec = source('metal-lamp')
+  const timber = {
+    shape: 'mesh', vertices: [[0, 0, 0], [2, 0, 0], [2, .2, 0], [0, .2, 0], [0, 0, .2], [2, 0, .2], [2, .2, .2], [0, .2, .2]],
+    faces: [[0, 3, 2, 1], [4, 5, 6, 7], [0, 1, 5, 4], [1, 2, 6, 5], [2, 3, 7, 6], [3, 0, 4, 7]],
+  }
+  for (const id of ['timber-a', 'timber-b', 'timber-c', 'used-a', 'used-b']) {
+    spec.entities.push({ id, type: 'generator', generator: plain(timber) })
+  }
+  const existing = { lowerEntityId: 'used-a', upperEntityId: 'used-b' }
+  spec.halfLaps = [existing]
+  const { store, field, calls, projects } = await client(t, spec)
+  assert.equal(field('editor-half-lap-partner'), undefined)
+  store.actions.selectEditorEntity('timber-a')
+  assert.deepEqual(Array.from(field('editor-half-lap-partner').children, option => option.props.value), ['', 'timber-b', 'timber-c'])
+  field('editor-half-lap-partner').props.onChange({ target: { value: 'timber-b' } })
+  field('editor-half-lap-role').props.onChange({ target: { value: 'upper' } })
+  assert.equal(calls.length, 0)
+  await store.actions.applyEditor()
+  assert.equal(calls.length, 1)
+  const pair = { lowerEntityId: 'timber-b', upperEntityId: 'timber-a' }
+  assert.deepEqual(calls[0].body.patch.operations, [{ op: 'joint.halfLap.set', ...pair }])
+  assert.equal(calls[0].body.patch.renderPreview, true)
+  const saved = projects['project-a'].spec
+  assert.deepEqual(saved.entities, spec.entities)
+  const diff = buildRevisionDiff(spec, saved)
+  assert.equal(diff.totalChanges, 1)
+  assert.deepEqual(diff.collections.halfLaps.added, ['timber-a / timber-b'])
+  await waitFor(store, state => state.selected?.scene?.revision === 'r0002')
+  store.actions.setView('scene')
+  store.actions.selectEditorEntity('timber-b')
+  assert.equal(field('editor-half-lap-partner').props.value, 'timber-a')
+  assert.equal(field('editor-half-lap-role').props.value, 'lower')
+  const draft = editor.draftFor(store.getState())
+  assert.equal(editor.buildPatch(draft).operations.length, 0)
+  field('editor-half-lap-role').props.onChange({ target: { value: 'upper' } })
+  const swapped = { lowerEntityId: 'timber-a', upperEntityId: 'timber-b' }
+  const roleChange = apply(saved, editor.draftFor(store.getState()))
+  assert.deepEqual(roleChange.patch.operations, [{ op: 'joint.halfLap.set', ...swapped }])
+  assert.equal(buildRevisionDiff(saved, roleChange.next).collections.halfLaps.changed.length, 1)
+  field('editor-half-lap-partner').props.onChange({ target: { value: 'timber-c' } })
+  const replacement = apply(saved, editor.draftFor(store.getState()))
+  assert.deepEqual(replacement.patch.operations, [{ op: 'joint.halfLap.set', ...pair, enabled: false },
+    { op: 'joint.halfLap.set', lowerEntityId: 'timber-c', upperEntityId: 'timber-b' }])
+  field('editor-half-lap-partner').props.onChange({ target: { value: '' } })
+  const removal = apply(saved, editor.draftFor(store.getState()))
+  assert.deepEqual(removal.patch.operations, [{ op: 'joint.halfLap.set', ...pair, enabled: false }])
+  assert.deepEqual(removal.next.halfLaps, [existing])
 })
 
 test('profile, path and all modifier controls are present; reordering retains original full definitions', async t => {

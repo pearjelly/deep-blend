@@ -2,7 +2,7 @@
   "schemaVersion": "deepblend.photography-docs/v1",
   "at": "2026-11-01T05:56:43.560027+00:00",
   "sourceBase": "d68f6d452b476c8c0b4c8fb6739b13c7ef59112f",
-  "uiSha256": "7f42aa96a4cb4bd7f7323ecc532bd4a8ab50bfd7371597b9cd22ea444b79c400",
+  "uiSha256": "d2a8faed8ded57a444410f464cf24a5501e5a014e08bcfcb5458633fd56d48c6",
   "nativeSource": ".tmp-photography-reuse-1022-v1",
   "nativeChecks": 36,
   "viewed": true,
@@ -11,44 +11,44 @@
     {
       "file": "draft.png",
       "original": "photography-desktop.jpg",
-      "sha256": "e0e7978b49e0cd0a833251ba292f178f856c9a705d59b0fb66d7e05c0688c6e6",
-      "bytes": 406097,
+      "sha256": "abae7f7be9b7cb19aab5e16562e40b68f1ce342ff9193fce4d794bc0076e1c33",
+      "bytes": 406080,
       "width": 1440,
       "height": 1013,
       "postProcessed": false,
       "encodingConversion": {
         "sourceFile": "photography-desktop.jpg",
         "sourceFormat": "JPEG",
-        "sourceSha256": "1c7793fe2d992edc8b097f6fd61a2add42d6e870f832b23b7c93d676401a86cd",
-        "decodedPixelsSha256": "e4d7494237bd420891b01795507fd4bd9291dddb482f2399beff27f7f906e022",
+        "sourceSha256": "d33a843d87df1042c8671fc555db26c9ea479f7ec3411717ea1e68b510fa720a",
+        "decodedPixelsSha256": "fcd486d39f01f55b900fe2c7f529b5bc611ef5be06ee2005343549e67fc7a015",
         "pixelMode": "RGB",
         "decodedPixelsIdentical": true,
         "cropped": false,
         "resized": false,
         "colorAdjusted": false,
-        "pngSha256": "e0e7978b49e0cd0a833251ba292f178f856c9a705d59b0fb66d7e05c0688c6e6"
+        "pngSha256": "abae7f7be9b7cb19aab5e16562e40b68f1ce342ff9193fce4d794bc0076e1c33"
       },
       "metadataOnlyOriginEmbedded": true
     },
     {
       "file": "narrow.png",
       "original": "photography-narrow.jpg",
-      "sha256": "87bcf786dc003c3a7d2a56e5a6ba3ed218f64623c5be625b0a76f99099df7345",
-      "bytes": 175782,
+      "sha256": "e15642c6077294b9e5eff7b13c67aa456d8c1f784de3228055692027109c6839",
+      "bytes": 175842,
       "width": 390,
       "height": 844,
       "postProcessed": false,
       "encodingConversion": {
         "sourceFile": "photography-narrow.jpg",
         "sourceFormat": "JPEG",
-        "sourceSha256": "93c9b06903d4e95aac68802a0d1c01fbb6b790a398f7b828b209ae60f6c6a208",
-        "decodedPixelsSha256": "86a7faedad2ff675fef534068d32eed375e1964f12d6d0c1e509b6dff7525004",
+        "sourceSha256": "ee1ffafd27d3106a73512349959dfbebfb7960cce8eb3e77c7d5e436dc4bed57",
+        "decodedPixelsSha256": "b0165c63585cbe019d2440fdea392bcb4420ee73f31b5636bec325af57e7918f",
         "pixelMode": "RGB",
         "decodedPixelsIdentical": true,
         "cropped": false,
         "resized": false,
         "colorAdjusted": false,
-        "pngSha256": "87bcf786dc003c3a7d2a56e5a6ba3ed218f64623c5be625b0a76f99099df7345"
+        "pngSha256": "e15642c6077294b9e5eff7b13c67aa456d8c1f784de3228055692027109c6839"
       },
       "metadataOnlyOriginEmbedded": true
     }
@@ -74,14 +74,14 @@
   },
   "capture": {
     "interaction": "cdp-browser-ui",
-    "source": ".deepblend/photography-capture-20261101-photography-bounds",
+    "source": ".tmp-wood-joinery-20261111/photography-capture-20261111",
     "report": "capture-report.json",
-    "reportSha256": "8d87149172b4a21b2c4f3b5a911985181fb20441a2d4b03b74ffef1dfb919ffa",
-    "uiSha256": "7f42aa96a4cb4bd7f7323ecc532bd4a8ab50bfd7371597b9cd22ea444b79c400",
+    "reportSha256": "43c0e3607410aa72c80d7661e8f5fc071f0e0c4aa4a8499058143caadafda542",
+    "uiSha256": "d2a8faed8ded57a444410f464cf24a5501e5a014e08bcfcb5458633fd56d48c6",
     "nativeRegressionRerun": false,
     "scope": "Actual current-client saved-source photography draft capture, with an existing target preview. No save or model request during capture; historical native regression remains separately pinned.",
     "encodingNote": "Actual CDP JPEG screenshots converted at the same dimensions and RGB mode with every decoded pixel identical; source metadata embedded separately.",
-    "at": "2026-11-01T05:56:43.560027+00:00"
+    "at": "2026-11-11T10:27:35.779166+00:00"
   },
   "viewedAt": "2026-11-01T05:56:43.560027+00:00"
 }

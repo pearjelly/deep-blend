@@ -66,6 +66,7 @@ export function specChangeAudit(hashes?: { specHashBefore?: string | null; specH
 export function reviewInputsDigest(spec: SceneSpec): string;
 export interface SceneSummary {
   revision: string | null; revisionNumber: number | null; digest: string; schemaVersion: SceneSpec['schemaVersion'];
+  halfLaps?: NonNullable<SceneSpec['halfLaps']>;
   project: {
     id: string; title: string; goal: string | null; referenceImages: ReferenceImage[]; reviewSubjectId: string | null;
     fps: number; frameStart: number; frameEnd: number; aspectRatio: string; units: 'metric' | 'imperial'; activeCamera: string | null;
