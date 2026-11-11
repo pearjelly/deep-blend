@@ -3,11 +3,12 @@ from collections import defaultdict
 from dataclasses import dataclass
 from itertools import product
 from math import hypot, prod
+from pathlib import Path
 
 import bmesh
 import bpy
 
-from deepblend_util import ActionError
+from deepblend_util import ActionError, error_text, report_progress
 
 
 _MAX_BEAMS = 256
@@ -128,10 +129,13 @@ def _beams(obj, points, tolerance):
     return beams
 
 
-def _cuts(lower, upper, tolerance):
+def _cuts(lower, upper, tolerance, inspect=False):
     if lower[0].length_axis == upper[0].length_axis:
         _invalid('the two timber groups must cross at right angles')
     recesses = ([[] for _ in lower], [[] for _ in upper])
+    witness = None
+    witness_rank = None
+    partial_crossings = 0
     for i, a in enumerate(lower):
         for j, b in enumerate(upper):
             shared = a.box.overlap(b.box)
@@ -144,9 +148,21 @@ def _cuts(lower, upper, tolerance):
             middle = (shared.low[2] + shared.high[2]) / 2
             recesses[0][i].append(_Box((*shared.low[:2], middle), shared.high))
             recesses[1][j].append(_Box(shared.low, (*shared.high[:2], middle)))
+            if inspect:
+                widths = (b.box.length(0), a.box.length(1)) if a.length_axis == 0 else (a.box.length(0), b.box.length(1))
+                partial = any(shared.length(axis) < width - tolerance for axis, width in enumerate(widths))
+                partial_crossings += int(partial)
+                rank = (partial, shared.length(0) * shared.length(1))
+                if witness_rank is None or rank > witness_rank:
+                    witness_rank = rank
+                    witness = {
+                        'center': tuple((lo + hi) / 2 for lo, hi in zip(shared.low, shared.high)),
+                        'span': max(*widths, shared.length(2)),
+                        'partial': partial,
+                    }
     if not any(recesses[0]):
         _invalid('the timber groups have no crossings; adjust their position or remove the joint')
-    return recesses
+    return recesses, witness, partial_crossings
 
 
 def _face_uv(mesh, beam, side):
@@ -253,7 +269,7 @@ def _build_mesh(obj, beams, cuts, to_local):
     return result
 
 
-def apply_half_lap(lower, upper):
+def apply_half_lap(lower, upper, inspect=False):
     """Apply both sides after their array/mirror stacks, before dependent modifiers."""
     from mathutils import Vector
 
@@ -278,7 +294,7 @@ def apply_half_lap(lower, upper):
     planes = [_snap((p[axis] for group in coords for p in group), tolerance) for axis in range(3)]
     measured = [_beams(obj, [tuple(index[value] for index, value in zip(planes, point)) for point in group],
                        tolerance) for obj, group in zip(objects, coords)]
-    recesses = _cuts(*measured, tolerance)
+    recesses, witness, partial_crossings = _cuts(*measured, tolerance, inspect)
     staged = []
     try:
         for obj, beams, cuts, matrix in zip(objects, measured, recesses, matrices):
@@ -293,3 +309,74 @@ def apply_half_lap(lower, upper):
         obj.data = mesh
         if old.users == 0:
             bpy.data.meshes.remove(old)
+    if inspect:
+        return {'objects': objects, 'frame': frame, 'witness': witness,
+                'crossings': sum(map(len, recesses[0])), 'partialCrossings': partial_crossings}
+
+
+def render_half_lap_inspection(scene, inspection, directory):
+    """Show both cut faces of the same measured crossing in the isolated compile."""
+    from mathutils import Vector
+
+    if inspection is None:
+        _invalid('no measured crossing is available for preview')
+    frame = inspection['frame']
+    witness = inspection['witness']
+    target = frame @ Vector(witness['center'])
+    span = witness['span'] * 4.4
+    camera = bpy.data.objects.new('Half-lap inspection camera', bpy.data.cameras.new('Half-lap inspection camera'))
+    scene.collection.objects.link(camera)
+    scene.camera = camera
+    camera.data.type = 'ORTHO'
+    camera.data.ortho_scale = span
+    camera.data.clip_start = max(span * 0.005, 0.00001)
+    camera.data.clip_end = max(span * 12, 0.01)
+    scene.render.engine = 'BLENDER_WORKBENCH'
+    scene.render.resolution_x, scene.render.resolution_y = 480, 320
+    scene.render.resolution_percentage = 100
+    scene.render.pixel_aspect_x = scene.render.pixel_aspect_y = 1
+    scene.render.use_border = False
+    scene.render.use_compositing = False
+    scene.render.use_sequencer = False
+    scene.render.image_settings.file_format = 'PNG'
+    scene.render.image_settings.color_mode = 'RGB'
+    scene.render.film_transparent = False
+    scene.view_settings.view_transform = 'Standard'
+    scene.view_settings.look = 'None'
+    scene.view_settings.exposure = 0
+    scene.view_settings.gamma = 1
+    shading = scene.display.shading
+    shading.light = 'STUDIO'
+    shading.color_type = 'SINGLE'
+    shading.show_cavity = True
+    shading.cavity_type = 'BOTH'
+    shading.show_specular_highlight = False
+    scene.display.render_aa = '8'
+    if scene.world is not None:
+        scene.world.color = (0.18, 0.18, 0.18)
+
+    for index, (role, obj) in enumerate(zip(('lower', 'upper'), inspection['objects'])):
+        for other in scene.objects:
+            if other.type != 'CAMERA':
+                other.hide_render = other != obj
+        side = 1 if role == 'lower' else -1
+        direction = frame.to_3x3() @ Vector((1, -1, side * 2.8)).normalized()
+        camera.location = target + direction * span * 2.5
+        camera.rotation_mode = 'QUATERNION'
+        camera.rotation_quaternion = (-direction).to_track_quat('-Z', 'Y')
+        shading.single_color = (0.62, 0.32, 0.15) if side == 1 else (0.84, 0.54, 0.25)
+        output = Path(directory) / f'half-lap-{role}.png'
+        scene.render.filepath = str(output)
+        report_progress('render_half_lap_' + role, 94 + index * 3)
+        try:
+            bpy.ops.render.render(write_still=True)
+        except Exception as exc:
+            raise ActionError('BLENDER_ENGINE_UNAVAILABLE', 'the half-lap inspection render failed: ' + error_text(exc))
+        if not output.is_file():
+            raise ActionError('RENDER_NO_OUTPUT', 'the half-lap inspection did not produce both images')
+    return {
+        'schemaVersion': 'deepblend.half-lap-inspection/v1',
+        'crossings': inspection['crossings'],
+        'partialCrossings': inspection['partialCrossings'],
+        'sample': 'partial' if witness['partial'] else 'full',
+    }

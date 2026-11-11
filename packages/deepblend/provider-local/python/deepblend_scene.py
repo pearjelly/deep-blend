@@ -2141,8 +2141,9 @@ def build_scene(spec, options, guard):
             simulation_objects[entity_id] = meshes[0]
         entity_positions[entity_id] = [float(root.location[0]), float(root.location[1]), float(root.location[2])]
 
-    apply_model_modifiers(spec.get("entities") or [], entity_meshes,
-                          spec.get('animationTracks') or [], spec.get('halfLaps'))
+    half_lap_inspection = apply_model_modifiers(spec.get("entities") or [], entity_meshes,
+                                               spec.get('animationTracks') or [], spec.get('halfLaps'),
+                                               options.get('half_lap_inspection'))
     scene['deepblend_requires_cycles'] = False
     for entry in spec.get('materials') or []:
         for surface in native_material_surfaces:
@@ -2334,6 +2335,7 @@ def build_scene(spec, options, guard):
         skinned_entities[entity["id"]] = entity
 
     return {
+        "halfLapInspection": half_lap_inspection,
         "objects": describe_objects(),
         "actions": actions,
         "world": world_report,

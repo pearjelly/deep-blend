@@ -346,6 +346,28 @@ export class RevisionTransaction {
     return this.store.withProjectWrite(request.projectId, () => applyCameraFit(this, request, options))
   }
 
+  verifyPatchAssets(projectId, spec) {
+    const projectRoot = this.store.projectDirectory(projectId)
+    // Verify every declared dependency on every patch, including unchanged assets.
+    // A later material/camera edit must not silently compile changed source bytes.
+    for (const asset of spec.assets ?? []) {
+      if (typeof asset.path !== 'string') continue
+      verifyAssetBundle(projectRoot, asset)
+      const pathHash = /^assets\/raw\/([a-f0-9]{64})\.[a-z0-9]+$/.exec(asset.path)?.[1]
+      const declared = pathHash ?? asset.sha256
+      const absolute = resolveInside(projectRoot, asset.path, 'scene asset')
+      if (!existsSync(absolute)) continue // Missing declarations are diagnosed when compiled.
+      const actual = typeof declared === 'string' ? fileSha256(absolute) : null
+      if (typeof declared === 'string' && (actual !== declared || (asset.sha256 && asset.sha256 !== declared))) {
+        throw new BlenderError(BlenderErrorCode.ASSET_HASH_MISMATCH,
+          `asset "${asset.id}" declares sha256 ${asset.sha256 ?? declared}, but ${asset.path} is ${actual}. Nothing was committed.`,
+          { detail: { projectId, assetId: asset.id, path: asset.path, declared: asset.sha256 ?? declared, pathHash, actual } })
+      }
+      verifyUnbundledGltfAsset(projectRoot, asset)
+      verifyUnbundledObjAsset(projectRoot, asset)
+    }
+  }
+
   async _applyScenePatch(patch, options) {
     const projectId = patch.projectId
     const record = this.store.readRecord(projectId)
@@ -378,6 +400,9 @@ export class RevisionTransaction {
       }
       if (recorded.kind === 'surface_placement' || options.surfacePlacement) {
         throw new BlenderError(BlenderErrorCode.SCENE_PATCH_REJECTED, 'This idempotency key belongs to a surface-placement request; use that operation to replay its exact intent.')
+      }
+      if (options.expectedSpecHash !== undefined && recorded.outcome.revision?.specHashAfter !== options.expectedSpecHash) {
+        throw new BlenderError(BlenderErrorCode.REVISION_CONFLICT, 'The saved result differs from the inspected draft.')
       }
       return {
         ...recorded.outcome,
@@ -443,24 +468,7 @@ export class RevisionTransaction {
       )
     }
 
-    // Verify every declared dependency on every patch, including unchanged assets.
-    // A later material/camera edit must not silently compile changed source bytes.
-    for (const asset of nextSpec.assets ?? []) {
-      if (typeof asset.path !== 'string') continue
-      verifyAssetBundle(this.store.projectDirectory(projectId), asset)
-      const pathHash = /^assets\/raw\/([a-f0-9]{64})\.[a-z0-9]+$/.exec(asset.path)?.[1]
-      const declared = pathHash ?? asset.sha256
-      const absolute = resolveInside(this.store.projectDirectory(projectId), asset.path, 'scene asset')
-      if (!existsSync(absolute)) continue // Missing declarations are diagnosed when compiled.
-      const actual = typeof declared === 'string' ? fileSha256(absolute) : null
-      if (typeof declared === 'string' && (actual !== declared || (asset.sha256 && asset.sha256 !== declared))) {
-        throw new BlenderError(BlenderErrorCode.ASSET_HASH_MISMATCH,
-          `asset "${asset.id}" declares sha256 ${asset.sha256 ?? declared}, but ${asset.path} is ${actual}. Nothing was committed.`,
-          { detail: { projectId, assetId: asset.id, path: asset.path, declared: asset.sha256 ?? declared, pathHash, actual } })
-      }
-      verifyUnbundledGltfAsset(this.store.projectDirectory(projectId), asset)
-      verifyUnbundledObjAsset(this.store.projectDirectory(projectId), asset)
-    }
+    this.verifyPatchAssets(projectId, nextSpec)
 
     // ---- resolve the RESULT before anything reads it -----------------------
     //
@@ -497,6 +505,9 @@ export class RevisionTransaction {
     nextSpec = resolved.spec
     digestAfter = sceneSpecDigest(nextSpec)
     specHashAfter = specHash(nextSpec)
+    if (options.expectedSpecHash !== undefined && specHashAfter !== options.expectedSpecHash) {
+      throw new BlenderError(BlenderErrorCode.REVISION_CONFLICT, 'The draft changed after inspection. Preview it again before saving.')
+    }
     if (options.surfacePlacement && specHashAfter !== options.surfacePlacement.expectedSpecHash) {
       throw new BlenderError(BlenderErrorCode.SCENE_VALIDATION_FAILED, 'Surface placement would change source fields beyond the requested placement; no revision was published.')
     }

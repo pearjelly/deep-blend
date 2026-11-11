@@ -390,5 +390,38 @@
       "mobile": "346bdc935eabdb374f9aa7ea839d4cc4dde3325c40a9a627656f1b412103b7ab",
       "comparison": "cfa7f0aa4154467148c07fdd1152fd34e1588cdbfcf16602250951e70f3700eb"
     }
+  },
+  "draftSlotInspection": {
+    "recordedAt": "2026-11-11T10:26:19Z",
+    "uiClientSha256": "d2a8faed8ded57a444410f464cf24a5501e5a014e08bcfcb5458633fd56d48c6",
+    "nativeCompilerSha256": "0fa99748f14ff02cb44a74584e1ab3444ed1f339b41cc0c420187518826b102f",
+    "fixture": "The same extracted r0075 pagoda eave with original geometry, material maps, and camera",
+    "observedBrowserPreviewMs": 1504,
+    "crossings": 100,
+    "partialCrossings": 36,
+    "sample": "partial",
+    "imageSize": [480, 320],
+    "baseRevision": "r0001",
+    "savedRevision": "r0002",
+    "candidateSpecHash": "19aa3c734fac5d7bfa9dd4f7b5ccc74824d83e01d4fc985fc432f84c5fb0234e",
+    "previewAndSavedSpecHashesMatch": true,
+    "baselineFilesUnchanged": true,
+    "nativePreviewCheckpoint": null,
+    "checks": [
+      "Render both slot faces of the same measured partial crossing in an isolated Blender process",
+      "The workbench shows both previews before saving the draft",
+      "Changing the selected half immediately retires the old pictures",
+      "An explicit save confirms the inspected draft and generates the normal scene preview",
+      "A stale base, cross-origin caller, mismatched draft hash and skewed joint are refused without new revisions or jobs",
+      "Desktop and narrow viewport reviewed. Pointer clicks for preview and save, browser input events for selects"
+    ],
+    "evidenceSha256": {
+      "browserResult": "cdbb7ec4301be5953facdcc0cdb71a0d458da953244800e06e0a62872a1e86f1",
+      "routeGuardReceipt": "ed586275f7cd2c1ddf58b3bdc13576783dd82e589d32dce9acd44ae9e3d00afe",
+      "lowerSlot": "15ec072ad6b5ba4dd496d64c02bdc465829b96cd7f868e8bd496bc9ca154b14f",
+      "upperSlot": "a3885a00c1a79df910fbaba9060d044eaee125bc5dbc34b7b4355265066c5b4f",
+      "desktop": "9c4aff67dfda8d5b501de8f6485b2be58f850ac82b8d1fb7d36852a07bceae58",
+      "mobile": "fc481d40e00bff64336ea67267b78a72e5f3a24f6a71ef88d346ee4404d1ff42"
+    }
   }
 }

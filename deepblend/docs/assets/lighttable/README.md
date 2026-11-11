@@ -1,6 +1,6 @@
 # 光台工作台截图
 
-`workbench.png`（1440×1013）与 `narrow.png`（390×844）于 2026-11-01 从隔离 DSH 工作台使用真实 Chrome 操作复拍，已逐张查看。画面展示原创杯子项目 `first-cup` 的已保存版本 `r0001`、实际预览和导出界面；桌面图显示交付画幅准备和相机运动入口。图片由 DeepBlend contributors 制作，按仓库 MIT 许可发布。
+`workbench.png`（1440×1013）与 `narrow.png`（390×844）于 2026-11-11 从隔离 DSH 工作台使用真实 Chrome 操作复拍，已逐张查看。画面展示原创杯子项目 `first-cup` 的已保存版本 `r0001`、实际预览和导出界面；桌面图显示交付画幅准备和相机运动入口。图片由 DeepBlend contributors 制作，按仓库 MIT 许可发布。
 
 [来源清单](manifest.json)中的 `capture.capturedUiSha256` 绑定拍摄时的 `packages/deepblend/ui/lib/client.js`。浏览器通过 CDP 取得实际加载的脚本响应，与服务端完整响应逐字节比较；该脚本包含当前 bundle 客户端的完整内容。拍摄未请求模型，也不证明独立用户或美术验收通过。
 

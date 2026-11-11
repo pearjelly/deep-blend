@@ -546,8 +546,18 @@ window.__ModuleLoader__.load({
       'editor.halfLap.role': '当前木条组',
       'editor.halfLap.lower': '保留下半部',
       'editor.halfLap.upper': '保留上半部',
-      'editor.halfLap.help': '两组木条须正交，顶面和底面分别等高。保存后在交叉处切出搭接并生成预览。',
+      'editor.halfLap.help': '两组木条须正交，顶面和底面分别等高。',
       'editor.halfLap.invalid': '半搭接需要静态长方体网格。请移除不支持的修饰器，或将搭接对象设为「无搭接」。',
+      'editor.halfLap.inspect': '预览槽口',
+      'editor.halfLap.inspecting': '正在渲染槽口…',
+      'editor.halfLap.inspectError': '槽口预览失败。{message}',
+      'editor.halfLap.partial': '分开查看同一处端部搭接的两侧。搭接草稿尚未保存。',
+      'editor.halfLap.full': '分开查看同一处搭接的两侧。搭接草稿尚未保存。',
+      'editor.halfLap.count': '{count} 处交叉，其中 {partial} 处未跨满木条宽度',
+      'editor.halfLap.lowerPart': '下半部 · {name}',
+      'editor.halfLap.upperPart': '上半部 · {name}',
+      'editor.halfLap.lowerFace': '从上面查看下半部木条的槽口',
+      'editor.halfLap.upperFace': '从下面查看上半部木条的槽口',
       'editor.subdivision': '曲面细分',
       'editor.surfaceScatter': '封闭表面布置',
       'editor.scatterTargets': '依附物体（逗号分隔）',
@@ -1452,8 +1462,18 @@ window.__ModuleLoader__.load({
       'editor.halfLap.role': 'Selected timber group',
       'editor.halfLap.lower': 'Keep the lower half',
       'editor.halfLap.upper': 'Keep the upper half',
-      'editor.halfLap.help': 'The groups must cross at right angles and share top and bottom heights. Save to cut the crossings and render a preview.',
+      'editor.halfLap.help': 'The groups must cross at right angles and share top and bottom heights.',
       'editor.halfLap.invalid': 'Half laps need static box meshes. Remove unsupported modifiers or set Join with to “No joint.”',
+      'editor.halfLap.inspect': 'Preview recesses',
+      'editor.halfLap.inspecting': 'Rendering recesses…',
+      'editor.halfLap.inspectError': 'Could not render the recess preview. {message}',
+      'editor.halfLap.partial': 'Two isolated faces of the same end lap. The draft is unsaved.',
+      'editor.halfLap.full': 'Two isolated faces of the same joint. The draft is unsaved.',
+      'editor.halfLap.count': 'Crossings: {count}. Partial-width crossings: {partial}.',
+      'editor.halfLap.lowerPart': 'Lower half · {name}',
+      'editor.halfLap.upperPart': 'Upper half · {name}',
+      'editor.halfLap.lowerFace': 'Recess in the lower timber, seen from above',
+      'editor.halfLap.upperFace': 'Recess in the upper timber, seen from below',
       'editor.subdivision': 'Surface subdivision',
       'editor.surfaceScatter': 'Closed surface placement',
       'editor.scatterTargets': 'Support objects (comma separated)',
@@ -3019,6 +3039,29 @@ window.__ModuleLoader__.load({
       return state.editorDrafts?.[editorKey(state.activeProjectId, state.editorEntityId)] || null
     }
 
+    function halfLapPreviewIntent(state, draft = editorDraftFor(state), patch) {
+      const scene = state.selected?.scene
+      if (!state.halfLapPreviewSupported || state.view !== 'scene' || !draft?.halfLap || !scene || draft.baseRevision !== scene.revision
+        || !/^[a-f0-9]{64}$/.test(scene.digest ?? '') || !/^[a-f0-9]{64}$/.test(state.storeIdentity ?? '')) return null
+      try { patch ??= buildEditorPatch(draft) } catch { return null }
+      const change = patch.operations.find(operation => operation.op === 'joint.halfLap.set' && operation.enabled !== false)
+      if (!change) return null
+      const key = JSON.stringify([state.storeIdentity, scene.digest, draft.entityId, patch])
+      return { key, patch, expectedDigest: scene.digest, expectedStoreIdentity: state.storeIdentity, joint: draft.halfLap }
+    }
+
+    function verifiedHalfLapPreview(preview, intent) {
+      const isImage = image => image?.width === 480 && image.height === 320 && /^[a-f0-9]{64}$/.test(image.sha256 ?? '')
+        && typeof image.pngBase64 === 'string' && image.pngBase64.length <= 699052 && /^iVBORw0KGgo[A-Za-z0-9+/]+=*$/.test(image.pngBase64)
+      return preview?.schemaVersion === 'deepblend.half-lap-inspection/v1' && preview.projectId === intent.patch.projectId
+        && preview.baseRevision === intent.patch.baseRevision && preview.baseDigest === intent.expectedDigest
+        && preview.storeIdentity === intent.expectedStoreIdentity && /^[a-f0-9]{64}$/.test(preview.candidateSpecHash ?? '')
+        && preview.joint?.lowerEntityId === intent.joint.lowerEntityId && preview.joint?.upperEntityId === intent.joint.upperEntityId
+        && Number.isSafeInteger(preview.crossings) && preview.crossings > 0 && Number.isSafeInteger(preview.partialCrossings)
+        && preview.partialCrossings >= 0 && preview.partialCrossings <= preview.crossings
+        && preview.sample === (preview.partialCrossings ? 'partial' : 'full') && isImage(preview.lower) && isImage(preview.upper)
+    }
+
     function createPhotographyDraft(scene, projectId, previous = {}, projectsRoot = null) {
       const cameras = (scene.nodes.cameras || []).map(item => editorClone(item.definition)).filter(Boolean)
       const lights = (scene.nodes.lights || []).map(item => editorClone(item.definition)).filter(Boolean)
@@ -3821,6 +3864,8 @@ window.__ModuleLoader__.load({
         photographyReuse: {},
         editorEntityId: null,
         editorDrafts: {},
+        halfLapPreviewSupported: false,
+        halfLapPreview: null,
         geometryMeasurements: {},
         editorLastEdits: {},
         editorComparison: null,
@@ -3909,6 +3954,7 @@ window.__ModuleLoader__.load({
       const cameraFitControllers = new Map()
       const cameraFitStorage = settings.cameraFitStorage ?? preferenceStorage
       const motionControllers = new Map()
+      let halfLapPreviewController
       let imageProbeController = null
       const motionStorage = settings.motionStorage ?? preferenceStorage
       const motionWork = (key, changes) => set({ motionWork: { ...data.motionWork, [key]: { ...data.motionWork[key], ...changes } } })
@@ -3992,7 +4038,13 @@ window.__ModuleLoader__.load({
         if (['projectsRoot', 'storeIdentity', 'activeProjectId'].some(key => Object.hasOwn(patch, key) && patch[key] !== data[key])) retireSnapshotContext()
         if (['projectsRoot', 'storeIdentity', 'activeProjectId', 'currentRevision'].some(key => Object.hasOwn(patch, key) && patch[key] !== data[key])
           || Object.hasOwn(patch, 'view') && patch.view !== 'preview') patch = { ...patch, lighttableSelection: null }
-        data = { ...data, ...patch }; notify()
+        const next = { ...data, ...patch }
+        if (next.halfLapPreview && halfLapPreviewIntent(next)?.key !== next.halfLapPreview.key) {
+          halfLapPreviewController?.abort()
+          halfLapPreviewController = undefined
+          next.halfLapPreview = null
+        }
+        data = next; notify()
       }
       /** Change one nested table. @param {'forms'|'busy'|'notices'} table @param {string} key @param {any} value */
       const setIn = (table, key, value) => { data = { ...data, [table]: { ...data[table], [key]: value } }; notify() }
@@ -4085,6 +4137,7 @@ window.__ModuleLoader__.load({
           deliveryAspectPresetSupported: payload.deliveryAspectPresetSupported === true,
           stillImageDeliverySupported: payload.stillImageDeliverySupported === true,
           motionPreviewSupported: payload.motionPreviewSupported === true,
+          halfLapPreviewSupported: payload.halfLapPreviewSupported === true,
           imageInputProbeSupported: payload.imageInputProbeSupported === true,
           selectedReviewViewsSupported: payload.selectedReviewViewsSupported === true,
           creationRequestProtocol: payload.creationRequestProtocol ?? null,
@@ -5452,6 +5505,35 @@ window.__ModuleLoader__.load({
             : { lowerEntityId: entityId, upperEntityId: partner }
           set({ editorDrafts: { ...data.editorDrafts, [editorKey(current.projectId, entityId)]: { ...current, halfLap } } })
         },
+        cancelHalfLapPreview: () => {
+          halfLapPreviewController?.abort()
+          halfLapPreviewController = undefined
+          set({ halfLapPreview: null })
+        },
+        previewHalfLap: async () => {
+          const intent = halfLapPreviewIntent(data)
+          if (!intent || data.busy.editor || halfLapPreviewController) return
+          const controller = new AbortController()
+          halfLapPreviewController = controller
+          const { key, patch, expectedDigest, expectedStoreIdentity } = intent
+          const active = () => running && halfLapPreviewController === controller && !controller.signal.aborted
+          set({ halfLapPreview: { key, busy: true } })
+          try {
+            const response = await fetchImpl(projectRoute(patch.projectId, '/half-lap-preview'), {
+              method: 'POST', headers: { 'content-type': 'application/json', accept: 'application/json' }, signal: controller.signal,
+              body: JSON.stringify({ patch, expectedDigest, expectedStoreIdentity }),
+            })
+            const payload = await response.json()
+            if (!active()) return
+            if (!response.ok || !payload.ok) throw new Error(payload.error?.message || response.status)
+            if (!verifiedHalfLapPreview(payload.preview, intent)) throw new Error(t('inspection.mismatch'))
+            set({ halfLapPreview: { key, result: payload.preview } })
+          } catch (error) {
+            if (active()) set({ halfLapPreview: { key, error: error.message || String(error) } })
+          } finally {
+            if (halfLapPreviewController === controller) halfLapPreviewController = undefined
+          }
+        },
         updateEditor: (section, path, value) => {
           const current = editorDraftFor(data)
           if (!current || data.busy.editor || !['transform', 'generator', 'modifiers', 'material', 'uvProjection'].includes(section)) return
@@ -5515,10 +5597,13 @@ window.__ModuleLoader__.load({
           try { patch = buildEditorPatch(draft) } catch (error) {
             setIn('notices', 'scene', { ok: false, message: error.message }); return
           }
-          if (!patch.operations.length) return
+          if (!patch.operations.length || data.halfLapPreview?.busy) return
+          const inspection = data.halfLapPreview?.result
+          const inspected = inspection && halfLapPreviewIntent(data, draft, patch)?.key === data.halfLapPreview.key
+          const request = inspected ? { patch, expectedSpecHash: inspection.candidateSpecHash, expectedStoreIdentity: inspection.storeIdentity } : { patch }
           const beforePreviews = editorClone(data.previews?.revisions?.find(item => item.revision === draft.baseRevision)?.previews || [])
           setIn('busy', 'editor', true)
-          const outcome = await postJson(fetchImpl, projectRoute(draft.projectId, '/patch'), { patch })
+          const outcome = await postJson(fetchImpl, projectRoute(draft.projectId, '/patch'), request)
           setIn('busy', 'editor', false)
           if (outcome.ok) {
             const revision = outcome.payload.revision.revision
@@ -5875,6 +5960,8 @@ window.__ModuleLoader__.load({
           for (const controller of photographyControllers.values()) controller.abort()
           for (const controller of motionControllers.values()) controller.abort()
           motionControllers.clear()
+          halfLapPreviewController?.abort()
+          halfLapPreviewController = undefined
           photographyControllers.clear()
           for (const controller of placementControllers.values()) controller.abort()
           placementControllers.clear()
@@ -6351,6 +6438,11 @@ window.__ModuleLoader__.load({
       const halfLapRole = draft.halfLap?.upperEntityId === draft.entityId ? 'upper' : 'lower'
       const halfLapOptions = halfLapPartners.map(entity => [entity.id, entity.id])
       if (halfLapPartner && !halfLapPartners.some(entity => entity.id === halfLapPartner)) halfLapOptions.push([halfLapPartner, halfLapPartner])
+      const slotIntent = halfLapPreviewIntent(state, draft)
+      const slotWork = slotIntent && state.halfLapPreview?.key === slotIntent.key ? state.halfLapPreview : null
+      const slotResult = slotWork?.result
+      const apply = Button({ action: 'editor-apply', tone: 'primary',
+        disabled: disabled || !dirty || errors.length > 0 || slotWork?.busy === true, onClick: actions.applyEditor, children: t('editor.apply') })
       const geometryField = key => {
         const bounds = generatorIntegerBounds(geometry, key)
         if (key === 'rootTension') return numeric(labels[key], `editor-generator-${key}`, geometry[key],
@@ -6443,7 +6535,8 @@ window.__ModuleLoader__.load({
                   choose(t('editor.halfLap.partner'), 'editor-half-lap-partner', halfLapPartner,
                     [['', t('editor.halfLap.none')], ...halfLapOptions], partner => actions.setEditorHalfLap(partner, halfLapRole)),
                   halfLapPartner ? choose(t('editor.halfLap.role'), 'editor-half-lap-role', halfLapRole,
-                    [['lower', t('editor.halfLap.lower')], ['upper', t('editor.halfLap.upper')]], role => actions.setEditorHalfLap(halfLapPartner, role)) : null) : null] : null,
+                    [['lower', t('editor.halfLap.lower')], ['upper', t('editor.halfLap.upper')]], role => actions.setEditorHalfLap(halfLapPartner, role)) : null,
+                  slotIntent ? HalfLapPreview({ slotWork, apply, disabled, actions }) : null) : null] : null,
               el('p', { className: 'db-muted', key: 'local-size' }, t('editor.localDimensions', { scale: (draft.entity.transform.scale || [1, 1, 1]).join(' × ') })),
               geometry.shape === 'rounded_box' ? el('p', { className: 'db-muted', key: 'rounded' }, t('editor.roundedRequired')) : null,
               geometry.shape === 'handled_cup' ? el('p', { className: 'db-muted', key: 'cup-help' }, t('editor.cupHelp')) : null,
@@ -6553,11 +6646,35 @@ window.__ModuleLoader__.load({
           el('div', { className: 'db-inline' }, Object.entries(modifierNames).map(([type, name]) => Button({ action: `editor-modifier-add-${type}`, disabled: disabled || !canModify || draft.entity.modifiers.length >= 8,
             children: t('editor.add', { name }), onClick: () => actions.editEditorList('modifiers', 0, 'add', type) })))) : null,
         errors.length ? el('div', { className: 'db-error', 'data-editor-errors': true }, errors.join(' ')) : null,
-        el('div', { className: 'db-inline db-editor-actions' }, Button({ action: 'editor-apply', tone: 'primary', disabled: disabled || !dirty || errors.length > 0, onClick: actions.applyEditor, children: t('editor.apply') }),
+        el('div', { className: 'db-inline db-editor-actions' }, slotResult ? null : apply,
           Button({ action: 'editor-reset', disabled: state.busy.editor, onClick: actions.resetEditor, children: t('editor.reset') }),
           Button({ action: 'editor-review-subject', disabled: disabled || draft.entity.visible === false || draft.entity.kind === 'empty'
             || state.briefWork[state.activeProjectId]?.saving || state.visualRuns[state.activeProjectId]?.busy,
             onClick: () => actions.setReviewSubject(draft.entityId), children: t('brief.subjectShortcut') }), restore))
+    }
+
+    function HalfLapPreview({ slotWork, apply, disabled, actions }) {
+      const result = slotWork?.result
+      const picture = (role, caption, label) => el('figure', { style: { margin: '12px 0' } },
+        el('figcaption', { className: 'db-muted', style: { overflowWrap: 'anywhere' } }, caption),
+        el('img', { src: `data:image/png;base64,${result[role].pngBase64}`, alt: label, width: 480, height: 320,
+          'data-half-lap-slot': role, style: { display: 'block', width: '100%', height: 'auto', marginTop: '4px' } }))
+      return el('div', { 'data-half-lap-inspection': result ? 'ready' : slotWork?.busy ? 'loading' : slotWork?.error ? 'error' : 'idle',
+        'aria-busy': slotWork?.busy === true, style: { marginTop: '12px' } },
+      result ? [
+        el('p', { key: 'draft', className: 'db-muted', role: 'status' }, result.sample === 'partial' ? t('editor.halfLap.partial') : t('editor.halfLap.full')),
+        el('p', { key: 'count', className: 'db-muted' }, t('editor.halfLap.count', { count: result.crossings, partial: result.partialCrossings })),
+        el('div', { key: 'faces' },
+          picture('lower', t('editor.halfLap.lowerPart', { name: result.joint.lowerEntityId }), t('editor.halfLap.lowerFace')),
+          picture('upper', t('editor.halfLap.upperPart', { name: result.joint.upperEntityId }), t('editor.halfLap.upperFace'))),
+        apply,
+      ] : [
+        el('div', { key: 'actions', className: 'db-inline' },
+          Button({ action: 'half-lap-preview', disabled: disabled || slotWork?.busy === true,
+            children: slotWork?.busy ? t('editor.halfLap.inspecting') : t('editor.halfLap.inspect'), onClick: actions.previewHalfLap }),
+          slotWork?.busy ? Button({ action: 'half-lap-preview-cancel', children: t('geometry.cancel'), onClick: actions.cancelHalfLapPreview }) : null),
+        slotWork?.error ? el('p', { key: 'error', className: 'db-error', role: 'alert' }, t('editor.halfLap.inspectError', { message: slotWork.error })) : null,
+      ])
     }
 
     /** 场景树: the Scene Tree of the revision in view. */

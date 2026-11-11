@@ -5,7 +5,7 @@ import bpy
 from deepblend_util import ActionError
 
 
-def apply_model_modifiers(entities, entity_meshes, animation_tracks=None, half_laps=None):
+def apply_model_modifiers(entities, entity_meshes, animation_tracks=None, half_laps=None, half_lap_inspection=None):
     """Apply dependency-ordered, bounded mesh operations to actual geometry."""
     by_id = {entity["id"]: entity for entity in entities}
     done, active = set(), set()
@@ -125,6 +125,7 @@ def apply_model_modifiers(entities, entity_meshes, animation_tracks=None, half_l
         active.remove(entity_id)
         done.add(entity_id)
 
+    inspection = None
     if half_laps:
         from deepblend_half_lap import apply_half_lap
         joined = set()
@@ -146,11 +147,14 @@ def apply_model_modifiers(entities, entity_meshes, animation_tracks=None, half_l
                     raise ActionError('SCENE_SPEC_INVALID', 'half laps require distinct, static mesh timber groups with optional array or mirror modifiers')
                 joined.add(entity_id)
                 visit(entity_id)
-            apply_half_lap(single_mesh(ids[0]), single_mesh(ids[1]))
+            measured = apply_half_lap(single_mesh(ids[0]), single_mesh(ids[1]), inspect=pair == half_lap_inspection)
+            if measured is not None:
+                inspection = measured
             bpy.context.view_layer.update()
 
     for entity in entities:
         visit(entity["id"])
+    return inspection
 
 
 def create_curve(name, spec):

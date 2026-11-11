@@ -296,6 +296,8 @@ export interface BlenderRuntime {
   invalidateCapabilities(): void;
   resolveEngineKey(engineKey: EngineKey, options?: RuntimeOptions): Promise<EngineResolution>;
   compileScene(request: CompileSceneRequest): Promise<RuntimeActionResult<CompileReport>>;
+  /** Optional draft inspection. Two PNGs are available to the working-directory callback. */
+  compileHalfLapInspection?(request: CompileSceneRequest & { joint: { lowerEntityId: string; upperEntityId: string } }): Promise<RuntimeActionResult<CompileReport>>;
   renderPreview(request: RenderPreviewRequest): Promise<RuntimeActionResult<PreviewReport>>;
   renderViews(request: RenderViewsRequest): Promise<RenderViewsResult>;
   startFrameSequence(request: FrameSequenceRequest): Promise<FrameSequenceRun>;

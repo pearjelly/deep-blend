@@ -76,8 +76,8 @@ function loopbackAddress(value) {
   return canonical === '[::1]' || /^\[::ffff:7f[0-9a-f]{2}:[0-9a-f]{1,4}\]$/.test(canonical)
 }
 /** This first snapshot surface is local-only: the existing carrier has no auth. */
-export function assertSnapshotHttpRequest(request) {
-  const reject = () => { throw new BlenderError('SNAPSHOT_LOCAL_ONLY', 'Editable snapshots require a direct same-origin connection to the local Host. Remote proxies are not supported.') }
+export function assertSnapshotHttpRequest(request, feature = 'Editable snapshots') {
+  const reject = () => { throw new BlenderError('SNAPSHOT_LOCAL_ONLY', `${feature} require a direct same-origin connection to the local Host. Remote proxies are not supported.`) }
   if (!loopbackAddress(request.socket?.remoteAddress)) reject()
   const host = request.headers?.host
   if (typeof host !== 'string' || /[\s\\/@?#]/.test(host)) reject()
@@ -288,6 +288,7 @@ export default class BlenderUiHost extends Service {
     let releaseSignal = () => {}
     try {
       if (matched.route.id.startsWith('project.editableSnapshots.') || matched.route.id.startsWith('project.motionPreview.') || matched.route.id === 'project.job.video' || matched.route.id === 'project.job.frame' || matched.route.id === 'readiness.imageInput') assertSnapshotHttpRequest(request)
+      if (matched.route.id === 'project.halfLap.preview') assertSnapshotHttpRequest(request, 'Slot previews')
       if (matched.route.id === 'project.editableSnapshots.download' || matched.route.id === 'project.job.video' || matched.route.id === 'project.job.frame' || matched.route.id === 'project.motionPreview.video') {
         if (request.headers?.range && matched.route.id !== 'project.motionPreview.video') {
           response.setHeader('accept-ranges', 'none')
@@ -333,7 +334,7 @@ export default class BlenderUiHost extends Service {
         return
       }
       const cancellable = ['project.assets.upload', 'project.assets.preview', 'project.preview',
-        'project.assetUploads.create', 'project.assetUploads.file', 'project.assetUploads.complete', 'project.motionPreview.create', 'readiness.imageInput'].includes(matched.route.id)
+        'project.assetUploads.create', 'project.assetUploads.file', 'project.assetUploads.complete', 'project.motionPreview.create', 'project.halfLap.preview', 'readiness.imageInput'].includes(matched.route.id)
       let signal
       if (cancellable) {
         const controller = new AbortController()
@@ -759,6 +760,8 @@ export function createHandlers(ctx) {
         cameraTargetResetSupported: studio().cameraTargetResetSupported === true,
         assemblyPlacementSupported: studio().assemblyPlacementSupported === true,
         cameraFitSupported: studio().cameraFitSupported === true && typeof studio().fitCamera === 'function',
+        halfLapPreviewSupported: editableSnapshotAvailability.available && studio().halfLapPreviewSupported === true
+          && typeof studio().previewHalfLap === 'function',
         selected: projectId === null || creationPending
           ? null
           : await buildProjectState(studio(), projectId, query.revision ?? undefined, approvalThreshold()),
@@ -985,9 +988,20 @@ export function createHandlers(ctx) {
           throw new BlenderError(BlenderErrorCode.REVISION_CONFLICT, 'The active project store changed; no patch was applied.')
       }
       const patch = { ...(body.patch ?? body), projectId: params.projectId }
-      const result = await host.applyScenePatch(patch)
+      const expectedSpecHash = body.patch === undefined ? undefined : body.expectedSpecHash
+      if (expectedSpecHash !== undefined && (typeof expectedSpecHash !== 'string' || !/^[a-f0-9]{64}$/.test(expectedSpecHash))) {
+        throw new BlenderError(BlenderErrorCode.SCENE_PATCH_INVALID, 'The draft inspection hash is invalid.')
+      }
+      const result = await host.applyScenePatch({ ...patch, ...(expectedSpecHash === undefined ? {} : { expectedSpecHash }) })
       return { revision: result }
     },
+
+    'project.halfLap.preview': async ({ params, body, signal }) => ({
+      preview: await snapshotStudio('previewHalfLap').previewHalfLap({
+        patch: { ...body.patch, projectId: params.projectId }, expectedDigest: body.expectedDigest,
+        expectedStoreIdentity: body.expectedStoreIdentity, signal,
+      }),
+    }),
 
     'project.recipeParameters': async ({ params, query }) => {
       if (studio().recipeParameterEditingSupported !== true) throw new BlenderError('UI_HOST_API_STALE', 'Update the Host to edit assembly dimensions')

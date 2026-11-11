@@ -112,6 +112,7 @@ import { streamAsset } from './asset-io.js'
 import { AssetUploadSessions, ASSET_UPLOAD_LIMITS } from './asset-uploads.js'
 import { EditableSnapshots } from './editable-snapshots.js'
 import { MotionPreviews } from './motion-preview.js'
+import { previewHalfLap } from './half-lap-preview.js'
 import { VisionReadiness } from './vision-readiness.js'
 import { prepareModelBundle, assetPreviewVersion, stageAssetBundle, verifyUnbundledGltfAsset, verifyUnbundledObjAsset } from './asset-bundle.js'
 import { ASSET_LIBRARY_LIMITS, uploadAssetType, checkAssetUpload, hashAssetFile, previewRasterAsset } from './asset-library.js'
@@ -664,6 +665,7 @@ export default class BlenderStudio extends Service {
   get surfacePlacementSupported() { return true }
   get assemblyPlacementSupported() { return true }
   get cameraFitSupported() { return true }
+  get halfLapPreviewSupported() { return typeof this.runtime?.compileHalfLapInspection === 'function' }
   get stillDeliveryPresetSupported() { return true }
   get videoDeliveryPresetSupported() { return true }
   get stillImageDeliverySupported() { return true }
@@ -797,7 +799,7 @@ export default class BlenderStudio extends Service {
    * @returns {Promise<Record<string, unknown>>}
    */
   async applyScenePatch(request) {
-    const { signal, ...patch } = request ?? {}
+    const { signal, expectedSpecHash, ...patch } = request ?? {}
     // NOTHING is added to `patch`. The ScenePatch schema is `additionalProperties:
     // false`, so annotating the document with a host-side flag rejected the patch as
     // malformed — and the rejection only appeared on the path where a caller supplied
@@ -806,7 +808,7 @@ export default class BlenderStudio extends Service {
     // (`resolveIdempotencyKey`), so the flag was always redundant as well as harmful.
     const outcome = await this.transactions.applyScenePatch(
       { ...patch, projectId: patch.projectId },
-      { signal },
+      { signal, expectedSpecHash },
     )
     return {
       ...toCanonicalRevisionSummary({
@@ -822,6 +824,8 @@ export default class BlenderStudio extends Service {
       scene: outcome.sceneSummary,
     }
   }
+
+  async previewHalfLap(request) { return previewHalfLap(this, request) }
 
   async getRecipeParameters(projectId, options = {}) {
     const record = this.store.readRecord(projectId)

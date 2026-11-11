@@ -923,6 +923,7 @@ M3 新增的：
 | `POST /deepblend/projects/:projectId/review` | **写** | 对指定 revision 渲染并调用视觉模型，记录技术与艺术评价及核验的参考图。 |
 | `POST /deepblend/projects/:projectId/autofix` | **写** | 指定 revision，按固定目标尝试 1–3 轮修正；证据不足或效果退步时停止、条件回滚。 |
 | `POST /deepblend/projects/:projectId/patch` | **写** | Apply a ScenePatch as one atomic revision. |
+| `POST /deepblend/projects/:projectId/half-lap-preview` | **写** | Render both slot faces of a draft timber joint without saving a revision. |
 | `GET /deepblend/projects/:projectId/recipe-parameters` | 读 | 读取指定版本的整套尺寸控制与受控几何冲突。 |
 | `POST /deepblend/projects/:projectId/recipe-parameters` | **写** | 检查 `baseRevision`，保存受约束的整套尺寸为原子版本；保留独立样式和历史。 |
 | `POST /deepblend/projects/:projectId/surface-placement` | **写** | 使用明确的主体/完整台灯作用域、支承、位姿与帧，经过原生测量和候选核验后保存一个版本及预览。 |
@@ -965,6 +966,7 @@ M3 新增的：
   `views: [{id, cameraId, frame}]` 时，隔离重建后发布到该版本的独立 diagnostics。
   `/previews` 在各版本下新增 `diagnostics` 数组；不会替换默认成品、联系表或评审输入。
   详见[固定视角检查](inspection.md)。
+* **半搭接草稿**：`POST /half-lap-preview` 接收 `{patch, expectedDigest, expectedStoreIdentity}`，仅支持本机同源连接。Blender 编译后返回同一交叉的两张 PNG 和 `candidateSpecHash`。临时渲染不创建版本、任务或预览记录。随后提交 `POST /patch` 时可带 `expectedSpecHash` 与 `expectedStoreIdentity`，以校验保存的 SceneSpec 与已预览的草稿一致。
 * **预览渲染合成自己的 contact sheet，并保留上一张**：`contact-sheets/preview-current.png`
   与 `preview-previous.png`，两条都带 `slot`（`PREVIEW_SHEET_SLOTS`）与 `at`。这样
   「上一次 vs 本次渲染」才可比——预览不产生 revision，版本轴在渲染完的那一刻是空的

@@ -219,10 +219,17 @@ def action_compile_scene(request, options):
             {"sceneSpec": spec_path},
         )
 
+    selection = (request.get('payload') or {}).get('halfLapInspection')
+    if selection is not None and (not isinstance(selection, dict)
+            or set(selection) != {'lowerEntityId', 'upperEntityId'}
+            or selection not in (spec.get('halfLaps') or [])):
+        raise ActionError("SCENE_SPEC_INVALID", "half-lap preview needs one active timber joint")
+
     guard = Guard()
     build_options = {
         "profile": options.get("profile"),
         "project_root": options.get("project_root"),
+        "half_lap_inspection": selection,
     }
     report = build_scene(spec, build_options, guard)
     framing_selection = (request.get('payload') or {}).get('cameraFraming')
@@ -289,7 +296,13 @@ def action_compile_scene(request, options):
     # decides whether to publish, and a diagnostic blend is far more useful than
     # no blend at all when a compile went wrong. Nothing is published by THIS
     # process either way — publication is the host's atomic rename.
-    if validation["ok"] or options.get("save_on_failure") == "true":
+    if selection is not None:
+        payload["outputBlend"] = None
+        if validation["ok"]:
+            from deepblend_half_lap import render_half_lap_inspection
+            payload["halfLapInspection"] = render_half_lap_inspection(
+                bpy.context.scene, report["halfLapInspection"], os.path.dirname(output_blend))
+    elif validation["ok"] or options.get("save_on_failure") == "true":
         report_progress("save_checkpoint", 96)
         write_checkpoint(output_blend)
         payload["outputBlend"] = output_blend

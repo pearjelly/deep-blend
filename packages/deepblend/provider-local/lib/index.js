@@ -1559,12 +1559,15 @@ export default class LocalBlenderRuntime extends Service {
       if (request.profile !== undefined) args.push('--profile', String(request.profile))
       if (request.projectRoot !== undefined) args.push('--project-root', request.projectRoot)
 
+      const payload = {
+        ...(request.cameraFraming === undefined ? {} : { cameraFraming: request.cameraFraming }),
+        ...(request.halfLapInspection === undefined ? {} : { halfLapInspection: request.halfLapInspection }),
+      }
       const run = await this.runBootstrap(
-        { action: 'compile_scene', jobId: request.jobId,
-          ...(request.cameraFraming === undefined ? {} : { payload: { cameraFraming: request.cameraFraming } }) },
+        { action: 'compile_scene', jobId: request.jobId, ...(Object.keys(payload).length ? { payload } : {}) },
         {
           signal: request.signal,
-          session: request.session,
+          session: request.halfLapInspection === undefined ? request.session : false,
           args,
           projectRoot: request.projectRoot,
           // This method owns the directory containing the checkpoint; the
@@ -1584,6 +1587,11 @@ export default class LocalBlenderRuntime extends Service {
       // Hosts never have to guess provider-owned temporary paths to remove them.
       this._cleanup(requestDirectory)
     }
+  }
+
+  /** Validate the candidate and render both slot faces in a disposable Blender process. */
+  async compileHalfLapInspection(request) {
+    return this.compileScene({ ...request, halfLapInspection: request.joint })
   }
 
   /** Optional read-only measurement; always isolated from a kept or interactive session. */
