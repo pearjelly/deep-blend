@@ -74,7 +74,7 @@ Network asset imports also ask for approval; local imports follow workspace rest
 
 ## Disk space ran out
 
-Free space on the affected volume, restart/reconcile the Host, read the original job's ledger, then resume it. Do not start a replacement job that rerenders valid frames. The renderer is stopped on disk-full failure, but the persistent record itself may remain at an older state because writing that record also needs space. After space is available, recovery reconstructs state from the files.
+First confirm the renderer and related delivery processes have stopped, free space on the affected volume, and read the original job's ledger. Restart the Host if recovery has not completed; only resume after verifying which frames are missing or corrupt. Do not start a replacement job that rerenders valid frames. The persistent record itself may remain at an older state because writing that record also needs space. A frame being written when the disk filled may be corrupt.
 
 Inspect usage first:
 

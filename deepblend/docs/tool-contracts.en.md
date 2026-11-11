@@ -92,6 +92,8 @@ Boundary-contact evidence identifies the measured entities/views/frames only. A 
 
 Renders/measures and asks a configured image-capable model to review the sheet. Host `score`/`issues` are deterministic evidence; `reported` findings are model observations. Findings require a real view ID, a valid category and nonempty evidence. Invalid findings enter `rejected`. The model cannot rewrite the technical score. Reviewer failure preserves the render/measurements and reports its error. This call can spend model tokens.
 
+With an explicit `revision`, `views` can select 1–4 saved camera/frame pairs as `{id, cameraId, frame}`. This cannot be combined with `roles`, the global `frame`, `width` or `height`. Optional `expectedStoreIdentity` and `expectedDigest` pin the source. The generated inspection images are at most 640 pixels on the longest side and use at most 16 samples. An unsupported Host refuses instead of silently choosing other views. Autofix continues to use its standard view set.
+
 ### `blender_visual_autofix`
 
 Runs a bounded render/measure/review/edit/recheck loop. It can save versions and spend model tokens. Acceptance checks technical non-regression and evidenced artistic improvement; a failed candidate restores the prior pointer and remains in history. Limits include `maxIterations` and `minConfidenceForAutoFix`; the loop also stops on success or repeated lack of improvement. An unmet goal returns a handover with the usable revision, open issues and rejected attempts. Use that evidence to continue rather than restarting blindly.
@@ -161,6 +163,7 @@ Use these exact wire names. Block-valued replacements replace the whole block, s
 | `shot.remove` | Remove a shot. |
 | `project.brief.set` | Replace goal and up to four PNG/JPEG reference bindings. |
 | `project.reviewSubject.set` | Set a nonempty saved entity as review subject; null restores automatic selection. |
+| `project.aspectRatio.set` | Set the project's reference aspect-ratio label; render-profile resolution controls actual output. |
 | `project.frameRange.set` | Set frameStart/frameEnd and optional fps. |
 | `render.profile.set` | Set preview/final profile; new profiles need resolution, omitted existing resolution is retained. |
 | `world.set` | Replace color/environment settings; environment uses an ingested declared image. |
@@ -196,6 +199,6 @@ The following lists every declared top-level parameter, including optional ones.
 | `blender_job_status` | `projectId`, `jobId`, `limit` |
 | `blender_job_cancel` | `projectId`, `jobId`, `reason` |
 | `blender_preview_views` | `projectId`, `revision`, `subjectId`, `track`, `roles`, `frame`, `width`, `height`, `samples` |
-| `blender_visual_review` | `projectId`, `revision`, `roles`, `frame`, `width`, `height` |
+| `blender_visual_review` | `projectId`, `revision`, `roles`, `frame`, `width`, `height`, `views`, `expectedStoreIdentity`, `expectedDigest` |
 | `blender_visual_autofix` | `projectId`, `revision`, `maxIterations`, `minConfidenceForAutoFix` |
 <!-- tool-parameters:end -->

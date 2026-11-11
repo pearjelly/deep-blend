@@ -34,7 +34,7 @@ Applying to the photography draft replaces **all destination lights** and the se
 
 If the source camera targets an entity, select a valid destination target explicitly. Another project's entity ID is not reused automatically. Animation conflicts refuse the application without overwriting the draft. Complete light definitions are retained, including type, color, size, transform and spot/sun parameters.
 
-Coordinates transfer directly in meters. They are not resized or reframed for a differently sized model. Check positions and targets after applying, then save and preview explicitly. Reading/applying a source only edits the local draft. The resulting saved history records the source work, version, digest and camera. Preview retries and conditional restore follow the rules above.
+The default mode transfers coordinates directly in meters without resizing or reframing. A separate bounds-adapted mode measures explicitly selected saved source and destination product members, then scales camera and light positions around their product centers. Non-sun light size scales with the bounds ratio and power with its square. It requires static product geometry and lights; a source camera may be sampled at an explicit frame. Unsupported hidden geometry, simulation, extra unmanaged lights, or geometry above the stated limits are refused. It provides a starting point, not a guarantee of equal framing or brightness. Check positions and targets, save and preview explicitly. Reading/applying a source only edits the draft; saved history records the source identity and adaptation. Preview retries and conditional restore follow the rules above. The [Chinese companion](photography-editor.md) describes the full limits and native evidence.
 
 ## Inspect the result
 

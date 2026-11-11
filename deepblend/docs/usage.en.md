@@ -58,6 +58,16 @@ Ask the agent to place the selected model on a support, keeping its horizontal l
 
 After moving a product, use **Adjust → Photography and lighting → Complete view**. Select a source camera, frame and complete set of parts; save the fitted view. The desk lamp defaults to all 23 members, including cable and bulb. The operation adds a static camera and retains the original cameras, animation and shots. It does not automatically switch final delivery to the new camera. See [photography](photography-editor.en.md#complete-view).
 
+## Preview and deliver camera motion
+
+For the unreleased independent-creation candidate, prepare the preview and final aspect ratios first. If you change them to 16:9, save the new version, fit the product again and inspect the actual image; the delivery preset can warn about a mismatch but does not change the project aspect ratio for you.
+
+In Export, choose a saved static camera and every visible product member, excluding ground and supports. The complete desk lamp has 23 parts, including the cable. Set a 1–10 second push or pull of 1%–20%; explicitly allow extending the frame range if needed. Generate and watch the low-sample preview from beginning to end before confirming the new motion camera. The selected geometry is checked on every frame, but occlusion, shader displacement, flicker and artistic quality still need visual inspection. A failed or cancelled preview does not save a version. If the save response is lost, retry recovery of the same candidate before creating another.
+
+Prepare all cameras and motion before choosing the final saved version. Render each still as a completed single-frame PNG task and the video as a separate MP4 task from that same version. Check actual resolution, camera, frame range, fps, engine and sample budget; 144 frames are six seconds only at 24 fps. The final video must be watched in full. The editable ZIP can include the completed same-version video and up to 16 completed single-frame image tasks. Previews and arbitrary video frames are not added as image tasks automatically.
+
+The original [camera-motion guide](first-camera-motion.md) and [first-project walkthrough](first-product-creation.md) retain the detailed Chinese instructions and limitations. The existing evidence is maintainer-led; an independent creator has not yet completed acceptance.
+
 ## Compare and restore
 
 Applied edits compare the two saved versions involved. A before image appears only when an actual preview with matching recorded conditions is available; missing evidence is shown as unknown. The default preview comparison can also compare consecutive renders, since rerendering alone does not create a version.
@@ -77,7 +87,7 @@ Use the save-PNG control above a rendered image. It downloads that existing imag
 Open the workbench **on the computer running the Host**, select the project, and open **Save an editable copy** in Revisions.
 
 1. Choose a saved version. Unsaved edits are excluded.
-2. Optionally select a completed video from that same version. The Host checks its provenance; preparing the ZIP does not rerender it.
+2. Optionally select a completed video and up to 16 completed single-frame image jobs from that same version. The Host checks their provenance; preparing the ZIP does not rerender them.
 3. Prepare the download, wait for verification to complete, then download the ZIP. Confirm completion in your browser's download list.
 4. Extract the whole ZIP without changing its structure. Follow its `README.md` to open the saved `scene.blend` under `revisions/`.
 
