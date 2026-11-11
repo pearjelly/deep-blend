@@ -68,6 +68,21 @@ export const WORKBENCH_PAGE_ROUTE = '/deepblend/workbench'
  */
 export const WORKBENCH_PAGE_ROOT_ID = 'deepblend-workbench'
 
+function workbenchLanguage(acceptLanguage) {
+  let language = 'zh'
+  let bestWeight = 0
+  for (const preference of (acceptLanguage ?? '').split(',')) {
+    const match = /^(en|zh)(?:-[a-z\d]{1,8})*(?:\s*;\s*q=(0(?:\.\d{0,3})?|1(?:\.0{0,3})?))?$/i.exec(preference.trim())
+    if (!match) continue
+    const weight = Number(match[2] ?? 1)
+    if (weight > bestWeight) {
+      language = match[1].toLowerCase()
+      bestWeight = weight
+    }
+  }
+  return language
+}
+
 function loopbackAddress(value) {
   const address = String(value ?? '').toLowerCase().replace(/^\[|\]$/g, '')
   if (isIP(address) === 4) return address.split('.')[0] === '127'
@@ -115,9 +130,11 @@ export function assertSnapshotHttpRequest(request, feature = 'Editable snapshots
  * blank full-screen page is indistinguishable from a page that never booted.
  *
  * @param {string} rootId
+ * @param {'zh'|'en'} [language]
  * @returns {string}
  */
-export function workbenchPageBootstrap(rootId) {
+export function workbenchPageBootstrap(rootId, language = 'zh') {
+  const failurePrefix = language === 'en' ? 'DeepBlend Workbench could not start. ' : 'DeepBlend 工作台未能启动：'
   return `<script>(async () => {
   const root = document.getElementById(${JSON.stringify(rootId)})
   try {
@@ -131,7 +148,7 @@ export function workbenchPageBootstrap(rootId) {
     root.dataset.deepblendStandalone = 'ready'
   } catch (error) {
     root.dataset.deepblendStandalone = 'failed'
-    root.textContent = 'DeepBlend 工作台未能启动：' + String((error && error.message) || error)
+    root.textContent = ${JSON.stringify(failurePrefix)} + String((error && error.message) || error)
   }
 })()</script>`
 }
@@ -150,14 +167,15 @@ export function workbenchPageBootstrap(rootId) {
  * existed.
  *
  * @param {string} rootId
- * @param {{ title?: string }} [options]
+ * @param {{ title?: string, language?: 'zh'|'en' }} [options]
  * @returns {string}
  */
 export function workbenchPageDocument(rootId, options = {}) {
-  const title = options.title ?? 'DeepBlend 工作台'
+  const language = options.language === 'en' ? 'en' : 'zh'
+  const title = options.title ?? (language === 'en' ? 'DeepBlend Workbench' : 'DeepBlend 工作台')
   return [
     '<!doctype html>',
-    '<html lang="zh">',
+    `<html lang="${language}">`,
     '<head>',
     '<meta charset="utf-8">',
     '<meta name="viewport" content="width=device-width,initial-scale=1">',
@@ -165,7 +183,7 @@ export function workbenchPageDocument(rootId, options = {}) {
     '</head>',
     `<body style="margin:0;height:100vh">`,
     `<div id="${rootId}" data-deepblend-standalone="loading" style="height:100vh"></div>`,
-    workbenchPageBootstrap(rootId),
+    workbenchPageBootstrap(rootId, language),
     '</body>',
     '</html>',
     '',
@@ -401,9 +419,8 @@ export default class BlenderUiHost extends Service {
    *
    * This is the only route that answers with HTML, and the only place in this
    * package that asks the web server for anything other than a route seat. It
-   * reads no request input, touches no project and no path, and derives nothing
-   * from the caller: the document is a constant plus whatever the composition's
-   * own index injections add.
+   * uses the browser's language preferences for the document and leaves the
+   * mounted workbench to the composition's own index injections.
    *
    * `renderIndex` is what makes the page a real client surface rather than a
    * static one — it splices in the boot rows (`window.__ModuleLoader__`, the
@@ -420,7 +437,8 @@ export default class BlenderUiHost extends Service {
    * @param {import('node:http').ServerResponse} response
    */
   _sendWorkbenchPage(request, response) {
-    const document = workbenchPageDocument(WORKBENCH_PAGE_ROOT_ID)
+    const language = workbenchLanguage(request.headers?.['accept-language'])
+    const document = workbenchPageDocument(WORKBENCH_PAGE_ROOT_ID, { language })
     const server = this._webServer
     const rendered = server !== null && typeof server.renderIndex === 'function'
       ? server.renderIndex(document)
@@ -430,6 +448,7 @@ export default class BlenderUiHost extends Service {
     const html = rendered.replace(/<head(?:\s[^>]*)?>/i, open => `${open}<base href="../">`)
     const bytes = Buffer.from(html, 'utf8')
     response.setHeader('content-type', 'text/html; charset=utf-8')
+    response.setHeader('vary', 'Accept-Language')
     // Never cached, for the same reason the JSON routes are not: this document
     // names the bundle revision it will load, and a cached copy would pin a page
     // to a revision the process no longer serves.

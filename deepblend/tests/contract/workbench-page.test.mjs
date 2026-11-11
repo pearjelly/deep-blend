@@ -797,6 +797,34 @@ if (core !== undefined) {
   }
 }
 
+{
+  const renderPage = acceptLanguage => {
+    const headers = {}
+    let html
+    const response = { setHeader(name, value) { headers[name] = value }, end(bytes) { html = bytes.toString() } }
+    hostModule.default.prototype._sendWorkbenchPage.call({ _webServer: null },
+      { method: 'GET', headers: { 'accept-language': acceptLanguage } }, response)
+    return { headers, html }
+  }
+  const cases = [
+    [undefined, 'zh'],
+    ['en-US,en;q=0.9', 'en'],
+    ['ZH-Hant;q=0.4, en-GB;q=0.9', 'en'],
+    ['en;q=0, zh-CN;q=0.7', 'zh'],
+    ['zh-CN,en-US', 'zh'],
+    ['fr-CA,en;q=0.8', 'en'],
+    ['fr-CA', 'zh'],
+  ]
+  for (const [preferences, language] of cases) {
+    const { headers, html } = renderPage(preferences)
+    const title = language === 'en' ? 'DeepBlend Workbench' : 'DeepBlend 工作台'
+    const failurePrefix = language === 'en' ? 'DeepBlend Workbench could not start.' : 'DeepBlend 工作台未能启动'
+    check(`standalone locale for ${preferences ?? 'no preference'} is ${language}`,
+      headers.vary === 'Accept-Language' && html.includes(`<html lang="${language}">`)
+      && html.includes(`<title>${title}</title>`) && html.includes(failurePrefix))
+  }
+}
+
 const failed = results.filter(entry => !entry.ok)
 console.log(`\nstandalone workbench contract: ${results.length - failed.length}/${results.length} check(s) passed`)
 if (failed.length > 0) {

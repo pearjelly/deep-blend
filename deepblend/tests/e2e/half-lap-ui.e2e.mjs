@@ -70,7 +70,7 @@ try {
   }
   writeFileSync(join(output, 'before.png'), readFileSync(join(project, previewBefore.path)))
 
-  browser = await Browser.launch({ args: ['--window-size=1440,1100'] })
+  browser = await Browser.launch({ args: ['--window-size=1440,1100', '--accept-lang=en-US,en'] })
   page = await browser.newPage()
   await page.addInitScript(`window.__timberWrites = [];
     const original = window.fetch;
@@ -123,10 +123,17 @@ try {
 
   await page.goto(url)
   await waitFor('[data-lighttable-revision="r0001"]', 45000)
+  assert.equal(await page.evaluate('document.documentElement.lang'), 'en')
+  assert.equal(await page.evaluate('document.title'), 'DeepBlend Workbench')
   await openEditor('timber-x')
   await select('partner', 'timber-y')
   assert.equal(await page.evaluate('window.__timberWrites.length'), 0)
+  assert.equal(await page.text(draftAction), 'Preview recesses')
   const first = await inspectDraft(0, 'timber-x', 'timber-y')
+  assert.deepEqual(await page.attributes('[data-half-lap-slot]', 'alt'), [
+    'Recess in the lower timber, seen from above',
+    'Recess in the upper timber, seen from below',
+  ])
   passed('Actual draft preview produces both sides of a partial crossing and leaves saved bytes and jobs alone')
   await select('role', 'upper')
   assert.equal(await page.evaluate("document.querySelectorAll('[data-half-lap-slot]').length"), 0)
