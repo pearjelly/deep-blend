@@ -1,0 +1,80 @@
+{
+  "schemaVersion": "deepblend.recipe/v1",
+  "id": "deepblend.walnut-trivet",
+  "version": "1.0.0",
+  "title": "胡桃木格栅垫 · Walnut trivet",
+  "description": "从 240 毫米见方的格栅垫开始，调整横条间距和半搭接。 Create a 240 mm lattice trivet with editable slat spacing and half laps.",
+  "author": {
+    "name": "DeepBlend contributors",
+    "url": "https://github.com/pearjelly/deep-blend"
+  },
+  "license": "MIT",
+  "source": {
+    "url": "https://github.com/pearjelly/deep-blend"
+  },
+  "compatibility": {
+    "sceneSchemaVersion": "deepblend.scene/v1",
+    "capabilities": [
+      "geometry.joinery.half_lap",
+      "geometry.modifiers",
+      "geometry.primitive",
+      "geometry.procedural.mesh",
+      "material.principled",
+      "material.procedural"
+    ]
+  },
+  "input": {
+    "path": "scene-spec.json",
+    "sha256": "6d6852c2568d22c8e0609238e1d55520034746be6ac06fda26c85f19d0b64606"
+  },
+  "preview": {
+    "path": "preview.png",
+    "sha256": "a949ddff4499e1156c35143b27cb055024ef1a11f58939fb035d2f0138ffba22",
+    "mediaType": "image/png",
+    "alt": "浅色石面上的胡桃木格栅垫，共七根相扣的木条。 Seven interlocking walnut slats on a light stone surface."
+  },
+  "parameters": [
+    {
+      "id": "wood-tone",
+      "title": "木色 · Wood tone",
+      "type": "color",
+      "default": [
+        0.125,
+        0.046,
+        0.019
+      ],
+      "bindings": [
+        {
+          "kind": "material",
+          "materialId": "walnut-lengthwise",
+          "property": "baseColor"
+        },
+        {
+          "kind": "material",
+          "materialId": "walnut-crosswise",
+          "property": "baseColor"
+        }
+      ]
+    },
+    {
+      "id": "surface-roughness",
+      "title": "表面粗糙度 · Finish roughness",
+      "type": "number",
+      "default": 0.44,
+      "minimum": 0.3,
+      "maximum": 0.65,
+      "bindings": [
+        {
+          "kind": "material",
+          "materialId": "walnut-lengthwise",
+          "property": "roughness"
+        },
+        {
+          "kind": "material",
+          "materialId": "walnut-crosswise",
+          "property": "roughness"
+        }
+      ]
+    }
+  ]
+}

@@ -12,7 +12,7 @@ import { buildHalfLapFixture } from '../../examples/runtime-author/conformance.m
 
 const root = resolve(import.meta.dirname, '../../..')
 const recipeRoot = join(root, 'deepblend/recipes')
-const names = ['glass-ceramic', 'glazed-cup', 'metal-lamp', 'modular-speaker']
+const names = ['glass-ceramic', 'glazed-cup', 'metal-lamp', 'modular-speaker', 'walnut-trivet']
 function load(name = 'glass-ceramic') {
   const path = join(recipeRoot, name)
   return { manifest: JSON.parse(readFileSync(join(path, 'recipe.json'))),
@@ -32,7 +32,7 @@ function refused(bundle, code) {
   assert.throws(() => instantiateRecipe(bundle), error => error instanceof RecipeError && error.details.errors.some(issue => issue.code === code))
 }
 
-test('four self-contained product recipes have explicit licenses and verifiable PNG/SceneSpec bytes', () => {
+test('built-in product recipes have explicit licenses and verifiable PNG/SceneSpec bytes', () => {
   assert.deepEqual(readdirSync(recipeRoot).filter(name => names.includes(name)).sort(), names)
   for (const name of names) {
     const bundle = load(name), checked = validateRecipePackage(bundle)

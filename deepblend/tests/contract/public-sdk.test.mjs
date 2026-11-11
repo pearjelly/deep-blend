@@ -118,7 +118,7 @@ test('packed package works in a real external strict TS and JS consumer without 
       writeFileSync(join(output,'recipe-author-reports.json'),JSON.stringify(authorEvidence,null,2))
       return report
     }
-    for (const name of ['glass-ceramic','glazed-cup','metal-lamp','modular-speaker']) {
+    for (const name of ['glass-ceramic', 'glazed-cup', 'metal-lamp', 'modular-speaker', 'walnut-trivet']) {
       const directory = join(consumer,'author-recipes',name)
       cpSync(join(root,'deepblend/recipes',name),directory,{recursive:true})
       const before = Object.fromEntries(recipeFiles.map(file => [file,sdk.sha256(readFileSync(join(directory,file)))]))
