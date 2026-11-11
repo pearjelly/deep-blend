@@ -1,7 +1,7 @@
 /** Real catalog, Host transactions and UI routes; no Blender needed for data-only commits. */
 import test from 'node:test'
 import assert from 'node:assert/strict'
-import { cpSync, existsSync, mkdirSync, mkdtempSync, readFileSync, realpathSync, rmSync, symlinkSync, writeFileSync } from 'node:fs'
+import { cpSync, existsSync, mkdirSync, mkdtempSync, readFileSync, realpathSync, rmSync, symlinkSync, unlinkSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { Context } from '@deepseek-ai/cordis'
@@ -221,7 +221,7 @@ test('symlinked package and files are rejected without reading outside the catal
   rmSync(join(recipes, 'lamp'), { recursive: true })
   symlinkSync(join(root, 'outside'), join(recipes, 'lamp'))
   assert.equal(catalog.list().errors[0].code, 'RECIPE_PATH_INVALID')
-  rmSync(join(recipes, 'lamp')); mkdirSync(join(recipes, 'lamp'))
+  unlinkSync(join(recipes, 'lamp')); mkdirSync(join(recipes, 'lamp'))
   for (const name of ['recipe.json', 'scene-spec.json', 'preview.png']) symlinkSync(join(root, 'outside', name), join(recipes, 'lamp', name))
   assert.equal(catalog.list().recipes.length, 0)
   assert.equal(catalog.list().errors[0].code, 'RECIPE_PATH_INVALID')

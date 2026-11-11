@@ -34,7 +34,7 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
 import { spawnSync } from 'node:child_process'
-import { cpSync, existsSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, readlinkSync, rmSync, writeFileSync } from 'node:fs'
+import { cpSync, existsSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, readlinkSync, rmSync, symlinkSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 
@@ -44,6 +44,24 @@ import { applyInstallerPlan, fileState, JOURNAL_NAME, snapshot, withInstallerLoc
 import { resolveDshScope } from '../lib/dsh-deployment.mjs'
 
 const INSTALLER = join(ROOT, 'deepblend', 'tools', 'install-plugin.mjs')
+
+test('removing installed live and dangling links preserves the target directory and its bytes', () => {
+  const home = mkdtempSync(join(tmpdir(), 'deepblend-installer-unlink-'))
+  try {
+    const target = join(home, 'package'), live = join(home, 'live'), dangling = join(home, 'dangling')
+    mkdirSync(target)
+    const original = Buffer.from('retained package contents\n')
+    writeFileSync(join(target, 'owned.txt'), original)
+    symlinkSync(target, live, 'dir')
+    symlinkSync(join(home, 'missing-package'), dangling, 'dir')
+    applyInstallerPlan(home, [live, dangling].map(path => ({ path, before: snapshot(path), after: { type: 'absent' } })))
+    for (const path of [live, dangling]) assert.throws(() => readlinkSync(path), { code: 'ENOENT' })
+    assert.deepEqual(readFileSync(join(target, 'owned.txt')), original)
+    assert.ok(!existsSync(join(home, JOURNAL_NAME)))
+  } finally {
+    rmSync(home, { recursive: true, force: true })
+  }
+})
 
 /** A profile that looks like one `dsh` created, minus anything DeepBlend added. */
 function makeHome() {

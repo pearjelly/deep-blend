@@ -1,5 +1,7 @@
 # DeepBlend 工具契约（M0–M4）
 
+[English guide](tool-contracts.en.md) · **简体中文**
+
 动作任务 ID 按不透明字符串使用；新增 ID 含 UUID，避免独立 Host 共用记录和 staging。
 单图、产物清单和多视角拼图发布在本机修订租约内完成，渲染可以并行。等待最多十秒，
 调用者取消返回 BLENDER_ABORTED，等待超限返回 REVISION_CONFLICT；已保存 ID 仍可读取。

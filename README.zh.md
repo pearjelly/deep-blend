@@ -21,7 +21,10 @@
 
 [安装并开始](#安装并开始) · [看看工作台](#看看工作台) · [文档导航](deepblend/docs/README.md) · [最新版本](https://github.com/pearjelly/deep-blend/releases/latest) · [参与贡献](CONTRIBUTING.md)
 
-**本工作区以公开 0.23.0 为基线**，包含完整产品取景、可编辑副本与网格 UV 规划，详见[发布记录](deepblend/docs/releases/0.23.0.md)。[独立创作候选](deepblend/docs/first-product-creation.md)新增运动预览、直接图片／影片交付及指定机位评审；这些候选改动尚未公开发布，也不代表已经通过独立用户或美术验收。
+**0.23.0 已在 GitHub 和 npm 发布**，可以逐面修复平面网格的重复纹理坐标，保持几何与摄影；也包含完整台灯表面放置和完整取景。完整验收、全新安装和公开三路安装均已核验；10 月 28 日两份社区公开目录均已读回 0.23.0。详见[发布记录](deepblend/docs/releases/0.23.0.md)与[社区收尾记录](deepblend/docs/validation/release-0.23.0-closeout.json)。
+
+[独立创作候选](deepblend/docs/first-product-creation.md)新增运动预览、直接图片／影片交付及指定机位评审；这些候选改动尚未公开发布，也不代表已经通过独立用户或美术验收。
+
 
 在「版本」页使用「保存可编辑副本」，下载一个已保存版本的 ZIP，可选附带已核验的同版本完成影片。准备支持取消、重试和刷新恢复。详见[使用步骤](deepblend/docs/usage.md#editable-snapshot)。
 

@@ -11,14 +11,14 @@ DeepBlend Studio brings a Blender workbench and an agent preset to
 recipe or import your own model, then compare real renders as you work.
 
 [中文介绍](https://github.com/pearjelly/deep-blend/blob/main/packages/deepblend/bundle/README.zh.md)
-· [Try the cup walkthrough](https://github.com/pearjelly/deep-blend/blob/main/deepblend/docs/creator-tutorial.md)
+· [Start your first creation](https://github.com/pearjelly/deep-blend/blob/main/deepblend/docs/usage.en.md#create-inspect-refine-deliver)
 · [Quick start](https://github.com/pearjelly/deep-blend/blob/main/deepblend/docs/quick-start.md)
 
 ## See the workbench
 
-![Actual Lighttable workbench showing the saved cup preview and revision history](https://raw.githubusercontent.com/pearjelly/deep-blend/main/deepblend/docs/assets/lighttable/workbench.png)
+![Actual Lighttable workbench showing a saved cup preview and delivery controls](https://raw.githubusercontent.com/pearjelly/deep-blend/main/deepblend/docs/assets/lighttable/workbench.png)
 
-Captured from a running DSH workbench in a real browser. [Desktop and narrow capture details](https://github.com/pearjelly/deep-blend/blob/main/deepblend/docs/assets/lighttable/README.md) record the loaded UI and exact image hashes. The earlier comparison and contact sheet retain their separate `capture-docs-images.mjs` provenance in the [documentation image manifest](https://github.com/pearjelly/deep-blend/blob/main/deepblend/docs/images/manifest.json).
+Captured from a running DSH workbench in a real browser with Chinese selected; the workbench follows the DSH language setting. [Desktop and narrow capture details](https://github.com/pearjelly/deep-blend/blob/main/deepblend/docs/assets/lighttable/README.md) record the loaded UI and exact image hashes. The earlier comparison and contact sheet retain their separate `capture-docs-images.mjs` provenance in the [documentation image manifest](https://github.com/pearjelly/deep-blend/blob/main/deepblend/docs/images/manifest.json).
 
 ## Real work: light and material
 
@@ -104,27 +104,25 @@ Version 0.3.4 adds **Save preview PNG** above previews, comparisons and inspecti
 
 Version 0.3.5 keeps creation inputs after failures, adds repair guidance and explicit retry, and recovers a saved project when its reply was lost. Newer drafts and later revisions are preserved. Drafts and retry keys remain in the current page; see the [creation recovery guide](https://github.com/pearjelly/deep-blend/blob/main/deepblend/docs/creation-recovery.md).
 
-## Your first creation: a glazed cup
+## Your first creation: a lamp
 
-Follow the [illustrated walkthrough](https://github.com/pearjelly/deep-blend/blob/main/deepblend/docs/creator-tutorial.md):
+1. In the workbench, create the champagne metal desk lamp and choose its exposed finish and dimensions. Inspect the real saved preview.
+2. Adjust the linked shade diameter, save a new version, and compare the actual images. Keep material and lighting changes separate when isolating their effect.
+3. Save a complete view of all lamp parts. For camera motion, prepare the delivery aspect ratio, generate a low-sample preview, and watch it before saving the motion camera.
+4. Render the images and video you need from the same saved version. Download the verified outputs and save an editable copy with the selected completed media.
 
-1. Create the glazed handled cup from the recipe gallery.
-2. Change its height from 105 mm to 110 mm and compare fixed-view clay renders.
-3. Adjust the glaze roughness, then the key light, one change at a time.
-4. Save the revisions and deliver one PNG frame plus a single-frame MP4.
+[English workbench guide](https://github.com/pearjelly/deep-blend/blob/main/deepblend/docs/usage.en.md) · [Camera motion steps](https://github.com/pearjelly/deep-blend/blob/main/deepblend/docs/usage.en.md#preview-and-deliver-camera-motion) · [Detailed first-project walkthrough (Chinese)](https://github.com/pearjelly/deep-blend/blob/main/deepblend/docs/first-product-creation.md)
 
-![Original PNG delivered by the cup walkthrough](https://raw.githubusercontent.com/pearjelly/deep-blend/v0.3.0/deepblend/docs/assets/creator-tutorial/cup-final-frame.png)
-
-This is the original tutorial output. The handle roots still show visible bulges; the walkthrough
-explains that limitation. This recipe has no animation tracks, so additional frames do not create
-turntable motion automatically.
+The earlier [glazed cup walkthrough](https://github.com/pearjelly/deep-blend/blob/main/deepblend/docs/creator-tutorial.md) remains a useful fixed-view exercise; its handle roots have a known visible seam that has not passed artistic review.
 
 ## Find your next step
 
 [Import your own models](https://github.com/pearjelly/deep-blend/blob/main/deepblend/docs/assets.md)
-· [Shape and material editing](https://github.com/pearjelly/deep-blend/blob/main/deepblend/docs/modeling.md)
-· [Camera and lighting](https://github.com/pearjelly/deep-blend/blob/main/deepblend/docs/photography-editor.md)
-· [Documentation index](https://github.com/pearjelly/deep-blend/blob/main/deepblend/docs/README.md)
+· [Shape and material editing](https://github.com/pearjelly/deep-blend/blob/main/deepblend/docs/modeling.en.md)
+· [Camera and lighting](https://github.com/pearjelly/deep-blend/blob/main/deepblend/docs/photography-editor.en.md)
+· [Recovery](https://github.com/pearjelly/deep-blend/blob/main/deepblend/docs/recovery.en.md)
+· [Agent tools](https://github.com/pearjelly/deep-blend/blob/main/deepblend/docs/tool-contracts.en.md)
+· [Documentation index](https://github.com/pearjelly/deep-blend/blob/main/deepblend/docs/README.md#english-guides)
 
 ## What is new in 0.3.2
 

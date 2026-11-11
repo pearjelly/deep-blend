@@ -6,4 +6,4 @@
 # is the more robust spelling: a declared number would tie with a future built-in that picks the same one, while
 # an absent one always follows the deployment's own. Measured by reading the sort, not assumed.
 name: DeepBlend Studio
-description: 用 DeepSeek 通过少量参数创建和修整可编辑的 Blender 模型，检查真实预览、联动尺寸并保留版本；摄影、动画与导出服务于完整建模交付。
+description: Create and refine editable Blender models with DeepSeek, inspect real previews, adjust linked dimensions and retain saved versions. / 用 DeepSeek 通过少量参数创建和修整可编辑的 Blender 模型，检查真实预览、联动尺寸并保留版本；摄影、动画与导出服务于完整建模交付。

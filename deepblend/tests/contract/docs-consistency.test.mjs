@@ -923,3 +923,94 @@ test('the warning recovery.md quotes is the warning the product emits', () => {
   assert.ok(message.includes(quoted[1].replace(/\s+/g, ' ')),
     `recovery.md quotes "${quoted[1]}", which the warning does not start with`)
 })
+
+// English task guides share the live wire surface, not a second handwritten catalog.
+const englishGuideNames = ['usage', 'modeling', 'photography-editor', 'recovery', 'tool-contracts']
+const englishGuides = englishGuideNames.map(name => ({
+  name, path: join(ROOT, 'deepblend/docs', `${name}.en.md`),
+  text: readFileSync(join(ROOT, 'deepblend/docs', `${name}.en.md`), 'utf8'),
+}))
+
+test('English core guides are reachable and cross-linked with their Chinese companions', () => {
+  const landing = readFileSync(join(ROOT, 'README.md'), 'utf8')
+  const hub = readFileSync(join(ROOT, 'deepblend/docs/README.md'), 'utf8')
+  for (const guide of englishGuides) {
+    assert.ok(landing.includes(`deepblend/docs/${guide.name}.en.md`), `${guide.name}: no English README entry`)
+    assert.ok(hub.includes(`(${guide.name}.en.md)`), `${guide.name}: no documentation hub entry`)
+    assert.ok(guide.text.includes(`(${guide.name}.md)`), `${guide.name}: missing Chinese companion`)
+    const chinese = readFileSync(join(ROOT, 'deepblend/docs', `${guide.name}.md`), 'utf8')
+    assert.ok(chinese.includes(`(${guide.name}.en.md)`), `${guide.name}: missing English return link`)
+  }
+})
+
+function documentationAnchors(text) {
+  const seen = new Map()
+  const ids = [...text.matchAll(/\bid="([^"]+)"/g)].map(match => match[1])
+  for (const match of text.matchAll(/^#{1,6} (.+)$/gm)) {
+    const base = match[1].toLowerCase().replace(/[^\p{L}\p{N}_\-\s]/gu, '').replace(/ /g, '-')
+    const count = seen.get(base) ?? 0
+    ids.push(count === 0 ? base : `${base}-${count}`)
+    seen.set(base, count + 1)
+  }
+  return new Set(ids)
+}
+
+test('English guide links and their local Markdown destinations resolve', () => {
+  for (const guide of englishGuides) {
+    for (const [, href] of guide.text.matchAll(/\]\(([^\s)]+)\)/g)) {
+      if (/^[a-z]+:/i.test(href)) continue
+      const [file, fragment] = href.split('#')
+      const target = file ? resolve(dirname(guide.path), file) : guide.path
+      assert.ok(existsSync(target), `${guide.name}: missing link ${href}`)
+      if (fragment && target.endsWith('.md')) {
+        assert.ok(documentationAnchors(readFileSync(target, 'utf8')).has(decodeURIComponent(fragment)),
+          `${guide.name}: missing anchor ${href}`)
+      }
+    }
+  }
+})
+
+test('English guide commands and tool references exist in the current implementation', () => {
+  const actualTools = new Set(declaredTools(ROOT).map(tool => tool.name))
+  for (const guide of englishGuides) {
+    assert.deepEqual(missingCommands(guide.text, { scripts, root: ROOT }), [], guide.name)
+    for (const tool of new Set(guide.text.match(/\bblender_[a-z_]+\b/g) ?? [])) {
+      assert.ok(actualTools.has(tool), `${guide.name}: unknown tool ${tool}`)
+    }
+  }
+})
+
+test('English tool sections and parameter inventory cover the exact declared tools', () => {
+  const doc = englishGuides.find(guide => guide.name === 'tool-contracts').text
+  const actual = declaredTools(ROOT)
+  assert.deepEqual([...actual.map(tool => tool.name)].sort(), [...UI_TOOL_CARD_KEYS].sort(),
+    'the source parser must cover the registered UI tool catalog')
+  const sections = [...doc.matchAll(/^### `(blender_[a-z_]+)`$/gm)].map(match => match[1]).sort()
+  assert.deepEqual(sections, actual.map(tool => tool.name).sort())
+  const inventory = /<!-- tool-parameters:start -->\n([\s\S]+?)\n<!-- tool-parameters:end -->/.exec(doc)?.[1]
+  assert.ok(inventory, 'missing parameter inventory')
+  const rows = [...inventory.matchAll(/^\| `(blender_[a-z_]+)` \| (.+) \|$/gm)]
+  assert.deepEqual(rows.map(match => match[1]).sort(), actual.map(tool => tool.name).sort())
+  for (const [, name, cells] of rows) {
+    const documented = [...cells.matchAll(/`(\w+)`/g)].map(match => match[1]).sort()
+    assert.deepEqual(documented, actual.find(tool => tool.name === name).declared.toSorted(), name)
+  }
+})
+
+test('English patch operation table covers the exact live vocabulary', () => {
+  const doc = englishGuides.find(guide => guide.name === 'tool-contracts').text
+  const operations = [...doc.matchAll(/^\| `([a-z]+(?:\.[a-zA-Z]+)+)` \|/gm)].map(match => match[1]).sort()
+  assert.deepEqual(operations, [...SCENE_OPERATION_NAMES].sort())
+})
+
+test('English modeling JSON examples preserve the Chinese source inputs exactly', () => {
+  const guide = englishGuides.find(guide => guide.name === 'modeling')
+  const extract = text => [...text.matchAll(/^```json\n([\s\S]+?)\n```/gm)].map(match => JSON.parse(match[1]))
+  const english = extract(guide.text)
+  const chinese = extract(readFileSync(join(ROOT, 'deepblend/docs/modeling.md'), 'utf8'))
+  assert.ok(english.length >= 4, 'modeling examples disappeared')
+  for (const example of english) {
+    assert.ok(chinese.some(source => JSON.stringify(source) === JSON.stringify(example)),
+      `English example diverged from source: ${JSON.stringify(example)}`)
+  }
+})

@@ -1,7 +1,7 @@
 /** Atomic file replacement and rollback for the profile installer. */
 import {
   chmodSync, existsSync, lstatSync, mkdirSync, readFileSync, readlinkSync,
-  renameSync, rmSync, symlinkSync, writeFileSync,
+  renameSync, rmSync, symlinkSync, unlinkSync, writeFileSync,
 } from 'node:fs'
 import { dirname, join, relative, resolve } from 'node:path'
 import { randomUUID } from 'node:crypto'
@@ -24,9 +24,16 @@ export function snapshot(path) {
 
 export const fileState = (text, mode = 0o600) => ({ type: 'file', data: Buffer.from(text).toString('base64'), mode })
 
+/** Remove the directory entry itself, including dangling links; never traverse its target. */
+function removeFileOrLink(path) {
+  try { unlinkSync(path) } catch (error) {
+    if (error.code !== 'ENOENT') throw error
+  }
+}
+
 function replace(path, state) {
   if (state.type === 'absent') {
-    rmSync(path, { force: true })
+    removeFileOrLink(path)
     return
   }
   mkdirSync(dirname(path), { recursive: true })
@@ -39,7 +46,7 @@ function replace(path, state) {
     }
     renameSync(temporary, path)
   } finally {
-    rmSync(temporary, { force: true })
+    removeFileOrLink(temporary)
   }
 }
 
