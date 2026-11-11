@@ -1591,7 +1591,13 @@ export default class LocalBlenderRuntime extends Service {
 
   /** Validate the candidate and render both slot faces in a disposable Blender process. */
   async compileHalfLapInspection(request) {
-    return this.compileScene({ ...request, halfLapInspection: request.joint })
+    const joint = request?.joint
+    if (!joint || Object.keys(joint).length !== 2 || typeof joint.lowerEntityId !== 'string' || !joint.lowerEntityId
+        || typeof joint.upperEntityId !== 'string' || !joint.upperEntityId || joint.lowerEntityId === joint.upperEntityId
+        || typeof request.onWorkingDirectory !== 'function') {
+      throw new BlenderError(BlenderErrorCode.SCENE_SPEC_INVALID, 'Slot inspection requires two timber IDs and a working-directory callback.')
+    }
+    return this.compileScene({ ...request, halfLapInspection: joint })
   }
 
   /** Optional read-only measurement; always isolated from a kept or interactive session. */

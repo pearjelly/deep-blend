@@ -45,8 +45,9 @@ try {
     const report = JSON.parse(readFileSync(join(evidence, 'report.json')));
     assert.equal(report.status, 'passed');
     assert(report.checks.every(check => check.ok));
-    assert(report.calls.some(call => call.method === 'startShotFrameSequence'),
-        'The maintained local connector must execute its optional shot capability, not silently skip it');
+    for (const method of ['compileHalfLapInspection', 'startShotFrameSequence']) {
+        assert(report.calls.some(call => call.method === method), `The maintained local connector must execute ${method}`);
+    }
     assert.equal(report.sdk.version, JSON.parse(readFileSync(join(ROOT, 'packages/deepblend/contracts/package.json'))).version);
     for (const file of ['conformance.mjs', 'run-conformance.mjs', 'scene-spec.json', 'verify-checkpoint.py'])
         assert.equal(sha(readFileSync(join(consumer, file))), sha(readFileSync(join(ROOT, 'deepblend/examples/runtime-author', file))));

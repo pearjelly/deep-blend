@@ -216,6 +216,12 @@ jobs:
         env:
           DEEPBLEND_E2E_ARTIFACTS: ${{ runner.temp }}/deepblend-ci/mesh-uv-browser
         run: xvfb-run -a node deepblend/tests/e2e/mesh-uv-ui.e2e.mjs > "$DEEPBLEND_CI_EVIDENCE/mesh-uv-browser.log" 2>&1
+      - name: Timber half laps through Chrome and independent Blender readback
+        if: ${{ !cancelled() && steps.graphics.outcome == 'success' }}
+        timeout-minutes: 4
+        env:
+          DEEPBLEND_E2E_ARTIFACTS: ${{ runner.temp }}/deepblend-ci/half-lap-browser
+        run: xvfb-run -a node deepblend/tests/e2e/half-lap-ui.e2e.mjs > "$DEEPBLEND_CI_EVIDENCE/half-lap-browser.log" 2>&1
       - name: Real recipe versions and native gallery defaults in Chrome
         if: ${{ !cancelled() && steps.graphics.outcome == 'success' }}
         timeout-minutes: 5

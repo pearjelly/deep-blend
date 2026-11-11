@@ -11,10 +11,41 @@ import { decodePng } from '@deepblend/dsh-blender-contracts';
 const HERE = dirname(fileURLToPath(import.meta.url));
 const require = createRequire(import.meta.url);
 export const RUNTIME_METHODS = ['getCapabilities', 'invalidateCapabilities', 'resolveEngineKey', 'compileScene', 'renderPreview', 'renderViews', 'startFrameSequence', 'awaitFrameSequence', 'dispose'];
-export const OPTIONAL_RUNTIME_METHODS = ['startShotFrameSequence'];
+export const OPTIONAL_RUNTIME_METHODS = ['compileHalfLapInspection', 'startShotFrameSequence'];
 const hash = bytes => createHash('sha256').update(bytes).digest('hex');
 const sleep = ms => new Promise(done => setTimeout(done, ms));
 const finite = n => typeof n === 'number' && Number.isFinite(n);
+function timber(id, [left, front], [right, back], modifiers) {
+    return {
+        id, type: 'generator', materialId: 'timber',
+        generator: {
+            shape: 'mesh',
+            vertices: [[left, front, .12], [right, front, .12], [right, back, .12], [left, back, .12],
+                [left, front, .32], [right, front, .32], [right, back, .32], [left, back, .32]],
+            faces: [[0, 3, 2, 1], [4, 5, 6, 7], [0, 1, 5, 4], [1, 2, 6, 5], [2, 3, 7, 6], [3, 0, 4, 7]],
+        },
+        modifiers,
+    };
+}
+
+export function buildHalfLapFixture(projectId) {
+    const profile = { engine: 'cycles', resolution: [480, 320], samples: 8 };
+    return {
+        schemaVersion: 'deepblend.scene/v1',
+        project: { id: projectId, title: 'Timber half laps', activeCamera: 'hero', frameStart: 1, frameEnd: 3, fps: 24, aspectRatio: '3:2' },
+        entities: [
+            timber('timber-x', [-1.3, .18], [1.3, .38], [{ type: 'array', count: 2, offset: [0, .55, 0] }, { type: 'mirror', axis: 'y', merge: false }]),
+            timber('timber-y', [-.4, -.85], [-.18, .85], [{ type: 'array', count: 3, offset: [.55, 0, 0] }]),
+        ],
+        materials: [{ id: 'timber', shader: 'principled', parameters: { baseColor: [.35, .16, .07, 1], roughness: .58 } }],
+        cameras: [{ id: 'hero', role: 'active-camera', lens: 45, sensorWidth: 36, clipping: [.05, 100],
+            transform: { location: [3.8, -4.6, 4.3] }, targetPoint: [0, 0, .22] }],
+        lights: [{ id: 'key', type: 'area', energy: 750, size: 5, color: [1, .95, .85], transform: { location: [1, -2, 5] } }],
+        world: { color: [.5, .5, .5, 1], strength: .5 },
+        renderProfiles: { preview: profile, final: { ...profile } },
+    };
+}
+
 export async function runConformance({ createRuntime, outputDirectory, blenderPath, deadlineMs = 90000 }) {
     const out = resolve(outputDirectory);
     assert(!existsSync(out), 'Evidence directory already exists');
@@ -130,6 +161,46 @@ export async function runConformance({ createRuntime, outputDirectory, blenderPa
         record('compile awaits saved checkpoint handoff and clears scratch');
         const checkpointHash = hash(readFileSync(checkpoint));
         writeFileSync(join(out, 'compile-receipt.json'), JSON.stringify(compiled, null, 2));
+        if (typeof runtime.compileHalfLapInspection === 'function') {
+            const joint = { lowerEntityId: 'timber-x', upperEntityId: 'timber-y' };
+            const timberSpec = compileSceneSpec(parseSceneSpec({ ...buildHalfLapFixture('runtime-half-lap'), halfLaps: [joint] })).spec;
+            const sceneSpecPath = join(out, 'timber-scene.json');
+            writeFileSync(sceneSpecPath, JSON.stringify(timberSpec));
+            const timberHash = hash(readFileSync(sceneSpecPath));
+            let slotDirectory;
+            const slotHashes = {};
+            const inspection = await call(runtime, 'compileHalfLapInspection', {
+                sceneSpecPath, projectRoot: out, profile: 'preview', joint, jobId: 'conformance-half-lap',
+                onWorkingDirectory: async ({ directory, envelope: value }) => {
+                    envelope(value, 'compile_scene');
+                    slotDirectory = directory;
+                    assert(!existsSync(join(directory, 'result.blend')));
+                    await sleep(50);
+                    for (const role of ['lower', 'upper']) {
+                        const file = `half-lap-${role}.png`;
+                        const bytes = readFileSync(join(directory, file));
+                        png(join(out, file), bytes, { width: 480, height: 320 });
+                        slotHashes[role] = hash(bytes);
+                    }
+                },
+            });
+            action(inspection, 'compile_scene');
+            assert(inspection.report.validation.ok);
+            assert.equal(inspection.report.outputBlend, null);
+            assert.deepEqual(inspection.report.halfLapInspection, {
+                schemaVersion: 'deepblend.half-lap-inspection/v1', crossings: 12, partialCrossings: 6, sample: 'partial',
+            });
+            assert(slotHashes.lower && slotHashes.upper && slotHashes.lower !== slotHashes.upper);
+            assert(slotDirectory && !existsSync(slotDirectory), 'Slot preview scratch survives handoff');
+            assert.equal(hash(readFileSync(sceneSpecPath)), timberHash);
+            assert.equal(hash(readFileSync(checkpoint)), checkpointHash);
+            record('optional half-lap inspection hands off both measured PNGs without saving a checkpoint', slotHashes);
+            await refuse('optional half-lap inspection refuses a joint with identical timber IDs', () => call(runtime, 'compileHalfLapInspection', {
+                sceneSpecPath, projectRoot: out, profile: 'preview',
+                joint: { ...joint, upperEntityId: joint.lowerEntityId },
+                onWorkingDirectory: () => assert.fail('Invalid inspection produced a working directory'),
+            }), [BlenderErrorCode.SCENE_SPEC_INVALID]);
+        }
         if (typeof runtime.inspectGeometry === 'function') {
             // Optional extension: the required remote-runtime seam remains unchanged.
             const measuredSource = join(out, 'runtime', 'inspection-source.blend');
@@ -360,6 +431,9 @@ export async function runConformance({ createRuntime, outputDirectory, blenderPa
         absent.runtime.dispose();
         record('runtime lightweight disposal completes');
         assert(RUNTIME_METHODS.every(m => report.calls.some(c => c.method === m)));
+        for (const method of OPTIONAL_RUNTIME_METHODS) {
+            if (typeof runtime[method] === 'function') assert(report.calls.some(call => call.method === method), `Unverified optional runtime method: ${method}`);
+        }
         report.status = 'passed';
     }
     catch (error) {

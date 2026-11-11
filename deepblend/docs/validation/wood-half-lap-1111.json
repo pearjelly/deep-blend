@@ -423,5 +423,29 @@
       "desktop": "9c4aff67dfda8d5b501de8f6485b2be58f850ac82b8d1fb7d36852a07bceae58",
       "mobile": "fc481d40e00bff64336ea67267b78a72e5f3a24f6a71ef88d346ee4404d1ff42"
     }
+  },
+  "releaseRegression": {
+    "recordedAt": "2026-11-11T10:38:51Z",
+    "scope": "Local pre-bump validation of the same feature source and the new regression gates",
+    "browserChecksPassed": 6,
+    "runtimeConformanceChecksPassed": 35,
+    "fixtureCrossings": 12,
+    "fixturePartialWidthCrossings": 6,
+    "sampledCells": 126,
+    "originalOverlapCells": 24,
+    "joinedOverlapCells": 0,
+    "closedComponents": 7,
+    "removalRestoresOriginalSolids": true,
+    "checks": [
+      "Confirm the newly inspected role swap through the normal Chrome workbench",
+      "Reject an earlier draft hash before writing a revision or job",
+      "Read independently from all three native checkpoints and verify the cut depths and restored volumes",
+      "Run the packed SDK checker from outside the checkout and verify the optional PNG handoff and cleanup"
+    ],
+    "evidenceSha256": {
+      "browser": "7dbba79512382d2486eb890f228e5913448049b8e834f73fb1a04f1b732ab864",
+      "nativeReadback": "f88e8f321ee643557baffc4bf6efcf0f7290fe7d86d8093d7d49037b63f97ed9",
+      "runtimeConformance": "653b6437937a6251d2d1406526ede7ad7a677d3077146b87e42ae16ac5dc1d8d"
+    }
   }
 }
