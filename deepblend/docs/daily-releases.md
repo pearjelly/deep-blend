@@ -1014,3 +1014,10 @@ bai通过正式DeepBlend完成的新r75任务render-0002已结束：900帧、37.
 0.23 发布记录 PR #74 的五项 CI 通过并已合并；社区 PR #9737 已合并，普通 index/plugins 目录均已读回 0.23.0。原发布快照保持，日期与条目见[后续记录](validation/release-0.23.0-closeout.json)。
 
 下一轮补齐外部 issue #45 点名的五篇英文核心指南、中英返回入口和贡献术语表，并让两项预设列表描述可用英文阅读。已有英文工作台、工具与模型技能不重复计作新增。候选版本为 0.24.0；回归、CI、安装与公开发布尚待闭合，不计为今日已发版本。
+
+
+### 2026-11-11 · 0.24.0 独立创作、英文指南与安装修复
+
+北京时间 16:51:37 从主线 `b3ce642f` 公开 0.24.0。连续 56 套本地验收及候选五项 CI 通过，六件 GitHub 资产和七个 npm 包已公开读回。三条实际安装路线均到达 0.24.0、工作台 HTTP 200 和同一对预设。[GitHub Release](https://github.com/pearjelly/deep-blend/releases/tag/v0.24.0) · [发布说明](releases/0.24.0.md)
+
+npm 首包写入后即时读回为 404。确认首包的公开版本和归档后继续发布其余包，每个版本写入一次。社区条目更新已提交，普通 index 和 plugins 目录本次仍显示 0.23.0。今日完成一个稳定发布，继续跟进社区审核与目录传播。[社区 PR #14273](https://github.com/awesome-dsh-plugin/awesome-dsh-plugin/pull/14273) · [发布证据](validation/release-0.24.0.json)
