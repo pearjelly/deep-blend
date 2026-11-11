@@ -1,0 +1,287 @@
+{
+  "recordedAt": "2026-11-11T09:30:15.254204+00:00",
+  "sourceCommit": "401f062b499d4c47e8487fd92611f9798188c1dc",
+  "publishedVersion": "0.24.0",
+  "blender": "5.2.1 LTS",
+  "cup": {
+    "construction": "Monotonic degree-seven blend in radius from the cup axis, with historical endpoint position, first derivative and curvature constraints.",
+    "baselineSha256": "c47a422fda8e3f5402ee717bc9ef1fc382309c7e11bb3f21a1ca13291d9f1a33",
+    "analyticSample": {
+      "baseline": {
+        "lower": {
+          "minimumCylinderClearanceMm": -0.09656267026439402,
+          "maxSampledMeridianNormalCurvaturePerM": 1581.6619346420905,
+          "maximumCentralDifferenceErrorM": 5.502395126888914e-12
+        },
+        "upper": {
+          "minimumCylinderClearanceMm": -0.09656267026439402,
+          "maxSampledMeridianNormalCurvaturePerM": 1581.6619346421069,
+          "maximumCentralDifferenceErrorM": 5.268025419466115e-12
+        }
+      },
+      "candidate": {
+        "lower": {
+          "minimumCylinderClearanceMm": 4.224952776521462e-06,
+          "maxSampledMeridianNormalCurvaturePerM": 1105.3785356525668,
+          "maximumCentralDifferenceErrorM": 7.962208279062077e-12
+        },
+        "upper": {
+          "minimumCylinderClearanceMm": 4.224952776521462e-06,
+          "maxSampledMeridianNormalCurvaturePerM": 1105.378535652575,
+          "maximumCentralDifferenceErrorM": 7.962208270683405e-12
+        }
+      }
+    },
+    "nativeRaySample": {
+      "baseline": {
+        "upper": {
+          "samplesHittingRoot": 1661,
+          "minimumSampledMm": 2.9047877066944587
+        },
+        "lower": {
+          "samplesHittingRoot": 1661,
+          "minimumSampledMm": 2.9047877066944587
+        }
+      },
+      "candidate": {
+        "upper": {
+          "samplesHittingRoot": 1661,
+          "minimumSampledMm": 3.0001439013503473
+        },
+        "lower": {
+          "samplesHittingRoot": 1661,
+          "minimumSampledMm": 3.000140263543829
+        }
+      }
+    },
+    "nonRootFacesWithExactGeometryAndUV": 31188,
+    "fixedCameraRenders": [
+      {
+        "view": "upper-root-inspection",
+        "mode": "glaze",
+        "variant": "baseline",
+        "path": "upper-root-inspection-glaze-baseline.png",
+        "sha256": "f40840e000ae8ee5dd0422ef43535b79ec2f6851f865ebf2bb79457d94dc096d",
+        "bytes": 824849
+      },
+      {
+        "view": "upper-root-inspection",
+        "mode": "glaze",
+        "variant": "radial",
+        "path": "upper-root-inspection-glaze-radial.png",
+        "sha256": "44371a4e2c174b233de5a3868ff186d27e17952c7eb4af09f11b15712dabb0a2",
+        "bytes": 824077
+      },
+      {
+        "view": "upper-root-inspection",
+        "mode": "clay",
+        "variant": "baseline",
+        "path": "upper-root-inspection-clay-baseline.png",
+        "sha256": "6dcb58beb80fc2b76e839ce1c2464ec150b853c89d7bd39d6c02e7ec80e5f319",
+        "bytes": 505401
+      },
+      {
+        "view": "upper-root-inspection",
+        "mode": "clay",
+        "variant": "radial",
+        "path": "upper-root-inspection-clay-radial.png",
+        "sha256": "58cea9eed4241448d47cdac0a2fe33b00782f288af885b59544320698d887b0a",
+        "bytes": 505021
+      },
+      {
+        "view": "lower-root-inspection",
+        "mode": "glaze",
+        "variant": "baseline",
+        "path": "lower-root-inspection-glaze-baseline.png",
+        "sha256": "b7192c6ac55cf1a346af98f05e9021265231977cf0b255e0781ca99db6a889dc",
+        "bytes": 896210
+      },
+      {
+        "view": "lower-root-inspection",
+        "mode": "glaze",
+        "variant": "radial",
+        "path": "lower-root-inspection-glaze-radial.png",
+        "sha256": "13cadb0a977b5b7963259cbe7515f92874e642141db1d78b74c8449fafb87b0b",
+        "bytes": 896261
+      },
+      {
+        "view": "lower-root-inspection",
+        "mode": "clay",
+        "variant": "baseline",
+        "path": "lower-root-inspection-clay-baseline.png",
+        "sha256": "b1d586bb9a8d76541af21ae6f6f479d5bb70e31ebbb078cbc6b4339b3db1d8c7",
+        "bytes": 557605
+      },
+      {
+        "view": "lower-root-inspection",
+        "mode": "clay",
+        "variant": "radial",
+        "path": "lower-root-inspection-clay-radial.png",
+        "sha256": "0d5192ee5489630a58df0d6821ee71dbb1c565e523cddf0f8af34b21f87c420e",
+        "bytes": 557038
+      }
+    ],
+    "upperHighlight": {
+      "displayLumaThreshold": 172,
+      "thresholdAndRoiChosenAfterViewing": true,
+      "projectionsOntoUpperRoot": 48,
+      "records": [
+        {
+          "source": "upper-root-inspection-glaze-baseline.png",
+          "variant": "baseline",
+          "roi": "upper-crown",
+          "bounds": [
+            386,
+            173,
+            501,
+            237
+          ],
+          "percentile99DisplayLuma": 210.43959999999998,
+          "brightPixels": 1938
+        },
+        {
+          "source": "upper-root-inspection-glaze-baseline.png",
+          "variant": "baseline",
+          "roi": "upper-left-stripe",
+          "bounds": [
+            323,
+            273,
+            395,
+            392
+          ],
+          "percentile99DisplayLuma": 202.6666,
+          "brightPixels": 3914
+        },
+        {
+          "source": "upper-root-inspection-glaze-radial.png",
+          "variant": "radial",
+          "roi": "upper-crown",
+          "bounds": [
+            386,
+            173,
+            501,
+            237
+          ],
+          "percentile99DisplayLuma": 212.43959999999998,
+          "brightPixels": 2772
+        },
+        {
+          "source": "upper-root-inspection-glaze-radial.png",
+          "variant": "radial",
+          "roi": "upper-left-stripe",
+          "bounds": [
+            323,
+            273,
+            395,
+            392
+          ],
+          "percentile99DisplayLuma": 203.38179999999997,
+          "brightPixels": 3785
+        }
+      ],
+      "detailEvidenceSha256": "e1ebea77bdc67ca32b7e5dd0700ee6b4a77afdd9d146e737c2235f3b17a09af9"
+    },
+    "boundaryCounterexample": {
+      "generator": {
+        "shape": "handled_cup",
+        "radius": 0.04,
+        "height": 0.105,
+        "wallThickness": 0.003,
+        "handleRadius": 0.008,
+        "handleLower": 0.034,
+        "handleUpper": 0.066,
+        "rootRadius": 0.0113,
+        "rootLength": 0.005,
+        "rootTension": 2.5
+      },
+      "publishedNativeMesh": {
+        "vertices": 29418,
+        "faces": 37140
+      },
+      "prototypeRefusal": "cylinder radius controls are out of order"
+    },
+    "decision": "Retain as experiment. Fixed-camera glazing retained prominent highlights on both joins and this radial parameterization refused a supported boundary cup.",
+    "localReportSha256": "4e3ff3dd80d367954e12b5c7f0b31d85cc28919b4a08f01f851001f444713c80"
+  },
+  "halfLap": {
+    "sourceRevision": "official-comparison-pagoda/r0075",
+    "sourceSha256": "b415b65b765ed56c3bc45b7217e008b32bfadcec46e89b080df49d21489251aa",
+    "sourceObjects": [
+      "pagoda-rafters-1",
+      "pagoda-rafters-1-ew"
+    ],
+    "originalComponents": [
+      50,
+      50
+    ],
+    "originalSharedInteriorPairs": 100,
+    "maximumSourceSnapErrorM": 3.299713134730098e-06,
+    "matchedIndependentAuthoredCoordinates": true,
+    "overlapFootprintsM": [
+      {
+        "xy": [
+          0.065,
+          0.065
+        ],
+        "count": 4
+      },
+      {
+        "xy": [
+          0.065,
+          0.13
+        ],
+        "count": 16
+      },
+      {
+        "xy": [
+          0.13,
+          0.065
+        ],
+        "count": 16
+      },
+      {
+        "xy": [
+          0.13,
+          0.13
+        ],
+        "count": 64
+      }
+    ],
+    "touchedComponents": [
+      20,
+      20
+    ],
+    "resultInteriorOverlapCells": 0,
+    "exactOriginalUnionGridCells": 1960,
+    "exactOriginalUnionGridSha256": "9a1cdb2eeeef2768872b599375d3e8cbb994572ec47719cf3e38bac0ec308d26",
+    "originalExactOverlapM3": 0.191646,
+    "closedNativeComponents": 100,
+    "blendSha256": "e54b840f773f8531c8e0f2cbd8b099ff593df9e885291c2baaa1a1487f6e7ec3",
+    "scope": "Native extracted right-angle rectangular arrays, shared Z interval, nominal zero-gap half lap. World-coordinate grid comparison bound to independently reconstructed authored coordinates. Geometry only.",
+    "independentReadback": {
+      "openedBlendSha256": "e54b840f773f8531c8e0f2cbd8b099ff593df9e885291c2baaa1a1487f6e7ec3",
+      "closedNativeComponents": 100,
+      "verifiedUnionCells": 1960,
+      "verifiedUnionGridSha256": "9a1cdb2eeeef2768872b599375d3e8cbb994572ec47719cf3e38bac0ec308d26",
+      "cellsWithMoreThanOneSolid": 0,
+      "actuallyNotchedComponents": {
+        "NS": 20,
+        "EW": 20
+      },
+      "wholeBeamsWithoutNotches": 60
+    },
+    "notchedAndWholeBeams": {
+      "notched": 40,
+      "whole": 60
+    },
+    "retainedFirstFailures": [
+      "The first native lookup used the object name; the rerun resolved unique meshes by the recorded DeepBlend entity IDs.",
+      "The initial 3 micrometre test rejected the rotated array. The final comparison reconstructed the authored coordinates independently and matched all measured boxes on the 10 micrometre grid. The observed maximum native deviation is recorded.",
+      "An intermediate report counted empty defaultdict buckets as notched members. The final run counts nonempty cuts and independent reopening checks the same 40 beams by volume."
+    ],
+    "sourceScriptsSha256": {
+      "native_lap.py": "ad63f5678d4e7db8147edce5d2872450e13565320a4d4698b166bfdf8f78dda4",
+      "reopen_lap.py": "ce01c9ca5752817af4e76c2dbf08a32e7aaa6c2e51efd1e096db8edee7f74b51"
+    }
+  }
+}
