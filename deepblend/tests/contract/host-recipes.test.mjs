@@ -149,12 +149,18 @@ test('corrupted saved assembly state and wrong stores fail before creating a new
   assert.equal(existsSync(studio.store.revisionDirectory(projectId, 'r0003')), false)
 })
 
-test('the distributed Host carries four validated self-contained recipes', () => {
+test('the distributed Host carries the validated self-contained recipes', () => {
   const result = new RecipeCatalog().list()
   assert.deepEqual(result.errors, [])
-  assert.deepEqual(result.recipes.map(r => r.id).sort(), ['deepblend.glass-ceramic', 'deepblend.glazed-cup', 'deepblend.metal-lamp', 'deepblend.modular-speaker'])
-  assert.ok(result.recipes.every(r => r.parameters.length === (['deepblend.modular-speaker','deepblend.glazed-cup'].includes(r.id) ? 6 : r.id === 'deepblend.metal-lamp' ? 5 : 3) && r.license === 'MIT'))
-  for (const name of ['glass-ceramic', 'glazed-cup', 'metal-lamp', 'modular-speaker']) {
+  assert.deepEqual(Object.fromEntries(result.recipes.map(recipe => [recipe.id, recipe.parameters.length])), {
+    'deepblend.glass-ceramic': 3,
+    'deepblend.glazed-cup': 6,
+    'deepblend.metal-lamp': 5,
+    'deepblend.modular-speaker': 6,
+    'deepblend.walnut-trivet': 2,
+  })
+  assert.ok(result.recipes.every(recipe => recipe.license === 'MIT'))
+  for (const name of ['glass-ceramic', 'glazed-cup', 'metal-lamp', 'modular-speaker', 'walnut-trivet']) {
     for (const file of ['recipe.json', 'scene-spec.json', 'preview.png', 'LICENSE']) {
       assert.ok(readFileSync(join(BUILTIN_RECIPES, name, file)).equals(
         readFileSync(new URL(`../../recipes/${name}/${file}`, import.meta.url))), `${name}/${file} differs from its reviewed source`)
@@ -331,7 +337,7 @@ async function client(t) {
 
 test('UI offers the exact catalog, converts color input to linear RGB and blocks out-of-range values', async t => {
   const { store, nodes, recipes } = await client(t)
-  assert.equal(nodes().filter(node => node.props['data-recipe']).length, 4)
+  assert.deepEqual(nodes().flatMap(node => node.props['data-recipe'] ?? []).sort(), recipes.map(recipe => recipe.id).sort())
   store.actions.selectRecipe(recipes[0])
   const color = nodes().find(node => node.props['data-field'] === 'recipe-main-color')
   color.props.onChange({ target: { value: '#808080' } })

@@ -2,7 +2,7 @@
 
 组织外部投稿和另一名用户的实际复用时，按 [真人验收指南](human-validation.md) 执行并保存作者记录。
 
-配方把一个经过设计的产品场景及其有限参数打包成可复用内容。当前提供金属桌灯、玻璃空瓶与陶瓷托盘、编织格栅音箱、青釉带把手杯四个内置配方，规范源位于 [`deepblend/recipes/`](../recipes/)。桌灯、玻璃陶瓷和音箱来自对应基准的公开 SceneSpec；杯体使用公开 `handled_cup` 生成器和大面积摄影灯。每个包都包含真实渲染预览，无需依赖基准目录或下载资产。
+配方把一个经过设计的产品场景及其有限参数打包成可复用内容。内置配方包括金属桌灯、玻璃空瓶与陶瓷托盘、编织格栅音箱、青釉带把手杯和胡桃木格栅垫，规范源位于 [`deepblend/recipes/`](../recipes/)。桌灯、玻璃陶瓷和音箱来自对应基准的公开 SceneSpec。杯体使用公开 `handled_cup` 生成器和大面积摄影灯。每个包都包含真实渲染预览，无需依赖基准目录或下载资产。
 
 桌灯当前为 `2.0.0`，青釉杯为 `3.0.0`，玻璃陶瓷为 `1.0.0`，音箱为 `2.0.0`。这些内容已随 0.5.0 分发，原版配方也保留用于历史兼容。版本号和来源 URL 本身不证明公开发布完成。内容、默认值或参数含义变化都应更新配方版本，已有项目保留创建时的版本和源码。
 
@@ -16,6 +16,8 @@
 | `deepblend.glazed-cup` | `cup-shape-r45/public-v1/beauty-hero.png` |
 
 桌灯当前原始运行目录位于 `.deepblend/quality/metal-surface-r34/`，玻璃陶瓷和音箱的目录位于 `.deepblend/quality/benchmarks/`，杯体当前预览位于 `.deepblend/quality/cup-shape-r45/`，不随配方分发；包自身含有独立 SceneSpec 和预览字节。清单中的实际内容哈希才是选择和重建时使用的依据。
+
+胡桃木格栅垫 1.0.0 默认宽 240 mm、深 240 mm、厚 20 mm。画廊中的主视图来自随包 SceneSpec 的 Blender 渲染，使用第 2 帧、720×540 和 24 samples。创建时可统一调整两组木条的木色和表面粗糙度。创建后选择「调整」中的横条组，可修改阵列间距。交换半搭接的上下角色后，可在保存前预览同一交叉位置的两侧槽口。
 
 青釉杯当前版本为 3.0.0，显式使用 `rootTension: 2.5` 展开根部过渡；杯身尺寸、釉面和摄影设置保留。2.0.0 使用 1.5，完整原字节保留于 [`glazed-cup-v2`](../tests/fixtures/glazed-cup-v2/recipe.json)。1.0.0 使用原过渡，并保留于 [`glazed-cup-v1`](../tests/fixtures/glazed-cup-v1/recipe.json) 历史夹具。旧项目依赖自己的原始来源锁与 checkpoint，不能因画廊升级而改写旧形体。作品观感仍需实际审阅。
 
@@ -52,7 +54,7 @@ my-product/
 
 路径必须是上面两个字面量，不能是绝对路径、上级目录或 URL。Host 读取本地目录时拒绝包目录和包内文件的符号链接，并限制实际读取边界；纯 contracts 函数不访问文件系统。
 
-当前能力集合为 `geometry.primitive`、`geometry.lathe`、`geometry.curve`、`geometry.handled_cup`、`geometry.handled_cup.tension`、`geometry.handled_cup.tension.extended`、`geometry.modifiers`、`material.principled`、`material.glass`、`material.emission`、`material.procedural`、`material.procedural.uv`、`material.anisotropy`、`animation.transform` 和 `animation.material`。杯的 `rootTension` 缺省为 1，只有非默认值需要声明 `geometry.handled_cup.tension`；大于 1.5 时还需要 `geometry.handled_cup.tension.extended`。调用方可传入自己的支持集合；配方要求其中未支持的能力时明确拒绝。场景实际使用但未声明的能力也会拒绝。程序纹理使用 UV 坐标时同时需要 `material.procedural` 和 `material.procedural.uv`；对象坐标只需要前者。支持集合不含 UV 能力的使用方应明确拒绝该配方。各向异性参数、切线声明或相应材质动画都需要 `material.anisotropy`；这不新增可由使用者改写的参数位置。
+当前能力集合为 `geometry.primitive`、`geometry.lathe`、`geometry.curve`、`geometry.handled_cup`、`geometry.handled_cup.tension`、`geometry.handled_cup.tension.extended`、`geometry.modifiers`、`geometry.joinery.half_lap`、`material.principled`、`material.glass`、`material.emission`、`material.procedural`、`material.procedural.uv`、`material.anisotropy`、`animation.transform` 和 `animation.material`。杯的 `rootTension` 缺省为 1，只有非默认值需要声明 `geometry.handled_cup.tension`；大于 1.5 时还需要 `geometry.handled_cup.tension.extended`。调用方可传入自己的支持集合；配方要求其中未支持的能力时明确拒绝。场景实际使用但未声明的能力也会拒绝。程序纹理使用 UV 坐标时同时需要 `material.procedural` 和 `material.procedural.uv`；对象坐标只需要前者。支持集合不含 UV 能力的使用方应明确拒绝该配方。各向异性参数、切线声明或相应材质动画都需要 `material.anisotropy`；这不新增可由使用者改写的参数位置。
 
 v1 只接受自包含的程序场景；不支持外部资产、图片贴图、环境文件、骨架或物理模拟。这里的限制是当前配方契约范围，不能推导为 SceneSpec 本身没有这些功能。
 

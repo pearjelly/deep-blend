@@ -189,7 +189,8 @@ test('a compact model catalog still creates and resizes a real speaker with its 
     }
   }
   assert.doesNotMatch(output.text, /"bindings"\s*:/)
-  assert.ok(Buffer.byteLength(JSON.stringify(output)) < 20000, 'Model selection should not carry the internal assembly maps')
+  const catalogBudget = catalog.recipes.length * 5000
+  assert.ok(Buffer.byteLength(JSON.stringify(output)) < catalogBudget, 'Model selection should not carry the internal assembly maps')
   const speaker = output.data.recipes.find(recipe => recipe.id === 'deepblend.modular-speaker')
   const selection = { id: speaker.id, version: speaker.version, digest: speaker.digest,
     parameters: { 'cabinet-width-mm': 300 } }
