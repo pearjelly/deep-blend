@@ -85,7 +85,7 @@ test('defaults instantiate exactly the public compiled input, with deterministic
     assert.deepEqual(bundle.sceneBytes, bytes)
     assert.match(first.recipe.manifestSha256, /^[a-f0-9]{64}$/)
     assert.equal(first.recipe.id, bundle.manifest.id)
-    assert.equal(first.recipe.version, name==='glazed-cup' ? '3.1.0' : name==='modular-speaker' ? '2.1.0' : name==='metal-lamp' ? '2.2.0' : name==='walnut-trivet' ? '1.1.0' : '1.0.0')
+    assert.equal(first.recipe.version, name==='glazed-cup' ? '3.1.0' : name==='modular-speaker' ? '2.1.0' : name==='metal-lamp' ? '2.2.0' : name==='walnut-trivet' ? '1.2.0' : '1.0.0')
     assert.equal(first.recipe.inputSha256, sha256(bundle.sceneBytes))
   }
 })
@@ -222,7 +222,9 @@ test('a valid recipe can combine every supported capability', () => {
   bundle.manifest.parameters.push({ id: 'combined-width', title: 'Width', type: 'number', default: .2, minimum: .2, maximum: .3,
     bindings: [{ kind: 'entity', entityId: 'combined-box', property: 'dimensions', axis: 'x', multiplier: 1 }] })
   bundle.manifest.parameters.push({ id: 'combined-cup-height', title: 'Cup height', type: 'number', default: 105, minimum: 105, maximum: 115, bindings: [{kind:'generator',entityId:'combined-handled-cup',property:'height',multiplier:.001}] })
-  bundle.manifest.compatibility.capabilities = [...recipeCapabilitiesForScene(spec), 'recipe.geometry-bindings', 'recipe.generator-bindings', 'recipe.lathe-shell-bindings','recipe.curve-point-bindings','recipe.array-bindings','recipe.threshold-bindings'].sort()
+  bundle.manifest.parameters.push({ id: 'combined-edge-width', title: 'Edge width', type: 'number', default: .5, minimum: 0, maximum: 1,
+    bindings: [{kind:'half-lap',entityIds:['longitudinal-slats','cross-slats'],property:'edgeWidth',multiplier:.001}] })
+  bundle.manifest.compatibility.capabilities = [...recipeCapabilitiesForScene(spec), 'recipe.geometry-bindings', 'recipe.generator-bindings', 'recipe.lathe-shell-bindings','recipe.curve-point-bindings','recipe.array-bindings','recipe.threshold-bindings','recipe.half-lap-bindings'].sort()
   assert.deepEqual(bundle.manifest.compatibility.capabilities, [...RECIPE_CAPABILITIES].sort())
   const checked = validateRecipePackage(bundle)
   assert.equal(checked.ok, true, checked.summary)

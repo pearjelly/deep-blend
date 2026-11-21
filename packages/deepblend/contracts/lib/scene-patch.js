@@ -978,10 +978,13 @@ export function applyPatchToSpec(spec, patch) {
             fail('PATCH_TARGET_IN_USE', 'a timber group already belongs to a different half lap; remove that joint first')
           }
         }
-        const changed = enabled ? found?.lowerEntityId !== lowerEntityId : found !== undefined
+        const width = operation.edgeWidth ?? found?.edgeWidth ?? 0
+        const replacement = { lowerEntityId, upperEntityId, ...(width > 0 ? { edgeWidth: width } : {}) }
+        const changed = enabled ? !found || found.lowerEntityId !== lowerEntityId
+          || found.upperEntityId !== upperEntityId || (found.edgeWidth ?? 0) !== width : found !== undefined
         if (changed) {
           const remaining = joints.filter(joint => joint !== found)
-          if (enabled) remaining.push({ lowerEntityId, upperEntityId })
+          if (enabled) remaining.push(replacement)
           if (remaining.length) next.halfLaps = remaining.sort((a, b) => a.lowerEntityId.localeCompare(b.lowerEntityId))
           else delete next.halfLaps
         }

@@ -2,4 +2,5 @@
 SCENE_FEATURES = (
     "geometry.primitive.dimensions", "geometry.procedural.mesh", "geometry.modifier.subdivision",
     "geometry.modifier.surface_scatter", "geometry.joinery.half_lap",
+    "geometry.joinery.half_lap.edge_finish",
 )

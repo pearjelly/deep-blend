@@ -5,12 +5,13 @@ import { compileSchema } from './json-schema.js'
 import { decodePng } from './png.js'
 import { validateSceneSpec, compileSceneSpec, BOX_DIMENSIONS_FEATURE, HALF_LAP_FEATURE, MESH_GEOMETRY_FEATURE, SUBDIVISION_FEATURE, SURFACE_SCATTER_FEATURE, requiredSceneFeatures } from './scene-spec.js'
 import { deformLatheShell, latheShellTargets } from './lathe-shell.js'
+import { findHalfLap, halfLapKey, HALF_LAP_EDGE_FINISH_FEATURE, HALF_LAP_EDGE_MAX } from './half-lap.js'
 import recipeSchema from './schemas/recipe.schema.json' with { type: 'json' }
 
 export const RECIPE_SCHEMA_VERSION = 'deepblend.recipe/v1'
 export const RECIPE_CAPABILITIES = Object.freeze([
   'geometry.primitive', BOX_DIMENSIONS_FEATURE, 'geometry.lathe', 'geometry.curve', 'geometry.handled_cup', 'geometry.handled_cup.tension', 'geometry.handled_cup.tension.extended', 'geometry.modifiers',
-  MESH_GEOMETRY_FEATURE, SUBDIVISION_FEATURE, SURFACE_SCATTER_FEATURE, HALF_LAP_FEATURE,
+  MESH_GEOMETRY_FEATURE, SUBDIVISION_FEATURE, SURFACE_SCATTER_FEATURE, HALF_LAP_FEATURE, HALF_LAP_EDGE_FINISH_FEATURE,
   'material.principled', 'material.glass', 'material.emission', 'material.procedural', 'material.procedural.uv', 'material.anisotropy',
   'animation.transform', 'animation.material',
   'recipe.geometry-bindings',
@@ -18,6 +19,7 @@ export const RECIPE_CAPABILITIES = Object.freeze([
   'recipe.lathe-shell-bindings',
   'recipe.curve-point-bindings',
   'recipe.array-bindings',
+  'recipe.half-lap-bindings',
   'recipe.threshold-bindings',
 ])
 export const RECIPE_LIMITS = Object.freeze({ sceneBytes: 2 * 1024 * 1024, previewBytes: 4 * 1024 * 1024, previewPixels: 4 * 1024 * 1024 })
@@ -113,12 +115,16 @@ export function validateRecipeManifest(manifest, options = {}) {
     const valueIssue = parameterValueIssue(parameter, parameter.default, `${path}.default`)
     if (valueIssue) errors.push(valueIssue)
     for (const binding of parameter.bindings) {
+      if (binding.kind === 'half-lap' && binding.entityIds[0] === binding.entityIds[1]) {
+        errors.push(issue('RECIPE_BINDING_INVALID', path, 'A half-lap binding needs two distinct timber IDs'))
+      }
       const slots = binding.kind === 'lathe-shell' ? latheShellTargets(binding) : [binding]
       for (const slot of slots) {
         const target = slot.kind === 'material' ? `material:${slot.materialId}:${slot.property}`
           : slot.kind === 'curve-point' ? `curve-point:${slot.entityId}:${slot.pointIndex}.${slot.axis}`
           : slot.kind === 'generator' ? `generator:${slot.entityId}:${slot.property}`
           : slot.kind === 'array' ? `array:${slot.entityId}:${slot.modifierIndex}.${slot.axis}`
+          : slot.kind === 'half-lap' ? `half-lap:${halfLapKey(slot.entityIds)}:${slot.property}`
           : ['entity', 'camera'].includes(slot.kind) ? `${slot.kind}:${slot.entityId ?? slot.cameraId}:${slot.property}.${slot.axis}` : `render-profile:${slot.profile}:exposure`
         const prior = targets.get(target)
         // Camera framing may add independent width/depth/height deltas. Repeating a
@@ -130,13 +136,14 @@ export function validateRecipeManifest(manifest, options = {}) {
       const color = binding.kind === 'material' && binding.property === 'baseColor'
       if ((parameter.type === 'color') !== color) errors.push(issue('RECIPE_BINDING_INVALID', path, 'Parameter type does not match the allowlisted property'))
       if (parameter.type === 'number') {
-        if (['entity', 'camera', 'generator', 'lathe-shell', 'curve-point', 'array'].includes(binding.kind)) {
+        if (['entity', 'camera', 'generator', 'lathe-shell', 'curve-point', 'array', 'half-lap'].includes(binding.kind)) {
           if (!Number.isFinite(binding.multiplier) || binding.multiplier === 0) errors.push(issue('RECIPE_BINDING_INVALID', path, 'Entity binding multiplier must be finite and nonzero'))
           if (!declared.has('recipe.geometry-bindings')) errors.push(issue('RECIPE_CAPABILITY_UNDECLARED', path, 'Entity bindings require recipe.geometry-bindings'))
           if (binding.kind === 'generator' && !declared.has('recipe.generator-bindings')) errors.push(issue('RECIPE_CAPABILITY_UNDECLARED', path, 'Generator bindings require recipe.generator-bindings'))
           if (binding.kind === 'lathe-shell' && !declared.has('recipe.lathe-shell-bindings')) errors.push(issue('RECIPE_CAPABILITY_UNDECLARED', path, 'Lathe shell bindings require recipe.lathe-shell-bindings'))
           if (binding.kind === 'curve-point' && !declared.has('recipe.curve-point-bindings')) errors.push(issue('RECIPE_CAPABILITY_UNDECLARED', path, 'Curve points require recipe.curve-point-bindings'))
           if (binding.kind === 'array' && !declared.has('recipe.array-bindings')) errors.push(issue('RECIPE_CAPABILITY_UNDECLARED', path, 'Array offsets require recipe.array-bindings'))
+          if (binding.kind === 'half-lap' && (!declared.has('recipe.half-lap-bindings') || !declared.has(HALF_LAP_EDGE_FINISH_FEATURE))) errors.push(issue('RECIPE_CAPABILITY_UNDECLARED', path, 'Half-lap widths require recipe.half-lap-bindings and the native edge-finishing capability'))
           if (binding.inputFloor !== undefined && (!declared.has('recipe.threshold-bindings') || binding.inputFloor < parameter.minimum || binding.inputFloor > parameter.maximum)) errors.push(issue('RECIPE_BINDING_INVALID', path, 'A threshold must be declared and inside the parameter range'))
           if (binding.property !== 'location' && binding.offsetAnimation !== undefined) errors.push(issue('RECIPE_BINDING_INVALID', path, 'Animation offsets are only valid on location bindings'))
           continue
@@ -214,6 +221,13 @@ function bindingsAgainstScene(manifest, spec) {
       if (spec.animationTracks?.some(track => track.targetKind === 'material' && track.targetEntityId === binding.materialId &&
         (track.property === binding.property || track.property.startsWith(`${binding.property}.`)))) {
         errors.push(issue('RECIPE_BINDING_INVALID', path, 'A parameter must not compete with animation on the same material property'))
+      }
+    } else if (binding.kind === 'half-lap') {
+      const pair = findHalfLap(spec, binding.entityIds)
+      const current = pair?.edgeWidth ?? 0
+      const ends = [parameter.minimum, parameter.maximum].map(value => current + bindingDelta(value, parameter, binding))
+      if (!pair || ends.some(value => !Number.isFinite(value) || value < 0 || value > HALF_LAP_EDGE_MAX)) {
+        errors.push(issue('RECIPE_BINDING_INVALID', path, 'Half-lap bindings require an existing pair and widths in [0, 0.005] metres throughout the range'))
       }
     } else if (binding.kind === 'lathe-shell') {
       try {
@@ -373,6 +387,11 @@ function resolveRecipe(manifest, checked, values) {
       const material = spec.materials.find(item => item.id === binding.materialId)
       material.parameters[binding.property] = parameter.type === 'color'
         ? [...value, material.parameters.baseColor[3] ?? 1] : value
+    } else if (binding.kind === 'half-lap') {
+      const pair = findHalfLap(spec, binding.entityIds)
+      const width = (pair.edgeWidth ?? 0) + bindingDelta(value, parameter, binding)
+      if (width > 0) pair.edgeWidth = width
+      else delete pair.edgeWidth
     } else if (binding.kind === 'lathe-shell') {
       const profiles = deformLatheShell(checked.sceneSpec, binding, bindingDelta(value, parameter, binding))
       spec.entities.find(entity => entity.id === binding.entityId).generator.profile = profiles.shell

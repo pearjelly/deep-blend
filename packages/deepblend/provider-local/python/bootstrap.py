@@ -222,7 +222,8 @@ def action_compile_scene(request, options):
     selection = (request.get('payload') or {}).get('halfLapInspection')
     if selection is not None and (not isinstance(selection, dict)
             or set(selection) != {'lowerEntityId', 'upperEntityId'}
-            or selection not in (spec.get('halfLaps') or [])):
+            or not any(isinstance(pair, dict) and all(pair.get(key) == selection[key]
+                for key in ('lowerEntityId', 'upperEntityId')) for pair in spec.get('halfLaps') or [])):
         raise ActionError("SCENE_SPEC_INVALID", "half-lap preview needs one active timber joint")
 
     guard = Guard()

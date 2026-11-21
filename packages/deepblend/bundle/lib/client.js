@@ -546,6 +546,9 @@ window.__ModuleLoader__.load({
       'editor.halfLap.role': '当前木条组',
       'editor.halfLap.lower': '保留下半部',
       'editor.halfLap.upper': '保留上半部',
+      'editor.halfLap.edgeWidth': '边缘倒角（mm）',
+      'editor.halfLap.edgeHelp': '0 保持锐边。部分宽度可能不适合此接头；若预览失败，请减小宽度后重新预览。',
+      'editor.halfLap.edgeInvalid': '请输入 0 到 5 mm 的倒角宽度。',
       'editor.halfLap.help': '两组木条须正交，顶面和底面分别等高。',
       'editor.halfLap.invalid': '半搭接需要静态长方体网格。请移除不支持的修饰器，或将搭接对象设为「无搭接」。',
       'editor.halfLap.inspect': '预览槽口',
@@ -1462,6 +1465,9 @@ window.__ModuleLoader__.load({
       'editor.halfLap.role': 'Selected timber group',
       'editor.halfLap.lower': 'Keep the lower half',
       'editor.halfLap.upper': 'Keep the upper half',
+      'editor.halfLap.edgeWidth': 'Edge width (mm)',
+      'editor.halfLap.edgeHelp': '0 keeps sharp edges. Some widths cannot fit this joint. If preview fails, reduce the width and preview again.',
+      'editor.halfLap.edgeInvalid': 'Enter an edge width from 0 to 5 mm.',
       'editor.halfLap.help': 'The groups must cross at right angles and share top and bottom heights.',
       'editor.halfLap.invalid': 'Half laps need static box meshes. Remove unsupported modifiers or set Join with to “No joint.”',
       'editor.halfLap.inspect': 'Preview recesses',
@@ -2867,6 +2873,7 @@ window.__ModuleLoader__.load({
         scalar(draft.uvProjection.scale, t('editor.uv.scale'), 0.0001, 10000)
       }
       if (draft.halfLap) {
+        scalar(Object.hasOwn(draft.halfLap, 'edgeWidth') ? draft.halfLap.edgeWidth : 0, t('editor.halfLap.edgeWidth'), 0, .005)
         const partner = editorHalfLapPartner(draft.halfLap, draft.entityId)
         if (!editorTimberCandidate(draft.entity, draft.tracks) || !editorHalfLapPartners(draft).some(entity => entity.id === partner)) {
           errors.push(t('editor.halfLap.invalid'))
@@ -2998,11 +3005,13 @@ window.__ModuleLoader__.load({
       if (draft.uvProjection != null) operations.push({ op: 'entity.uv.project', entityId: draft.entityId, ...editorClone(draft.uvProjection) })
       if (!editorEqual(entity.modifiers, original.modifiers)) operations.push({ op: 'entity.modifiers.set', entityId: draft.entityId, modifiers: editorClone(entity.modifiers) })
       const { halfLap, originalHalfLap } = draft
-      if (halfLap?.lowerEntityId !== originalHalfLap?.lowerEntityId || halfLap?.upperEntityId !== originalHalfLap?.upperEntityId) {
+      if (halfLap?.lowerEntityId !== originalHalfLap?.lowerEntityId || halfLap?.upperEntityId !== originalHalfLap?.upperEntityId
+        || (halfLap?.edgeWidth ?? 0) !== (originalHalfLap?.edgeWidth ?? 0)) {
         if (originalHalfLap && editorHalfLapPartner(originalHalfLap, draft.entityId) !== editorHalfLapPartner(halfLap, draft.entityId)) {
           operations.push({ op: 'joint.halfLap.set', ...originalHalfLap, enabled: false })
         }
-        if (halfLap) operations.push({ op: 'joint.halfLap.set', ...halfLap })
+        if (halfLap) operations.push({ op: 'joint.halfLap.set', ...halfLap,
+          ...((halfLap.edgeWidth ?? 0) !== (originalHalfLap?.edgeWidth ?? 0) ? { edgeWidth: halfLap.edgeWidth ?? 0 } : {}) })
       }
       const material = draft.material.definition, baseMaterial = editorMaterialOriginal(draft)
       const changedProperties = material && baseMaterial ? ['baseColor', 'roughness'].filter(key => !editorEqual(material.parameters?.[key], baseMaterial.parameters?.[key])) : []
@@ -3057,6 +3066,7 @@ window.__ModuleLoader__.load({
         && preview.baseRevision === intent.patch.baseRevision && preview.baseDigest === intent.expectedDigest
         && preview.storeIdentity === intent.expectedStoreIdentity && /^[a-f0-9]{64}$/.test(preview.candidateSpecHash ?? '')
         && preview.joint?.lowerEntityId === intent.joint.lowerEntityId && preview.joint?.upperEntityId === intent.joint.upperEntityId
+        && (preview.joint?.edgeWidth ?? 0) === (intent.joint.edgeWidth ?? 0)
         && Number.isSafeInteger(preview.crossings) && preview.crossings > 0 && Number.isSafeInteger(preview.partialCrossings)
         && preview.partialCrossings >= 0 && preview.partialCrossings <= preview.crossings
         && preview.sample === (preview.partialCrossings ? 'partial' : 'full') && isImage(preview.lower) && isImage(preview.upper)
@@ -5503,7 +5513,16 @@ window.__ModuleLoader__.load({
           const halfLap = !partner ? null : role === 'upper'
             ? { lowerEntityId: partner, upperEntityId: entityId }
             : { lowerEntityId: entityId, upperEntityId: partner }
+          if (halfLap && Object.hasOwn(current.halfLap || {}, 'edgeWidth')) halfLap.edgeWidth = current.halfLap.edgeWidth
           set({ editorDrafts: { ...data.editorDrafts, [editorKey(current.projectId, entityId)]: { ...current, halfLap } } })
+        },
+        setEditorHalfLapWidth: width => {
+          const current = editorDraftFor(data)
+          if (!current?.halfLap || data.busy.editor || current.baseRevision !== data.selected?.scene?.revision) return
+          const halfLap = { ...current.halfLap }
+          if (width === 0) delete halfLap.edgeWidth
+          else halfLap.edgeWidth = width
+          set({ editorDrafts: { ...data.editorDrafts, [editorKey(current.projectId, current.entityId)]: { ...current, halfLap } } })
         },
         cancelHalfLapPreview: () => {
           halfLapPreviewController?.abort()
@@ -6436,6 +6455,7 @@ window.__ModuleLoader__.load({
       const halfLapPartners = editorHalfLapPartners(draft)
       const halfLapPartner = editorHalfLapPartner(draft.halfLap, draft.entityId)
       const halfLapRole = draft.halfLap?.upperEntityId === draft.entityId ? 'upper' : 'lower'
+      const halfLapEdgeWidth = Object.hasOwn(draft.halfLap || {}, 'edgeWidth') ? draft.halfLap.edgeWidth : 0
       const halfLapOptions = halfLapPartners.map(entity => [entity.id, entity.id])
       if (halfLapPartner && !halfLapPartners.some(entity => entity.id === halfLapPartner)) halfLapOptions.push([halfLapPartner, halfLapPartner])
       const slotIntent = halfLapPreviewIntent(state, draft)
@@ -6536,6 +6556,10 @@ window.__ModuleLoader__.load({
                     [['', t('editor.halfLap.none')], ...halfLapOptions], partner => actions.setEditorHalfLap(partner, halfLapRole)),
                   halfLapPartner ? choose(t('editor.halfLap.role'), 'editor-half-lap-role', halfLapRole,
                     [['lower', t('editor.halfLap.lower')], ['upper', t('editor.halfLap.upper')]], role => actions.setEditorHalfLap(halfLapPartner, role)) : null,
+                  halfLapPartner ? numeric(t('editor.halfLap.edgeWidth'), 'editor-half-lap-edge-width', halfLapEdgeWidth,
+                    actions.setEditorHalfLapWidth, { factor: 1000, min: 0, max: 5, step: .05,
+                      invalid: halfLapEdgeWidth < 0 || halfLapEdgeWidth > .005, error: t('editor.halfLap.edgeInvalid') }) : null,
+                  halfLapPartner ? el('p', { className: 'db-muted', key: 'edge-width-help' }, t('editor.halfLap.edgeHelp')) : null,
                   slotIntent ? HalfLapPreview({ slotWork, apply, disabled, actions }) : null) : null] : null,
               el('p', { className: 'db-muted', key: 'local-size' }, t('editor.localDimensions', { scale: (draft.entity.transform.scale || [1, 1, 1]).join(' × ') })),
               geometry.shape === 'rounded_box' ? el('p', { className: 'db-muted', key: 'rounded' }, t('editor.roundedRequired')) : null,

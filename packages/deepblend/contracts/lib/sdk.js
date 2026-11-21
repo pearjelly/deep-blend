@@ -16,7 +16,7 @@ export { specChangeAudit } from './spec-change-audit.js'
 export {
   validateSceneSpec, compileSceneSpec, sceneSpecCanonicalText, sceneSpecDigest, specHash,
   reviewInputsDigest, summarizeSceneSpec,
-  BOX_DIMENSIONS_FEATURE, MESH_GEOMETRY_FEATURE, SUBDIVISION_FEATURE, SURFACE_SCATTER_FEATURE, requiredSceneFeatures,
+  BOX_DIMENSIONS_FEATURE, MESH_GEOMETRY_FEATURE, SUBDIVISION_FEATURE, SURFACE_SCATTER_FEATURE, HALF_LAP_EDGE_FINISH_FEATURE, requiredSceneFeatures,
 } from './scene-spec.js'
 export { SCENE_OPERATION_NAMES, validateScenePatch, applyPatchToSpec, buildOperationManifest } from './scene-patch.js'
 export {

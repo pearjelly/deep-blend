@@ -42,7 +42,7 @@ function applyPlan(spec, plan) {
   return compileSceneSpec(applyPatchToSpec(spec, patch).spec).spec
 }
 function trivet(historical = false) {
-  const directory = new URL(historical ? '../fixtures/walnut-trivet-v1/' : '../../recipes/walnut-trivet/', import.meta.url)
+  const directory = new URL(historical ? '../fixtures/walnut-trivet-v1/' : '../fixtures/walnut-trivet-v1.1/', import.meta.url)
   return { manifest: JSON.parse(readFileSync(new URL('recipe.json', directory))),
     sceneBytes: readFileSync(new URL('scene-spec.json', directory)), previewBytes: readFileSync(new URL('preview.png', directory)) }
 }

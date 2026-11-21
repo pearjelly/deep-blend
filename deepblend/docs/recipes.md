@@ -4,7 +4,7 @@
 
 配方把一个经过设计的产品场景及其有限参数打包成可复用内容。内置配方包括金属桌灯、玻璃空瓶与陶瓷托盘、编织格栅音箱、青釉带把手杯和胡桃木格栅垫，规范源位于 [`deepblend/recipes/`](../recipes/)。桌灯、玻璃陶瓷和音箱来自对应基准的公开 SceneSpec。杯体使用公开 `handled_cup` 生成器和大面积摄影灯。每个包都包含真实渲染预览，无需依赖基准目录或下载资产。
 
-桌灯当前为 `2.0.0`，青釉杯为 `3.0.0`，玻璃陶瓷为 `1.0.0`，音箱为 `2.0.0`。这些内容已随 0.5.0 分发，原版配方也保留用于历史兼容。版本号和来源 URL 本身不证明公开发布完成。内容、默认值或参数含义变化都应更新配方版本，已有项目保留创建时的版本和源码。
+工作区画廊中，桌灯为 `2.2.0`，青釉杯为 `3.1.0`，玻璃陶瓷为 `1.0.0`，音箱为 `2.1.0`，胡桃木格栅垫为 `1.2.0`。原版配方保留用于历史兼容；正式分发状态见对应发布记录。版本号和来源 URL 本身不证明公开发布完成。内容、默认值或参数含义变化都应更新配方版本，已有项目保留创建时的版本和源码。
 
 桌灯、玻璃陶瓷和音箱使用成品 candidate 场景，预览取自以下已核验批次的 `candidate/hero.png`。杯体预览由包内 SceneSpec 经公开 Host 单独渲染，使用主相机、第 1 帧、960×720、128 samples。所有预览只移除元数据，解码像素保持一致：
 
@@ -17,11 +17,11 @@
 
 桌灯当前原始运行目录位于 `.deepblend/quality/metal-surface-r34/`，玻璃陶瓷和音箱的目录位于 `.deepblend/quality/benchmarks/`，杯体当前预览位于 `.deepblend/quality/cup-shape-r45/`，不随配方分发；包自身含有独立 SceneSpec 和预览字节。清单中的实际内容哈希才是选择和重建时使用的依据。
 
-胡桃木格栅垫 1.1.0 默认宽 240 mm、深 240 mm、厚 20 mm，横条中心间距 78 mm。创建时可设置 52–92 mm 的「横条间距」，三根横条随间距保持居中；已有项目可通过装配参数保存新的间距版本。木色与表面粗糙度作用于两组木条。画廊主视图沿用相同默认几何的真实 Blender 渲染，使用第 2 帧、720×540 和 24 samples。交换半搭接的上下角色后，可在保存前预览同一交叉位置的两侧槽口。
+胡桃木格栅垫 1.2.0 默认宽 240 mm、深 240 mm、厚 20 mm，横条中心间距 78 mm，凸边倒角宽 0.5 mm。创建时可设置 52–92 mm 的「横条间距」和 0–1 mm 的「边缘倒角」，0 保留锐边；已有项目可通过装配参数继续保存间距与倒角的新版本。三根横条随间距保持居中，木色与粗糙度作用于两组木条。新源为控制网格显式生成逐面 UV。画廊预览由默认源经真实 Host 渲染，使用第 2 帧、720×540 和 24 samples；移除元数据后像素保持，见[预览与原生重开记录](validation/timber-edge-preview-1121.json)。交换半搭接角色或改变倒角后，可先预览同一交叉的两侧槽口，再按该草稿保存。
 
-原版 1.0.0 的完整字节保留在 [`walnut-trivet-v1`](../tests/fixtures/walnut-trivet-v1/recipe.json)。已有 1.0.0 项目继续使用自己的来源锁；更新画廊不会为旧项目增加新参数。横条的受控间距、阵列数量、排列、旋转或缩放被独立修改后，联动编辑会返回冲突；独立的材质、摄影和非阵列修饰器编辑保留。
+原版 1.0.0 的完整字节保留在 [`walnut-trivet-v1`](../tests/fixtures/walnut-trivet-v1/recipe.json)，1.1.0 保留在 [`walnut-trivet-v1.1`](../tests/fixtures/walnut-trivet-v1.1/recipe.json)。旧项目继续使用自己的来源锁；1.1.0 保留原来的锐边及间距控制，更新画廊不会补入倒角参数。横条的受控间距、阵列数量、排列、旋转或缩放被独立修改后，联动编辑会返回冲突；手工改过受控倒角或移除接头时也会拒绝覆盖。独立的材质、摄影和接头上下角色保持。
 
-青釉杯当前版本为 3.0.0，显式使用 `rootTension: 2.5` 展开根部过渡；杯身尺寸、釉面和摄影设置保留。2.0.0 使用 1.5，完整原字节保留于 [`glazed-cup-v2`](../tests/fixtures/glazed-cup-v2/recipe.json)。1.0.0 使用原过渡，并保留于 [`glazed-cup-v1`](../tests/fixtures/glazed-cup-v1/recipe.json) 历史夹具。旧项目依赖自己的原始来源锁与 checkpoint，不能因画廊升级而改写旧形体。作品观感仍需实际审阅。
+青釉杯 3.0.0 引入 `rootTension: 2.5` 根部过渡，3.1.0 延续该默认形体并加入联动尺寸参数。2.0.0 使用 1.5，完整原字节保留于 [`glazed-cup-v2`](../tests/fixtures/glazed-cup-v2/recipe.json)。1.0.0 使用原过渡，并保留于 [`glazed-cup-v1`](../tests/fixtures/glazed-cup-v1/recipe.json) 历史夹具。旧项目依赖自己的原始来源锁与 checkpoint，不能因画廊升级而改写旧形体。作品观感仍需实际审阅。
 
 ## 一个包包含什么
 
@@ -56,13 +56,13 @@ my-product/
 
 路径必须是上面两个字面量，不能是绝对路径、上级目录或 URL。Host 读取本地目录时拒绝包目录和包内文件的符号链接，并限制实际读取边界；纯 contracts 函数不访问文件系统。
 
-当前能力集合为 `geometry.primitive`、`geometry.lathe`、`geometry.curve`、`geometry.handled_cup`、`geometry.handled_cup.tension`、`geometry.handled_cup.tension.extended`、`geometry.modifiers`、`geometry.joinery.half_lap`、`material.principled`、`material.glass`、`material.emission`、`material.procedural`、`material.procedural.uv`、`material.anisotropy`、`animation.transform` 和 `animation.material`。杯的 `rootTension` 缺省为 1，只有非默认值需要声明 `geometry.handled_cup.tension`；大于 1.5 时还需要 `geometry.handled_cup.tension.extended`。调用方可传入自己的支持集合；配方要求其中未支持的能力时明确拒绝。场景实际使用但未声明的能力也会拒绝。程序纹理使用 UV 坐标时同时需要 `material.procedural` 和 `material.procedural.uv`；对象坐标只需要前者。支持集合不含 UV 能力的使用方应明确拒绝该配方。各向异性参数、切线声明或相应材质动画都需要 `material.anisotropy`；这不新增可由使用者改写的参数位置。
+完整能力集合以 `RECIPE_CAPABILITIES` 导出及配方 Schema 为准。杯的 `rootTension` 缺省为 1，只有非默认值需要声明 `geometry.handled_cup.tension`；大于 1.5 时还需要 `geometry.handled_cup.tension.extended`。调用方可传入自己的支持集合；配方要求其中未支持的能力时明确拒绝。场景实际使用但未声明的能力也会拒绝。程序纹理使用 UV 坐标时同时需要 `material.procedural` 和 `material.procedural.uv`；对象坐标只需要前者。支持集合不含 UV 能力的使用方应明确拒绝该配方。各向异性参数、切线声明或相应材质动画都需要 `material.anisotropy`；这不新增可由使用者改写的参数位置。
 
 v1 只接受自包含的程序场景；不支持外部资产、图片贴图、环境文件、骨架或物理模拟。这里的限制是当前配方契约范围，不能推导为 SceneSpec 本身没有这些功能。
 
 ## 参数与绑定
 
-桌灯有主金属颜色、旋压件粗糙度、拉丝件粗糙度和摄影曝光四个参数。音箱 2.0.0 配方增加宽、深、高三个毫米输入，联动箱体、内腔、开口、盖板及装配位置，保留零件尺寸和按钮行程；支持宽 264–340、深 138–180、高 162–220 mm。这是创建时的设置；已有项目的整套尺寸修改入口尚未提供。玻璃陶瓷和杯体保留颜色、粗糙度和曝光三个参数。这些能力已随插件 0.5.0 正式发布。
+桌灯有外径、主金属颜色、旋压件粗糙度、拉丝件粗糙度和摄影曝光参数。音箱 2.1.0 提供宽、深、高三个毫米输入，联动箱体、内腔、开口、盖板及装配位置，保留零件尺寸和按钮行程；支持宽 264–340、深 138–180、高 162–220 mm。创建和已保存项目的装配参数均可使用这些尺寸。玻璃陶瓷保留颜色、粗糙度和曝光参数，杯体还提供下文的联动尺寸。
 
 音箱原版 1.0.0 的完整字节保留在 [`modular-speaker-v1`](../tests/fixtures/modular-speaker-v1/recipe.json)。新配方保持原默认部件几何、变换、材质和动画，并沿用已验证的默认预览字节；修改后的尺寸在创建时重新渲染。重复构建及来源检查可运行 `node deepblend/tools/build-modular-speaker-recipe.mjs --check`。真实浏览器已验证只改宽度为 300 mm 得到 300×138×162 mm 的 111 部件模型，同时保留原版项目文件；这不证明最小壁厚、制造适用性或自然语言 Agent 成功率。
 
@@ -96,9 +96,11 @@ v1 只接受自包含的程序场景；不支持外部资产、图片贴图、�
 
 再声明 `recipe.array-bindings` 后，数字参数可绑定现有阵列的显式偏移单轴：`{ "kind": "array", "entityId": "cross-slats", "modifierIndex": 0, "property": "offset", "axis": "x", "multiplier": 0.001 }`。`modifierIndex` 为 0–7，必须指向输入场景中实际的 array 修饰器；不开放数量或任意修饰器属性。格栅垫将此偏移与对象的反向位置偏移绑定到同一毫米参数，使横条中心保持在 `[-间距, 0, +间距]`。旧消费者缺少该能力时明确拒绝新配方，旧配方仍可加载。
 
+声明 `recipe.half-lap-bindings` 后，可用 `{ "kind": "half-lap", "entityIds": ["longitudinal-slats", "cross-slats"], "property": "edgeWidth", "multiplier": 0.001 }` 将毫米参数绑定到已有半搭接的倒角宽度。两 ID 按无序配对定位接头，绑定不决定上下角色；重复或缺失配对会拒绝。整个参数范围须映射到 0–0.005 m，正宽度还要求原生能力 `geometry.joinery.half_lap.edge_finish`。0 会移除可选宽度字段。输入范围合法仍可能因具体几何过窄而无法生成；预览失败时应减小宽度后重试，原版本保持。
+
 盒体尺寸绑定要求三个明确的正数尺寸；整个参数范围必须产生有限值及正尺寸。实体目标不能重复绑定。多个独立尺寸参数可向同一个摄影机坐标累加偏移，但一个参数内的重复目标、整体范围溢出、未知摄影机以及争用摄影机动画都会被拒绝。实体位置已有动画时，必须显式声明 `offsetAnimation: true`；此时该位置轴的所有关键帧跟随相同偏移，帧号、插值和相对行程保留。缺少能力声明或消费者不支持此能力时，配方不能加载。
 
-开发中的 0.7.0 技术候选包含杯子 3.1.0，尚未发布。新增 `cup-height-mm`（95–130，默认 105）、`cup-outer-diameter-mm`（72–96，默认 80）、`cup-wall-mm`（3–5，默认 3）。高度同时调整把手上下连接位置，外径同时调整把手管径、连接根半径和长度；默认摄影机的距离、目标高度和横向中心随尺寸联动。壁厚独立调整，底厚与足圈圆角保留。旧 3.0.0 锁不获得这些参数，也不自动迁移。
+杯子 3.1.0 新增 `cup-height-mm`（95–130，默认 105）、`cup-outer-diameter-mm`（72–96，默认 80）、`cup-wall-mm`（3–5，默认 3）。高度同时调整把手上下连接位置，外径同时调整把手管径、连接根半径和长度；默认摄影机的距离、目标高度和横向中心随尺寸联动。壁厚独立调整，底厚与足圈圆角保留。旧 3.0.0 锁不获得这些参数，也不自动迁移。
 
 这类标量绑定同时声明 `recipe.geometry-bindings` 与新增的 `recipe.generator-bindings`。例如 `{ "kind": "generator", "entityId": "cup", "property": "height", "multiplier": 0.001 }` 把毫米输入转换为米；仍按默认值差量计算。仅支持 `handled_cup` 明确给出的正数属性 `height`、`radius`、`wallThickness`、`handleLower`、`handleUpper`、`handleRadius`、`rootRadius`、`rootLength`，不接受任意属性、表达式或重复目标。参数范围先验证有限正数，实例化后再验证整体 SceneSpec 约束；消费者缺少新增能力会拒绝加载。
 
@@ -189,7 +191,7 @@ node validate-recipe.mjs /absolute/my-product --parameters values.json > selecte
 
 ## 本地发现与发行
 
-Host 自带四组内置配方。第三方配方由运行环境维护者放入本地目录，再通过 Host 的 `recipeDirectories` 数组配置其父目录；例如配置 `/workspace/product-recipes` 后，Host 会读取其中 `my-product/` 的固定文件。工具调用不能任意指定文件路径或临时注册来源。
+Host 自带五组内置配方。第三方配方由运行环境维护者放入本地目录，再通过 Host 的 `recipeDirectories` 数组配置其父目录；例如配置 `/workspace/product-recipes` 后，Host 会读取其中 `my-product/` 的固定文件。工具调用不能任意指定文件路径或临时注册来源。
 
 目录中无效的包会在列表的 `errors` 中报告；两个包若声明相同 `id` 与 `version`，两者都会被排除。选择时必须带上列表返回的 `digest`。Host 在创建项目和提供预览前重新读取实际文件，内容改变后须重新选择；参数也会再次校验。列出目录和查看预览不需要启动 Blender。
 

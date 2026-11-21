@@ -1,6 +1,7 @@
 """Independently reopen saved trivet meshes and measure closed solids, centers and sampled joints."""
 from itertools import product
 import json
+import math
 from pathlib import Path
 import sys
 
@@ -10,7 +11,7 @@ from mathutils import Vector
 from mathutils.bvhtree import BVHTree
 
 
-def read(path, spacing, lower):
+def read(path, spacing, lower, edge_width=None):
     bpy.ops.wm.open_mainfile(filepath=str(path))
     ids = ("longitudinal-slats", "cross-slats")
     groups = {obj.get("deepblend_id"): obj for obj in bpy.context.scene.objects
@@ -20,6 +21,25 @@ def read(path, spacing, lower):
     cross_centers = []
     for name, obj in groups.items():
         points[name] = [obj.matrix_world @ vertex.co for vertex in obj.data.vertices]
+        if edge_width is not None:
+            mesh=obj.data
+            mesh.calc_loop_triangles()
+            uv=mesh.uv_layers.active
+            assert uv and all(math.isfinite(x) for item in uv.data for x in item.uv)
+            if edge_width:
+                assert mesh.has_custom_normals
+            for normal in mesh.corner_normals:
+                assert all(math.isfinite(x) for x in normal.vector) and abs(normal.vector.length-1)<1e-5
+            for triangle in mesh.loop_triangles:
+                a,b,c=[uv.data[index].uv for index in triangle.loops]
+                assert abs((b.x-a.x)*(c.y-a.y)-(b.y-a.y)*(c.x-a.x))>1e-14
+                assert all(mesh.corner_normals[index].vector.dot(triangle.normal)>0 for index in triangle.loops)
+            # An unnotched outer face provides an independent physical width.
+            if name=='longitudinal-slats':
+                flat=[p.x for p in points[name] if abs(p.z-.02)<1e-7]
+            else:
+                flat=[p.y for p in points[name] if abs(p.z)<1e-7]
+            assert flat and abs(min(flat)-(-.12+edge_width))<2e-6,(name,min(flat),edge_width)
         trees[name] = BVHTree.FromPolygons(points[name], [tuple(face.vertices) for face in obj.data.polygons])
         bm = bmesh.new()
         try:
@@ -78,11 +98,18 @@ def read(path, spacing, lower):
         overlaps += len(found) > 1
     assert overlaps == 0
     return {"boundsMm": bounds, "closedComponents": components, "spacingMm": spacing * 1000, "lower": lower,
+            **({"edgeWidthMm":edge_width*1000,"degenerateUvTriangles":0,"cornerNormalsValid":True} if edge_width is not None else {}),
             "crossCentersMm": sorted(cross_centers), "crossings": len(x_centers) * len(y_centers), "sampledCells": sampled, "overlapCells": overlaps}
 
 
 arguments = sys.argv[sys.argv.index("--") + 1:]
-assert len(arguments) % 3 == 0
-variants = {label: read(Path(path), float(spacing) / 1000, "cross-slats")
-            for label, spacing, path in zip(arguments[::3], arguments[1::3], arguments[2::3])}
+if arguments and arguments[0]=='--edge-widths':
+    arguments=arguments[1:]
+    assert len(arguments)%4==0
+    variants={label:read(Path(path),float(spacing)/1000,'cross-slats',float(width)/1000)
+              for label,spacing,width,path in zip(arguments[::4],arguments[1::4],arguments[2::4],arguments[3::4])}
+else:
+    assert len(arguments) % 3 == 0
+    variants = {label: read(Path(path), float(spacing) / 1000, "cross-slats")
+                for label, spacing, path in zip(arguments[::3], arguments[1::3], arguments[2::3])}
 print("CENTERED_TRIVET " + json.dumps(variants))

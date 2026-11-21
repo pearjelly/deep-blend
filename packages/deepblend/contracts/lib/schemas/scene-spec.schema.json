@@ -37,6 +37,12 @@
           },
           "upperEntityId": {
             "$ref": "#/$defs/id"
+          },
+          "edgeWidth": {
+            "type": "number",
+            "exclusiveMinimum": 0,
+            "maximum": 0.005,
+            "description": "World-space convex-edge bevel offset in metres, applied after the complementary cuts. Omitted preserves sharp edges. Concave recess edges are not rounded."
           }
         }
       }

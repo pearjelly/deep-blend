@@ -703,6 +703,7 @@ export {
   MESH_GEOMETRY_FEATURE,
   SUBDIVISION_FEATURE,
   SURFACE_SCATTER_FEATURE,
+  HALF_LAP_EDGE_FINISH_FEATURE,
   requiredSceneFeatures,
   entityBoundingRadius,
   sceneProjection,
