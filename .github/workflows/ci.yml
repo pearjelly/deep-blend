@@ -446,6 +446,12 @@ jobs:
         env:
           DEEPBLEND_E2E_ARTIFACTS: ${{ runner.temp }}/deepblend-ci/recipe-edit-browser
         run: xvfb-run -a node deepblend/tests/e2e/recipe-edit-ui.e2e.mjs > "$DEEPBLEND_CI_EVIDENCE/recipe-edit-browser.log" 2>&1
+      - name: Centered trivet spacing, saved edits and relocated editable ZIP
+        if: ${{ !cancelled() && steps.graphics.outcome == 'success' }}
+        timeout-minutes: 8
+        env:
+          DEEPBLEND_E2E_ARTIFACTS: ${{ runner.temp }}/deepblend-ci/trivet-spacing-browser
+        run: xvfb-run -a node deepblend/tests/e2e/trivet-spacing-ui.e2e.mjs > "$DEEPBLEND_CI_EVIDENCE/trivet-spacing-browser.log" 2>&1
       - name: Real directory upload, cancellation recovery and native model application
         if: ${{ !cancelled() && steps.graphics.outcome == 'success' }}
         timeout-minutes: 10

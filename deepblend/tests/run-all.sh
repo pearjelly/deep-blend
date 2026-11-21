@@ -221,6 +221,9 @@ run_suite "Linked speaker dimensions: native assembly creation and historical pr
 run_suite "Existing assembly dimensions: native edits, preserved styles and conditional history restore" \
   node deepblend/tests/e2e/recipe-edit-ui.e2e.mjs
 
+run_suite "Centered trivet spacing: native gallery creation, saved edits and relocated editable ZIP" \
+  node deepblend/tests/e2e/trivet-spacing-ui.e2e.mjs
+
 run_suite "Preview history: native attempts, source labels, editor comparison and restore" \
   node deepblend/tests/e2e/preview-history-ui.e2e.mjs
 

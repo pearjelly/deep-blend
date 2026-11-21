@@ -9,11 +9,19 @@ import { instantiateRecipeLock, RecipeError } from './recipe.js'
 import { validateSceneSpec } from './scene-spec.js'
 
 const axisOf = binding => ['x', 'y', 'z'].indexOf(binding.axis)
-const structural = parameter => parameter.bindings.some(binding => ['entity', 'generator', 'lathe-shell', 'curve-point'].includes(binding.kind))
-  && parameter.bindings.every(binding => ['entity', 'camera', 'generator', 'lathe-shell', 'curve-point'].includes(binding.kind))
+const structural = parameter => parameter.bindings.some(binding => ['entity', 'generator', 'lathe-shell', 'curve-point', 'array'].includes(binding.kind))
+  && parameter.bindings.every(binding => ['entity', 'camera', 'generator', 'lathe-shell', 'curve-point', 'array'].includes(binding.kind))
 const entity = (spec, id) => spec.entities.find(item => item.id === id)
 const vector = (target, property) => property === 'dimensions' ? target?.generator?.dimensions
   : property === 'targetPoint' ? target?.targetPoint : target?.transform?.location
+const boundValue = (target, binding) => {
+  if (binding.kind === 'array') return target?.modifiers?.[binding.modifierIndex]?.offset?.[axisOf(binding)]
+  if (binding.kind === 'curve-point') return target?.generator?.path?.[binding.pointIndex]?.[axisOf(binding)]
+  if (binding.kind === 'generator') return target?.generator?.[binding.property]
+  return vector(target, binding.property)?.[axisOf(binding)]
+}
+const arrayLayout = target => (target?.modifiers ?? []).flatMap((modifier, index) =>
+  modifier.type === 'array' ? [{ index, ...modifier }] : [])
 const close = (a, b) => Array.isArray(a) && Array.isArray(b)
   ? a.length === b.length && a.every((value, index) => close(value, b[index]))
   : Number.isFinite(a) && Number.isFinite(b)
@@ -54,14 +62,16 @@ export function planRecipeGeometryEdit(lock, currentSpec, parameterState, change
   }
   const conflicts = []
   for (const parameter of parameters) for (const binding of targets(parameter)) {
-    if (!['entity', 'generator', 'curve-point'].includes(binding.kind)) continue
+    if (!['entity', 'generator', 'curve-point', 'array'].includes(binding.kind)) continue
     const oldEntity = entity(before.spec, binding.entityId), currentEntity = entity(currentSpec, binding.entityId)
-    const expected = binding.kind === 'curve-point' ? oldEntity?.generator?.path?.[binding.pointIndex]?.[axisOf(binding)] : binding.kind === 'generator' ? oldEntity?.generator?.[binding.property]
-      : vector(oldEntity, binding.property)?.[axisOf(binding)]
-    const actual = binding.kind === 'curve-point' ? currentEntity?.generator?.path?.[binding.pointIndex]?.[axisOf(binding)] : binding.kind === 'generator' ? currentEntity?.generator?.[binding.property]
-      : vector(currentEntity, binding.property)?.[axisOf(binding)]
+    const expected = boundValue(oldEntity, binding)
+    const actual = boundValue(currentEntity, binding)
     if (!close(actual, expected)) conflicts.push({ parameterId: parameter.id, entityId: binding.entityId,
       property: binding.kind === 'curve-point' ? `path.${binding.pointIndex}` : binding.property, axis: binding.axis, expected, actual })
+    if (binding.kind === 'array' && canonicalStringify(arrayLayout(currentEntity)) !== canonicalStringify(arrayLayout(oldEntity))) {
+      conflicts.push({ parameterId: parameter.id, entityId: binding.entityId, property: 'array-layout',
+        expected: arrayLayout(oldEntity), actual: arrayLayout(currentEntity) })
+    }
     if (['generator', 'curve-point'].includes(binding.kind) && currentEntity?.generator?.shape !== oldEntity?.generator?.shape) {
       conflicts.push({ parameterId: parameter.id, entityId: binding.entityId, property: 'shape',
         expected: oldEntity?.generator?.shape, actual: currentEntity?.generator?.shape })
@@ -76,8 +86,8 @@ export function planRecipeGeometryEdit(lock, currentSpec, parameterState, change
       conflicts.push({ parameterId: parameter.id, entityId: binding.entityId,
         property: 'shell-alignment', expected: oldEntity?.transform, actual: currentEntity?.transform })
     }
-    if (binding.property === 'dimensions' || ['generator', 'curve-point'].includes(binding.kind)) {
-      if (binding.property === 'dimensions' && (currentEntity?.generator?.shape !== oldEntity?.generator?.shape
+    if (binding.property === 'dimensions' || ['generator', 'curve-point', 'array'].includes(binding.kind)) {
+      if ((binding.property === 'dimensions' || binding.kind === 'array') && (currentEntity?.generator?.shape !== oldEntity?.generator?.shape
         || !close(currentEntity?.transform?.rotationEuler ?? [0, 0, 0], oldEntity?.transform?.rotationEuler ?? [0, 0, 0]))) {
         conflicts.push({ parameterId: parameter.id, entityId: binding.entityId,
           property: 'dimension-alignment', expected: oldEntity?.transform?.rotationEuler, actual: currentEntity?.transform?.rotationEuler })
@@ -95,7 +105,7 @@ export function planRecipeGeometryEdit(lock, currentSpec, parameterState, change
 
   const changed = parameters.filter(parameter => before.values[parameter.id] !== after.values[parameter.id]
     || assembly && !parameterState?.assemblyRepair && Object.keys(changes).includes(parameter.id))
-  const generators = new Map(), locations = new Map(), cameras = new Map(), tracks = new Map(), animationOffsets = new Map()
+  const generators = new Map(), modifierEdits = new Map(), locations = new Map(), cameras = new Map(), tracks = new Map(), animationOffsets = new Map()
   const protectedCameras = new Set()
   for (const parameter of changed) for (const binding of targets(parameter)) {
     const axis = axisOf(binding)
@@ -114,7 +124,10 @@ export function planRecipeGeometryEdit(lock, currentSpec, parameterState, change
       continue
     }
     const actual = entity(currentSpec, binding.entityId), target = entity(after.spec, binding.entityId)
-    if (binding.kind === 'curve-point') {
+    if (binding.kind === 'array') {
+      if (!modifierEdits.has(actual.id)) modifierEdits.set(actual.id, structuredClone(actual.modifiers))
+      modifierEdits.get(actual.id)[binding.modifierIndex].offset[axis] = target.modifiers[binding.modifierIndex].offset[axis]
+    } else if (binding.kind === 'curve-point') {
       if (close(actual.generator.path[binding.pointIndex][axis], target.generator.path[binding.pointIndex][axis])) continue
       if (!generators.has(actual.id)) generators.set(actual.id, structuredClone(actual.generator))
       generators.get(actual.id).path[binding.pointIndex][axis] = target.generator.path[binding.pointIndex][axis]
@@ -150,6 +163,7 @@ export function planRecipeGeometryEdit(lock, currentSpec, parameterState, change
   }
   const operations = [
     ...[...generators].map(([entityId, generator]) => ({ op: 'entity.generator.set', entityId, generator })),
+    ...[...modifierEdits].map(([entityId, modifiers]) => ({ op: 'entity.modifiers.set', entityId, modifiers })),
     ...[...locations].map(([entityId, location]) => ({ op: 'entity.transform.update', entityId, location })),
     ...cameras.values(),
     ...[...tracks.values()].map(track => ({ op: 'animation.track.set', track })),

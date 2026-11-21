@@ -60,6 +60,7 @@
 | `deepblend/tests/e2e/png-download-ui.e2e.mjs` | 真实配方创建与 Chrome 文件下载；原始 PNG 字节/尺寸/摘要和源文件名，真实 HTTP 图片被替换时拒绝、恢复后重试、无 SubtleCrypto 时校验、360px 操作和场景/任务保护；编码器路径明确不可用 |
 | `deepblend/tests/e2e/creation-recovery-ui.e2e.mjs` | 真实缺失程序失败、隔离路径修复、刷新及关闭/重开后的浏览器草稿、明确恢复不提交、原请求重试及新输入保留；CDP 丢弃实际成功 HTTP 回执，同标识恢复且无重复项目/编译/渲染；两页草稿与只删除浏览器记录、场景/PNG/作业/版本原字节保护、360px 控件实际可见、Host 重启及临时应用别名移除 |
 | `deepblend/tests/e2e/recipe-edit-ui.e2e.mjs` | 已有装配三参数保存、材质与镜头保留、历史恢复及 Blender 原生几何核对 |
+| `deepblend/tests/e2e/trivet-spacing-ui.e2e.mjs` | 格栅垫间距上下限创建、居中改稿、刷新、390px 控件、原始版本保护与可编辑 ZIP 下载后独立 Blender 重开测量 |
 | `deepblend/tests/e2e/asset-bundle-upload.e2e.mjs` | 实际 FileList/目录相对路径与原始字节；平铺成功/拒绝、真实完成和取消回包丢失后的恢复；390px 工作中进度/取消/错误；两份 glTF、GLB 与 OBJ 预览，三格式明确应用及保存场景独立重开 |
 
 已有真实渲染 job 曾实测约 15 分钟，因此把编辑入口放入独立 job，给原任务保留超时余量。

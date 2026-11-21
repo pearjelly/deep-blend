@@ -1,0 +1,452 @@
+{
+  "schemaVersion": "deepblend.scene/v1",
+  "project": {
+    "id": "walnut-trivet-authoring",
+    "title": "Walnut lattice trivet",
+    "activeCamera": "hero",
+    "frameStart": 1,
+    "frameEnd": 3,
+    "fps": 24,
+    "aspectRatio": "4:3"
+  },
+  "entities": [
+    {
+      "id": "longitudinal-slats",
+      "type": "generator",
+      "materialId": "walnut-lengthwise",
+      "modifiers": [
+        {
+          "type": "array",
+          "count": 2,
+          "offset": [
+            0,
+            0.053,
+            0
+          ]
+        },
+        {
+          "type": "mirror",
+          "axis": "y",
+          "merge": false
+        }
+      ],
+      "generator": {
+        "shape": "mesh",
+        "vertices": [
+          [
+            -0.12,
+            0.019,
+            0
+          ],
+          [
+            0.12,
+            0.019,
+            0
+          ],
+          [
+            0.12,
+            0.043,
+            0
+          ],
+          [
+            -0.12,
+            0.043,
+            0
+          ],
+          [
+            -0.12,
+            0.019,
+            0.02
+          ],
+          [
+            0.12,
+            0.019,
+            0.02
+          ],
+          [
+            0.12,
+            0.043,
+            0.02
+          ],
+          [
+            -0.12,
+            0.043,
+            0.02
+          ]
+        ],
+        "faces": [
+          [
+            0,
+            3,
+            2,
+            1
+          ],
+          [
+            4,
+            5,
+            6,
+            7
+          ],
+          [
+            0,
+            1,
+            5,
+            4
+          ],
+          [
+            1,
+            2,
+            6,
+            5
+          ],
+          [
+            2,
+            3,
+            7,
+            6
+          ],
+          [
+            3,
+            0,
+            4,
+            7
+          ]
+        ]
+      }
+    },
+    {
+      "id": "cross-slats",
+      "type": "generator",
+      "materialId": "walnut-crosswise",
+      "modifiers": [
+        {
+          "type": "array",
+          "count": 3,
+          "offset": [
+            0.078,
+            0,
+            0
+          ]
+        }
+      ],
+      "generator": {
+        "shape": "mesh",
+        "vertices": [
+          [
+            -0.09,
+            -0.12,
+            0
+          ],
+          [
+            -0.066,
+            -0.12,
+            0
+          ],
+          [
+            -0.066,
+            0.12,
+            0
+          ],
+          [
+            -0.09,
+            0.12,
+            0
+          ],
+          [
+            -0.09,
+            -0.12,
+            0.02
+          ],
+          [
+            -0.066,
+            -0.12,
+            0.02
+          ],
+          [
+            -0.066,
+            0.12,
+            0.02
+          ],
+          [
+            -0.09,
+            0.12,
+            0.02
+          ]
+        ],
+        "faces": [
+          [
+            0,
+            3,
+            2,
+            1
+          ],
+          [
+            4,
+            5,
+            6,
+            7
+          ],
+          [
+            0,
+            1,
+            5,
+            4
+          ],
+          [
+            1,
+            2,
+            6,
+            5
+          ],
+          [
+            2,
+            3,
+            7,
+            6
+          ],
+          [
+            3,
+            0,
+            4,
+            7
+          ]
+        ]
+      }
+    },
+    {
+      "id": "studio-surface",
+      "type": "generator",
+      "generator": {
+        "shape": "plane",
+        "size": 1.8
+      },
+      "transform": {
+        "location": [
+          0,
+          0,
+          -0.0002
+        ]
+      },
+      "materialId": "limestone-surface"
+    }
+  ],
+  "halfLaps": [
+    {
+      "lowerEntityId": "cross-slats",
+      "upperEntityId": "longitudinal-slats"
+    }
+  ],
+  "materials": [
+    {
+      "id": "walnut-lengthwise",
+      "shader": "principled",
+      "parameters": {
+        "baseColor": [
+          0.125,
+          0.046,
+          0.019,
+          1
+        ],
+        "roughness": 0.44
+      },
+      "texture": {
+        "type": "noise",
+        "scale": 140,
+        "detail": 2.5,
+        "stretch": [
+          0.055,
+          3.25,
+          2.4
+        ],
+        "bump": 0.028,
+        "colorVariation": 0.62,
+        "roughnessVariation": 0.085
+      }
+    },
+    {
+      "id": "walnut-crosswise",
+      "shader": "principled",
+      "parameters": {
+        "baseColor": [
+          0.125,
+          0.046,
+          0.019,
+          1
+        ],
+        "roughness": 0.44
+      },
+      "texture": {
+        "type": "noise",
+        "scale": 140,
+        "detail": 2.5,
+        "stretch": [
+          3.25,
+          0.055,
+          2.4
+        ],
+        "bump": 0.028,
+        "colorVariation": 0.62,
+        "roughnessVariation": 0.085
+      }
+    },
+    {
+      "id": "limestone-surface",
+      "shader": "principled",
+      "parameters": {
+        "baseColor": [
+          0.58,
+          0.54,
+          0.46,
+          1
+        ],
+        "roughness": 0.68
+      }
+    }
+  ],
+  "cameras": [
+    {
+      "id": "hero",
+      "role": "active-camera",
+      "lens": 51,
+      "sensorWidth": 36,
+      "clipping": [
+        0.002,
+        5
+      ],
+      "transform": {
+        "location": [
+          0.31,
+          -0.39,
+          0.38
+        ]
+      },
+      "targetPoint": [
+        0,
+        0,
+        0.008
+      ]
+    },
+    {
+      "id": "detail",
+      "lens": 57,
+      "sensorWidth": 36,
+      "clipping": [
+        0.002,
+        5
+      ],
+      "transform": {
+        "location": [
+          0.18,
+          -0.22,
+          0.13
+        ]
+      },
+      "targetPoint": [
+        0.052,
+        -0.046,
+        0.015
+      ]
+    }
+  ],
+  "lights": [
+    {
+      "id": "key",
+      "type": "area",
+      "energy": 6.2,
+      "size": 0.31,
+      "color": [
+        1,
+        0.92,
+        0.84
+      ],
+      "transform": {
+        "location": [
+          0.08,
+          -0.27,
+          0.32
+        ],
+        "rotationEuler": [
+          0.7374340987853394,
+          0,
+          0.28805544705062586
+        ]
+      }
+    },
+    {
+      "id": "fill",
+      "type": "area",
+      "energy": 1.6,
+      "size": 0.36,
+      "color": [
+        0.87,
+        0.93,
+        1
+      ],
+      "transform": {
+        "location": [
+          -0.36,
+          -0.04,
+          0.23
+        ],
+        "rotationEuler": [
+          1.0249728454732445,
+          0,
+          -1.460139105621001
+        ]
+      }
+    },
+    {
+      "id": "rim",
+      "type": "area",
+      "energy": 5.2,
+      "size": 0.28,
+      "color": [
+        1,
+        0.95,
+        0.87
+      ],
+      "transform": {
+        "location": [
+          0.16,
+          0.3,
+          0.32
+        ],
+        "rotationEuler": [
+          0.8315192794119595,
+          0,
+          2.651635327336065
+        ]
+      }
+    }
+  ],
+  "world": {
+    "color": [
+      0.52,
+      0.56,
+      0.62,
+      1
+    ],
+    "strength": 0.16
+  },
+  "renderProfiles": {
+    "preview": {
+      "engine": "cycles",
+      "resolution": [
+        720,
+        540
+      ],
+      "samples": 24,
+      "maxSamplesBudget": 24
+    },
+    "final": {
+      "engine": "cycles",
+      "resolution": [
+        1440,
+        1080
+      ],
+      "samples": 64,
+      "maxSamplesBudget": 64
+    }
+  },
+  "assets": []
+}

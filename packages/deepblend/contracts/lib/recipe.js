@@ -17,6 +17,7 @@ export const RECIPE_CAPABILITIES = Object.freeze([
   'recipe.generator-bindings',
   'recipe.lathe-shell-bindings',
   'recipe.curve-point-bindings',
+  'recipe.array-bindings',
   'recipe.threshold-bindings',
 ])
 export const RECIPE_LIMITS = Object.freeze({ sceneBytes: 2 * 1024 * 1024, previewBytes: 4 * 1024 * 1024, previewPixels: 4 * 1024 * 1024 })
@@ -31,8 +32,13 @@ const bindingAxis = binding => ['x', 'y', 'z'].indexOf(binding.axis)
 const bindingTarget = (spec, binding) => binding.kind === 'camera' ? spec.cameras?.find(item => item.id === binding.cameraId) : spec.entities.find(item => item.id === binding.entityId)
 const bindingDelta = (value, parameter, binding) => ((binding.inputFloor === undefined ? value : Math.max(value, binding.inputFloor))
   - (binding.inputFloor === undefined ? parameter.default : Math.max(parameter.default, binding.inputFloor))) * binding.multiplier
-const bindingVector = (target, binding) => binding.kind === 'curve-point' ? target?.generator?.path?.[binding.pointIndex] : binding.property === 'dimensions' ? target?.generator?.dimensions
-  : binding.property === 'targetPoint' ? target?.targetPoint : target?.transform?.location
+const bindingVector = (target, binding) => {
+  if (binding.kind === 'array') return target?.modifiers?.[binding.modifierIndex]?.offset
+  if (binding.kind === 'curve-point') return target?.generator?.path?.[binding.pointIndex]
+  if (binding.property === 'dimensions') return target?.generator?.dimensions
+  if (binding.property === 'targetPoint') return target?.targetPoint
+  return target?.transform?.location
+}
 const bindingTracks = (spec, binding) => (spec.animationTracks ?? []).filter(track => (track.targetKind ?? 'entity') === binding.kind
   && track.targetEntityId === (binding.entityId ?? binding.cameraId) && track.property === `location.${binding.axis}`)
 
@@ -112,6 +118,7 @@ export function validateRecipeManifest(manifest, options = {}) {
         const target = slot.kind === 'material' ? `material:${slot.materialId}:${slot.property}`
           : slot.kind === 'curve-point' ? `curve-point:${slot.entityId}:${slot.pointIndex}.${slot.axis}`
           : slot.kind === 'generator' ? `generator:${slot.entityId}:${slot.property}`
+          : slot.kind === 'array' ? `array:${slot.entityId}:${slot.modifierIndex}.${slot.axis}`
           : ['entity', 'camera'].includes(slot.kind) ? `${slot.kind}:${slot.entityId ?? slot.cameraId}:${slot.property}.${slot.axis}` : `render-profile:${slot.profile}:exposure`
         const prior = targets.get(target)
         // Camera framing may add independent width/depth/height deltas. Repeating a
@@ -123,12 +130,13 @@ export function validateRecipeManifest(manifest, options = {}) {
       const color = binding.kind === 'material' && binding.property === 'baseColor'
       if ((parameter.type === 'color') !== color) errors.push(issue('RECIPE_BINDING_INVALID', path, 'Parameter type does not match the allowlisted property'))
       if (parameter.type === 'number') {
-        if (['entity', 'camera', 'generator', 'lathe-shell', 'curve-point'].includes(binding.kind)) {
+        if (['entity', 'camera', 'generator', 'lathe-shell', 'curve-point', 'array'].includes(binding.kind)) {
           if (!Number.isFinite(binding.multiplier) || binding.multiplier === 0) errors.push(issue('RECIPE_BINDING_INVALID', path, 'Entity binding multiplier must be finite and nonzero'))
           if (!declared.has('recipe.geometry-bindings')) errors.push(issue('RECIPE_CAPABILITY_UNDECLARED', path, 'Entity bindings require recipe.geometry-bindings'))
           if (binding.kind === 'generator' && !declared.has('recipe.generator-bindings')) errors.push(issue('RECIPE_CAPABILITY_UNDECLARED', path, 'Generator bindings require recipe.generator-bindings'))
           if (binding.kind === 'lathe-shell' && !declared.has('recipe.lathe-shell-bindings')) errors.push(issue('RECIPE_CAPABILITY_UNDECLARED', path, 'Lathe shell bindings require recipe.lathe-shell-bindings'))
           if (binding.kind === 'curve-point' && !declared.has('recipe.curve-point-bindings')) errors.push(issue('RECIPE_CAPABILITY_UNDECLARED', path, 'Curve points require recipe.curve-point-bindings'))
+          if (binding.kind === 'array' && !declared.has('recipe.array-bindings')) errors.push(issue('RECIPE_CAPABILITY_UNDECLARED', path, 'Array offsets require recipe.array-bindings'))
           if (binding.inputFloor !== undefined && (!declared.has('recipe.threshold-bindings') || binding.inputFloor < parameter.minimum || binding.inputFloor > parameter.maximum)) errors.push(issue('RECIPE_BINDING_INVALID', path, 'A threshold must be declared and inside the parameter range'))
           if (binding.property !== 'location' && binding.offsetAnimation !== undefined) errors.push(issue('RECIPE_BINDING_INVALID', path, 'Animation offsets are only valid on location bindings'))
           continue
@@ -223,12 +231,14 @@ function bindingsAgainstScene(manifest, spec) {
       }
       const ends = [parameter.minimum, parameter.maximum].map(value => current + bindingDelta(value, parameter, binding))
       if (ends.some(value => !Number.isFinite(value) || value <= 0)) errors.push(issue('RECIPE_BINDING_INVALID', path, 'Generator binding range must remain positive and finite'))
-    } else if (['entity', 'camera', 'curve-point'].includes(binding.kind)) {
+    } else if (['entity', 'camera', 'curve-point', 'array'].includes(binding.kind)) {
       const entity = bindingTarget(spec, binding)
       const vector = bindingVector(entity, binding), axis = bindingAxis(binding)
-      if (!entity || (binding.kind === 'curve-point' && entity.generator?.shape !== 'curve') || (binding.property === 'dimensions' && (!['cube', 'rounded_box'].includes(entity.generator?.shape) || entity.generator.size !== undefined))
+      if (!entity || (binding.kind === 'curve-point' && entity.generator?.shape !== 'curve')
+        || (binding.kind === 'array' && entity.modifiers?.[binding.modifierIndex]?.type !== 'array')
+        || (binding.property === 'dimensions' && (!['cube', 'rounded_box'].includes(entity.generator?.shape) || entity.generator.size !== undefined))
         || !Array.isArray(vector) || vector.length !== 3 || !Number.isFinite(vector[axis])) {
-        errors.push(issue('RECIPE_BINDING_INVALID', path, 'Structural binding requires an explicit supported dimension, position or aim point'))
+        errors.push(issue('RECIPE_BINDING_INVALID', path, 'Structural binding requires an explicit supported dimension, position, array offset or aim point'))
         continue
       }
       const ends = [parameter.minimum, parameter.maximum].map(value => vector[axis] + bindingDelta(value, parameter, binding))
@@ -369,7 +379,7 @@ function resolveRecipe(manifest, checked, values) {
       spec.entities.find(entity => entity.id === binding.linerEntityId).generator.profile = profiles.liner
     } else if (binding.kind === 'generator') {
       bindingTarget(spec, binding).generator[binding.property] += (resolvedValues[parameter.id] - parameter.default) * binding.multiplier
-    } else if (['entity', 'camera', 'curve-point'].includes(binding.kind)) {
+    } else if (['entity', 'camera', 'curve-point', 'array'].includes(binding.kind)) {
       const vector = bindingVector(bindingTarget(spec, binding), binding)
       // Preserve the input's exact default bytes and avoid cumulative edits.
       if (value !== parameter.default) {
