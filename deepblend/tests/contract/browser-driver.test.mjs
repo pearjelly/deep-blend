@@ -3,7 +3,8 @@ import test from 'node:test'
 import assert from 'node:assert/strict'
 import { createServer } from 'node:http'
 import { createHash } from 'node:crypto'
-import { existsSync, mkdtempSync, rmSync } from 'node:fs'
+import { spawn } from 'node:child_process'
+import { existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { Browser, BrowserPage } from '../../tools/browser-driver.mjs'
@@ -125,6 +126,78 @@ test('Chrome profile cleanup still runs if a page close fails', async t => {
   browser.pages.push({ close: async () => { throw new Error('injected page close failure') } })
   await browser.close(); assert.deepEqual(signals, ['SIGKILL']); assert.equal(existsSync(directory), false)
 })
+
+for (const mode of ['close', 'launch-error']) {
+  test(`browser ${mode} releases inherited output pipes so its worker exits naturally`, { timeout: 15000 }, async t => {
+    const directory = mkdtempSync(join(tmpdir(), 'deepblend-inherited-pipe-'))
+    const statePath = join(directory, 'state.json'), leafPath = join(directory, 'leaf.json')
+    const launcher = join(directory, 'fake-chrome.mjs'), worker = join(directory, 'worker.mjs')
+    // The leaf deliberately outlives its parent and keeps both inherited pipes.
+    // It never writes, so closing our reader cannot make the fixture exit early.
+    writeFileSync(launcher, `#!${process.execPath}\n` + `
+import { spawn } from 'node:child_process'
+import { writeFileSync } from 'node:fs'
+const leaf = spawn(process.execPath, ['-e', 'setInterval(()=>{},1000)'],
+  { detached: true, stdio: ['ignore', 'inherit', 'inherit'] })
+leaf.unref()
+writeFileSync(${JSON.stringify(leafPath)}, JSON.stringify({ leaf: leaf.pid, launcher: process.pid }))
+process.stdout.write(JSON.stringify({ leaf: leaf.pid }) + String.fromCharCode(10))
+process.stderr.write('inherited-pipe fixture diagnostic')
+${mode === 'launch-error' ? 'process.exit(7)' : 'setInterval(()=>{},1000)'}
+`, { mode: 0o755 })
+    writeFileSync(worker, `
+import assert from 'node:assert/strict'
+import { spawn } from 'node:child_process'
+import { once } from 'node:events'
+import { writeFileSync } from 'node:fs'
+import { Browser } from ${JSON.stringify(new URL('../../tools/browser-driver.mjs', import.meta.url).href)}
+let result
+if (${JSON.stringify(mode)} === 'close') {
+  const child = spawn(${JSON.stringify(launcher)}, [], { stdio: ['ignore', 'pipe', 'pipe'] })
+  const exited = once(child, 'exit')
+  await once(child.stdout, 'data')
+  await new Browser(child, 0, ${JSON.stringify(join(directory, 'profile'))}).close()
+  const [code, signal] = await exited
+  assert.equal(code, null); assert.equal(signal, 'SIGKILL')
+  result = { directChildExited: true }
+} else {
+  try {
+    await Browser.launch({ chromePath: ${JSON.stringify(launcher)} })
+    assert.fail('the fixture must fail before exposing a debugging endpoint')
+  } catch (error) {
+    assert.match(error.message, /Chrome exited early/)
+    assert.equal(error.launch.exitCode, 7)
+    assert.match(error.launch.stderr, /inherited-pipe fixture diagnostic/)
+    result = { launchErrorPreserved: true }
+  }
+}
+writeFileSync(${JSON.stringify(statePath)}, JSON.stringify(result))
+`)
+    const child = spawn(process.execPath, [worker], { stdio: ['ignore', 'pipe', 'pipe'] })
+    let diagnostics = ''
+    child.stdout.on('data', bytes => { diagnostics += bytes })
+    child.stderr.on('data', bytes => { diagnostics += bytes })
+    const exited = new Promise(resolve => child.once('exit', (code, signal) => resolve({ code, signal })))
+    t.after(async () => {
+      if (existsSync(leafPath)) {
+        const owned = JSON.parse(readFileSync(leafPath))
+        for (const pid of [owned.leaf, owned.launcher]) {
+          try { process.kill(pid, 'SIGTERM') } catch (error) { if (error.code !== 'ESRCH') throw error }
+        }
+      }
+      if (child.exitCode === null && child.signalCode === null) child.kill('SIGKILL')
+      await exited
+      rmSync(directory, { recursive: true, force: true })
+    })
+    let timer
+    const result = await Promise.race([exited, new Promise(resolve => { timer = setTimeout(() => resolve({ timeout: true }), 5000) })])
+    clearTimeout(timer)
+    assert.deepEqual(result, { code: 0, signal: null }, `worker must exit while the inherited-pipe leaf is alive: ${diagnostics}`)
+    const owned = JSON.parse(readFileSync(leafPath))
+    process.kill(owned.leaf, 0)
+    assert.deepEqual(JSON.parse(readFileSync(statePath)), mode === 'close' ? { directChildExited: true } : { launchErrorPreserved: true })
+  })
+}
 
 test('a connection that never upgrades fails within its own deadline', { timeout: 3000 }, async t => {
   const f = await fixture(t, undefined, { handshake: 'silent', timeouts: { connectTimeoutMs: 60 } })
