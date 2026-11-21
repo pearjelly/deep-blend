@@ -97,7 +97,7 @@
         "capabilities": {
           "type": "array",
           "minItems": 1,
-          "maxItems": 25,
+          "maxItems": 26,
           "items": {
             "enum": [
               "geometry.primitive",
@@ -124,7 +124,8 @@
               "geometry.procedural.mesh",
               "geometry.modifier.subdivision",
               "geometry.modifier.surface_scatter",
-              "geometry.joinery.half_lap"
+              "geometry.joinery.half_lap",
+              "recipe.array-bindings"
             ]
           }
         }
@@ -461,6 +462,48 @@
               "type": "number",
               "minimum": -1000000,
               "maximum": 1000000
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "kind",
+            "entityId",
+            "modifierIndex",
+            "property",
+            "axis",
+            "multiplier"
+          ],
+          "description": "Apply a bounded parameter delta to one offset axis of an authored array modifier.",
+          "properties": {
+            "kind": {
+              "const": "array"
+            },
+            "entityId": {
+              "type": "string",
+              "pattern": "^[a-zA-Z][a-zA-Z0-9._-]{0,63}$"
+            },
+            "modifierIndex": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 7
+            },
+            "property": {
+              "const": "offset"
+            },
+            "axis": {
+              "enum": [
+                "x",
+                "y",
+                "z"
+              ]
+            },
+            "multiplier": {
+              "type": "number",
+              "minimum": -1000,
+              "maximum": 1000
             }
           }
         }

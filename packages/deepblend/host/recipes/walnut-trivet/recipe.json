@@ -1,9 +1,9 @@
 {
   "schemaVersion": "deepblend.recipe/v1",
   "id": "deepblend.walnut-trivet",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "title": "胡桃木格栅垫 · Walnut trivet",
-  "description": "从 240 毫米见方的格栅垫开始，调整横条间距和半搭接。 Create a 240 mm lattice trivet with editable slat spacing and half laps.",
+  "description": "创建 240 毫米见方的格栅垫，设置横条间距并保持居中，再继续调整半搭接。 Create a 240 mm lattice trivet with centered cross-slat spacing and editable half laps.",
   "author": {
     "name": "DeepBlend contributors",
     "url": "https://github.com/pearjelly/deep-blend"
@@ -20,12 +20,14 @@
       "geometry.primitive",
       "geometry.procedural.mesh",
       "material.principled",
-      "material.procedural"
+      "material.procedural",
+      "recipe.geometry-bindings",
+      "recipe.array-bindings"
     ]
   },
   "input": {
     "path": "scene-spec.json",
-    "sha256": "6d6852c2568d22c8e0609238e1d55520034746be6ac06fda26c85f19d0b64606"
+    "sha256": "005f2e6a19a535730b022ab1338de1034e60c0cfb1d13bb846602673f4033a61"
   },
   "preview": {
     "path": "preview.png",
@@ -73,6 +75,31 @@
           "kind": "material",
           "materialId": "walnut-crosswise",
           "property": "roughness"
+        }
+      ]
+    },
+    {
+      "id": "slat-spacing",
+      "title": "横条间距（mm） · Slat spacing (mm)",
+      "type": "number",
+      "default": 78,
+      "minimum": 52,
+      "maximum": 92,
+      "bindings": [
+        {
+          "kind": "array",
+          "entityId": "cross-slats",
+          "modifierIndex": 0,
+          "property": "offset",
+          "axis": "x",
+          "multiplier": 0.001
+        },
+        {
+          "kind": "entity",
+          "entityId": "cross-slats",
+          "property": "location",
+          "axis": "x",
+          "multiplier": -0.001
         }
       ]
     }

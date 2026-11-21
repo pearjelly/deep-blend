@@ -26,6 +26,55 @@ function setup(t, recipeName = 'metal-lamp') {
   return { root, recipes, catalog, request, studio }
 }
 
+test('trivet spacing survives creation, ordinary edits, replay and restore with immutable source files', async t => {
+  const { studio, request, recipes } = setup(t, 'walnut-trivet')
+  const made = await studio.createProject({ title: 'Centered trivet',
+    recipe: { ...request, parameters: { 'slat-spacing': 64 } }, saveCheckpoint: false })
+  const projectId = made.projectId, directory = studio.store.revisionDirectory(projectId, 'r0001')
+  const original = Object.fromEntries(['scene-spec.json', 'recipe-lock.json'].map(name => [name, readFileSync(join(directory, name))]))
+  const getSlats = revision => studio.store.readRevisionSpec(projectId, revision).entities.find(entity => entity.id === 'cross-slats')
+  assert.equal(getSlats('r0001').modifiers[0].offset[0], .064)
+  assert.ok(Math.abs(getSlats('r0001').transform.location[0] - .014) < 1e-12)
+  assert.equal((await studio.getRecipeParameters(projectId)).parameters[0].value, 64)
+  rmSync(recipes, { recursive: true })
+  const intent = { projectId, baseRevision: 'r0001', parameters: { 'slat-spacing': 92 }, saveCheckpoint: false }
+  const saved = await studio.updateRecipeParameters(intent)
+  assert.equal(saved.revision, 'r0002')
+  assert.equal((await studio.updateRecipeParameters(intent)).idempotentReplay, true)
+  assert.equal(getSlats('r0002').modifiers[0].offset[0], .092)
+  assert.ok(Math.abs(getSlats('r0002').transform.location[0] + .014) < 1e-12)
+  const spec = studio.store.readRevisionSpec(projectId, 'r0002')
+  await studio.applyScenePatch({ projectId, baseRevision: 'r0002', saveCheckpoint: false,
+    operations: [{ op: 'material.parameter.update', materialId: spec.materials[0].id, parameter: 'roughness', value: .51 }] })
+  assert.equal((await studio.getRecipeParameters(projectId)).parameters[0].value, 92)
+  const back = await studio.updateRecipeParameters({ projectId, baseRevision: 'r0003', parameters: { 'slat-spacing': 78 }, saveCheckpoint: false })
+  assert.equal(back.revision, 'r0004')
+  assert.equal(getSlats('r0004').transform.location[0], 0)
+  assert.equal(getSlats('r0004').modifiers[0].offset[0], .078)
+  assert.equal(studio.store.readRevisionSpec(projectId, 'r0004').materials[0].parameters.roughness, .51)
+  await studio.restoreRevision({ projectId, revision: 'r0001', expectedCurrentRevision: 'r0004' })
+  assert.equal((await studio.getRecipeParameters(projectId)).parameters[0].value, 64)
+  for (const [name, bytes] of Object.entries(original)) assert.deepEqual(readFileSync(join(directory, name)), bytes)
+})
+
+test('an existing original trivet keeps its exact lock after the gallery gains centered spacing', async t => {
+  const { studio, recipes, catalog } = setup(t, 'walnut-trivet')
+  cpSync(new URL('../fixtures/walnut-trivet-v1/', import.meta.url), join(recipes, 'lamp'), { recursive: true })
+  const entry = catalog.list().recipes[0]
+  assert.equal(entry.version, '1.0.0')
+  const made = await studio.createProject({ title: 'Original trivet', recipe: { id: entry.id, version: entry.version, digest: entry.digest }, saveCheckpoint: false })
+  const directory = studio.store.revisionDirectory(made.projectId, 'r0001')
+  const original = Object.fromEntries(['scene-spec.json', 'recipe-lock.json'].map(name => [name, readFileSync(join(directory, name))]))
+  cpSync(join(BUILTIN_RECIPES, 'walnut-trivet'), join(recipes, 'lamp'), { recursive: true })
+  assert.equal(catalog.list().recipes[0].version, '1.1.0')
+  const parameters = await studio.getRecipeParameters(made.projectId)
+  assert.equal(parameters.available, false)
+  await assert.rejects(studio.updateRecipeParameters({ projectId: made.projectId, baseRevision: 'r0001',
+    parameters: { 'slat-spacing': 64 }, saveCheckpoint: false }))
+  assert.equal(studio.store.readRecord(made.projectId).currentRevision, 'r0001')
+  for (const [name, bytes] of Object.entries(original)) assert.deepEqual(readFileSync(join(directory, name)), bytes)
+})
+
 test('assembly parameters persist atomically, follow ordinary edit ancestry, replay once and restore with the selected revision', async t => {
   const { studio, request, recipes } = setup(t, 'modular-speaker')
   const made = await studio.createProject({ title: 'Resized assembly', recipe: request, saveCheckpoint: false })
@@ -157,7 +206,7 @@ test('the distributed Host carries the validated self-contained recipes', () => 
     'deepblend.glazed-cup': 6,
     'deepblend.metal-lamp': 5,
     'deepblend.modular-speaker': 6,
-    'deepblend.walnut-trivet': 2,
+    'deepblend.walnut-trivet': 3,
   })
   assert.ok(result.recipes.every(recipe => recipe.license === 'MIT'))
   for (const name of ['glass-ceramic', 'glazed-cup', 'metal-lamp', 'modular-speaker', 'walnut-trivet']) {

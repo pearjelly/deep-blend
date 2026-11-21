@@ -1,0 +1,376 @@
+{
+  "schemaVersion": "deepblend.trivet-spacing-candidate/v1",
+  "recordedAt": "2026-11-21T11:44:13.633852+00:00",
+  "pluginVersion": "0.27.0",
+  "status": "implemented; focused checks passed; complete acceptance and exact-commit CI pending; unpublished",
+  "baseSource": "2bfee05ce05aea0c44a92d9552874010d2a508f9",
+  "recipe": {
+    "id": "deepblend.walnut-trivet",
+    "version": "1.1.0",
+    "parameter": "slat-spacing",
+    "unit": "mm",
+    "default": 78,
+    "minimum": 52,
+    "maximum": 92,
+    "capabilities": [
+      "recipe.geometry-bindings",
+      "recipe.array-bindings"
+    ],
+    "historicalVersion": "1.0.0",
+    "defaultCompiledSceneAndPreviewMatchHistorical": true
+  },
+  "sourceFiles": {
+    "deepblend/recipes/walnut-trivet/recipe.json": {
+      "bytes": 2886,
+      "sha256": "93e9f9f658789d0e5d5195e4a1fb328e7a2ea45ffb8e199fa9ecbe3815e39a1c"
+    },
+    "deepblend/recipes/walnut-trivet/scene-spec.json": {
+      "bytes": 7469,
+      "sha256": "005f2e6a19a535730b022ab1338de1034e60c0cfb1d13bb846602673f4033a61"
+    },
+    "deepblend/schemas/recipe.schema.json": {
+      "bytes": 15038,
+      "sha256": "9406af739a53068ed013fb29dc399d9794cb452d84c37a7d0402a2520649b4ac"
+    },
+    "packages/deepblend/contracts/lib/recipe.js": {
+      "bytes": 29400,
+      "sha256": "6cc16ab945e534073d1dcbb6c69a93b02fffa5a29ec5bebdd21fbbd2d3008b40"
+    },
+    "packages/deepblend/contracts/lib/recipe-parameters.js": {
+      "bytes": 12698,
+      "sha256": "cc846626606bf947d8d51faf4d13940875fb4a158eab7c9572cb029ed2f0d428"
+    },
+    "deepblend/tests/e2e/trivet-spacing-ui.e2e.mjs": {
+      "bytes": 11910,
+      "sha256": "047e429229f8f24b3c3260e3420a14d4f37483b9c666e61744f53e91cbb643c0"
+    },
+    "deepblend/tests/e2e/trivet-spacing-readback.py": {
+      "bytes": 4087,
+      "sha256": "0b54725ea8aca57bfe36bd27592f24f339cdfcd87fe6e5578ec13200ec3658a3"
+    }
+  },
+  "focusedContractChecks": [
+    {
+      "log": "recipe-tests-2.log",
+      "passed": 138,
+      "sha256": "a924cc08f2ed6ec9be94fdd6bf4558b7a2bdd745231360ca57450876c752e4e8",
+      "scope": "Recipe validation, existing assembly editing and Host transactions before the additional modifier-index boundary case."
+    },
+    {
+      "log": "array-focused.log",
+      "passed": 9,
+      "sha256": "94036a7b22f4b7cd390ffc56f453589ee044ec68808a1cbf0f0930ed3d13d6b7",
+      "scope": "Final array and trivet cases including modifier index 7, immutable originals and historical lock compatibility."
+    },
+    {
+      "log": "distribution-checks-2.log",
+      "passed": 32,
+      "sha256": "5dec7b1477285ec91f04c854a71a4957ecf5b05db09a114a74745fd18190cd56",
+      "scope": "CI declarations and license/media provenance."
+    },
+    {
+      "log": "documented-counts.log",
+      "passed": 21,
+      "sha256": "47808f08820973fd7a75f0d49db952a5b519675af717341d51cd3bdd20e3a9ec",
+      "scope": "Source-derived suite and file counts under the pinned DSH environment."
+    }
+  ],
+  "browser": {
+    "passed": 23,
+    "reportSha256": "61371a79cedbbb29fb1d3d2838a1cab9a08d442668cc6b8c8d4360018fc25d8d",
+    "checks": [
+      {
+        "name": "52 mm: creation offers the authored 78 mm default",
+        "ok": true
+      },
+      {
+        "name": "an out-of-range creation is disabled before any project write",
+        "ok": true
+      },
+      {
+        "name": "trivet-spacing-52/r0001: the committed source has its own decoded native preview",
+        "ok": true
+      },
+      {
+        "name": "52 mm: creation locks the selected version, input bytes and spacing",
+        "ok": true
+      },
+      {
+        "name": "92 mm: creation offers the authored 78 mm default",
+        "ok": true
+      },
+      {
+        "name": "trivet-spacing-92/r0001: the committed source has its own decoded native preview",
+        "ok": true
+      },
+      {
+        "name": "92 mm: creation locks the selected version, input bytes and spacing",
+        "ok": true
+      },
+      {
+        "name": "64 mm: creation offers the authored 78 mm default",
+        "ok": true
+      },
+      {
+        "name": "trivet-spacing-64/r0001: the committed source has its own decoded native preview",
+        "ok": true
+      },
+      {
+        "name": "64 mm: creation locks the selected version, input bytes and spacing",
+        "ok": true
+      },
+      {
+        "name": "out-of-range saved spacing blocks a write",
+        "ok": true
+      },
+      {
+        "name": "trivet-spacing-64/r0002: the committed source has its own decoded native preview",
+        "ok": true
+      },
+      {
+        "name": "r0002: spacing is saved on the existing project with its original source lock",
+        "ok": true
+      },
+      {
+        "name": "trivet-spacing-64/r0003: the committed source has its own decoded native preview",
+        "ok": true
+      },
+      {
+        "name": "r0003: spacing is saved on the existing project with its original source lock",
+        "ok": true
+      },
+      {
+        "name": "trivet-spacing-64/r0004: the committed source has its own decoded native preview",
+        "ok": true
+      },
+      {
+        "name": "r0004: spacing is saved on the existing project with its original source lock",
+        "ok": true
+      },
+      {
+        "name": "returning to 64 mm has no cumulative geometry drift",
+        "ok": true
+      },
+      {
+        "name": "refresh reads the actual saved spacing",
+        "ok": true
+      },
+      {
+        "name": "the existing spacing controls fit a 390 px workbench",
+        "ok": true
+      },
+      {
+        "name": "the browser-downloaded ZIP preserves every listed byte, selected checkpoint and parameter state",
+        "ok": true
+      },
+      {
+        "name": "independent Blender reopening confirms centered spacing, seven closed solids, twelve crossings and no sampled overlap in all seven checkpoints",
+        "ok": true
+      },
+      {
+        "name": "all original native files, scene data, source locks and previews remain byte-identical",
+        "ok": true
+      }
+    ],
+    "createdSpacingMm": [
+      52,
+      92,
+      64
+    ],
+    "existingSpacingMm": [
+      64,
+      92,
+      78,
+      64
+    ],
+    "viewportWidth": 390,
+    "shutdown": {
+      "via": "sigterm",
+      "ms": 676
+    }
+  },
+  "native": {
+    "trivet-spacing-52-r0001": {
+      "boundsMm": [
+        240,
+        240,
+        20
+      ],
+      "closedComponents": {
+        "longitudinal-slats": 4,
+        "cross-slats": 3
+      },
+      "spacingMm": 52,
+      "lower": "cross-slats",
+      "crossCentersMm": [
+        -52,
+        0,
+        52
+      ],
+      "crossings": 12,
+      "sampledCells": 126,
+      "overlapCells": 0
+    },
+    "trivet-spacing-92-r0001": {
+      "boundsMm": [
+        240,
+        240,
+        20
+      ],
+      "closedComponents": {
+        "longitudinal-slats": 4,
+        "cross-slats": 3
+      },
+      "spacingMm": 92,
+      "lower": "cross-slats",
+      "crossCentersMm": [
+        -92,
+        0,
+        92
+      ],
+      "crossings": 12,
+      "sampledCells": 126,
+      "overlapCells": 0
+    },
+    "trivet-spacing-64-r0001": {
+      "boundsMm": [
+        240,
+        240,
+        20
+      ],
+      "closedComponents": {
+        "longitudinal-slats": 4,
+        "cross-slats": 3
+      },
+      "spacingMm": 64,
+      "lower": "cross-slats",
+      "crossCentersMm": [
+        -64,
+        0,
+        64
+      ],
+      "crossings": 12,
+      "sampledCells": 126,
+      "overlapCells": 0
+    },
+    "trivet-spacing-64-r0002": {
+      "boundsMm": [
+        240,
+        240,
+        20
+      ],
+      "closedComponents": {
+        "longitudinal-slats": 4,
+        "cross-slats": 3
+      },
+      "spacingMm": 92,
+      "lower": "cross-slats",
+      "crossCentersMm": [
+        -92,
+        0,
+        92
+      ],
+      "crossings": 12,
+      "sampledCells": 126,
+      "overlapCells": 0
+    },
+    "trivet-spacing-64-r0003": {
+      "boundsMm": [
+        240,
+        240,
+        20
+      ],
+      "closedComponents": {
+        "longitudinal-slats": 4,
+        "cross-slats": 3
+      },
+      "spacingMm": 78,
+      "lower": "cross-slats",
+      "crossCentersMm": [
+        -78,
+        0,
+        78
+      ],
+      "crossings": 12,
+      "sampledCells": 126,
+      "overlapCells": 0
+    },
+    "trivet-spacing-64-r0004": {
+      "boundsMm": [
+        240,
+        240,
+        20
+      ],
+      "closedComponents": {
+        "longitudinal-slats": 4,
+        "cross-slats": 3
+      },
+      "spacingMm": 64,
+      "lower": "cross-slats",
+      "crossCentersMm": [
+        -64,
+        0,
+        64
+      ],
+      "crossings": 12,
+      "sampledCells": 126,
+      "overlapCells": 0
+    },
+    "relocated-zip": {
+      "boundsMm": [
+        240,
+        240,
+        20
+      ],
+      "closedComponents": {
+        "longitudinal-slats": 4,
+        "cross-slats": 3
+      },
+      "spacingMm": 64,
+      "lower": "cross-slats",
+      "crossCentersMm": [
+        -64,
+        0,
+        64
+      ],
+      "crossings": 12,
+      "sampledCells": 126,
+      "overlapCells": 0
+    }
+  },
+  "editableZip": {
+    "revision": "r0004",
+    "filesVerified": 10,
+    "archiveSha256": "4cdbbcd498932353a4528261b6eef66305f6cda018257da0ec6f594b71a93975"
+  },
+  "protectedOriginalFiles": {
+    "revisions/r0001/scene-spec.json": "7d0479099c8011d71ce6edce02669a3146541a3d6240c4d8da586352143c593c",
+    "revisions/r0001/scene.blend": "7020019f4ca3e84f0a92e7f1c9084fc94366ee6c927de296bf0a213ee326e29d",
+    "revisions/r0001/recipe-lock.json": "c420196e5bd1302768e3f83a9171bd967d5be0fc508eb671b08a437eff229095",
+    "revisions/r0001/revision-manifest.json": "f2ff235b794e0418205f49e6c5b0713a905f8d4f475b55e401430337034f7820",
+    "revisions/r0001/previews/hero.png": "356f428a8ed8cbaa9a8557a5b1c8701f1582b81b6e3553a2d816d851f16ac1bd"
+  },
+  "retainedAttempts": [
+    {
+      "log": "recipe-tests.log",
+      "sha256": "b2eceb6947b2985761f27f78f99ab75b5424e2b4f50e3b603614f1ee3d19ffa5",
+      "result": "133/137 passed; initial test fixtures tried bevels on half-lap members and passed unfiltered catalog metadata as parameters. Test fixtures corrected; existing half-lap restrictions retained."
+    },
+    {
+      "log": "distribution-checks.log",
+      "sha256": "6fdaf3583f2df371168fe47952173fc735999b482feb2a5f2cc3ed2bf4baf068",
+      "result": "31/32 passed; CI coverage guide initially omitted the newly added browser step. Added the matching documentation row."
+    },
+    {
+      "log": "browser-first/report.json",
+      "sha256": "5fcd8d13e98a5367001d9ce6ce51e0f089e44b54123cf9773c17c559a341c3b8",
+      "result": "Failed after 11 checks: the test selected only the first comparison image, which was the old revision. The committed new checkpoint and right-hand preview existed. The corrected selector checks all preview images; the full browser run then passed."
+    }
+  ],
+  "limits": [
+    "Measured spacing is center-to-center, within the authored 52–92 mm range.",
+    "The native check reopens seven saved checkpoints and tests manifold components, bounds, centers and 126 interior sample cells per checkpoint; it is not manufacturing qualification.",
+    "Existing 1.0.0 projects retain their exact source locks and do not acquire the new parameter.",
+    "Complete acceptance, exact-commit CI, release archive, public package publication and fresh public installation checks remain pending."
+  ]
+}

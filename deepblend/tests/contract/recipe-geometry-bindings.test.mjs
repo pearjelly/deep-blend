@@ -41,10 +41,140 @@ function applyPlan(spec, plan) {
   assert.equal(checked.ok, true, checked.summary)
   return compileSceneSpec(applyPatchToSpec(spec, patch).spec).spec
 }
+function trivet(historical = false) {
+  const directory = new URL(historical ? '../fixtures/walnut-trivet-v1/' : '../../recipes/walnut-trivet/', import.meta.url)
+  return { manifest: JSON.parse(readFileSync(new URL('recipe.json', directory))),
+    sceneBytes: readFileSync(new URL('scene-spec.json', directory)), previewBytes: readFileSync(new URL('preview.png', directory)) }
+}
+function unjoinedArrays() {
+  const value = trivet(), spec = JSON.parse(value.sceneBytes)
+  delete spec.halfLaps
+  value.sceneBytes = Buffer.from(JSON.stringify(spec)); value.manifest.input.sha256 = sha256(value.sceneBytes)
+  return value
+}
+const crossSlats = spec => spec.entities.find(entity => entity.id === 'cross-slats')
+function checkCenteredSlats(spec, spacing) {
+  const slats = crossSlats(spec), xs = slats.generator.vertices.map(vertex => vertex[0])
+  const center = (Math.min(...xs) + Math.max(...xs)) / 2 + slats.transform.location[0]
+  assert.equal(slats.modifiers[0].count, 3)
+  for (let index = 0; index < 3; index++) {
+    assert.ok(Math.abs(center + index * slats.modifiers[0].offset[0] - (index - 1) * spacing / 1000) < 1e-12)
+  }
+}
 const refused = (value, code = 'RECIPE_BINDING_INVALID') => {
   const result = checked(value); assert.equal(result.ok, false); assert.ok(result.errors.some(issue => issue.code === code), result.summary)
   assert.throws(() => instantiateRecipe(value))
 }
+
+test('trivet spacing keeps all three slats centered at both limits and preserves the original default geometry', () => {
+  const value = trivet(), old = trivet(true), before = JSON.stringify(value)
+  assert.equal(value.manifest.version, '1.1.0')
+  assert.equal(sha256(old.sceneBytes), '6d6852c2568d22c8e0609238e1d55520034746be6ac06fda26c85f19d0b64606')
+  assert.deepEqual(instantiateRecipe(value).spec, instantiateRecipe(old).spec)
+  assert.deepEqual(value.previewBytes, old.previewBytes)
+  for (const spacing of [52, 64, 78, 92]) {
+    const result = instantiateRecipe(value, { 'slat-spacing': spacing })
+    checkCenteredSlats(result.spec, spacing)
+    assert.deepEqual(result.spec.halfLaps, instantiateRecipe(old).spec.halfLaps)
+    assert.deepEqual(result, instantiateRecipe(value, { 'slat-spacing': spacing }))
+  }
+  for (const spacing of [51, 93, NaN, Infinity, '64']) assert.throws(() => instantiateRecipe(value, { 'slat-spacing': spacing }))
+  assert.equal(JSON.stringify(value), before)
+})
+
+test('array bindings require explicit consumer support and target only unique, finite offset axes', () => {
+  const value = trivet(), supportedCapabilities = RECIPE_CAPABILITIES.filter(capability => capability !== 'recipe.array-bindings')
+  assert.equal(validateRecipePackage(value, { supportedCapabilities }).ok, false)
+  assert.throws(() => instantiateRecipe(value, {}, { supportedCapabilities }))
+  const undeclared = trivet()
+  undeclared.manifest.compatibility.capabilities = undeclared.manifest.compatibility.capabilities.filter(capability => capability !== 'recipe.array-bindings')
+  refused(undeclared, 'RECIPE_CAPABILITY_UNDECLARED')
+  for (const mutate of [
+    b => { b.entityId = 'missing' }, b => { b.modifierIndex = 1 }, b => { b.modifierIndex = -1 },
+    b => { b.modifierIndex = 8 }, b => { b.modifierIndex = .5 }, b => { b.property = 'count' },
+    b => { b.axis = 'w' }, b => { b.multiplier = 0 }, b => { b.multiplier = Infinity },
+    b => { b.path = 'offset.x' },
+  ]) {
+    const invalid = trivet(); mutate(invalid.manifest.parameters.at(-1).bindings[0])
+    assert.equal(checked(invalid).ok, false); assert.throws(() => instantiateRecipe(invalid))
+  }
+  const duplicate = trivet()
+  duplicate.manifest.parameters.at(-1).bindings.push(structuredClone(duplicate.manifest.parameters.at(-1).bindings[0]))
+  refused(duplicate)
+  const competing = trivet(), parameter = structuredClone(competing.manifest.parameters.at(-1))
+  parameter.id = 'competing-spacing'; competing.manifest.parameters.push(parameter); refused(competing)
+  const wrongModifier = unjoinedArrays(), scene = JSON.parse(wrongModifier.sceneBytes)
+  crossSlats(scene).modifiers[0] = { type: 'bevel', width: .0005 }
+  wrongModifier.sceneBytes = Buffer.from(JSON.stringify(scene)); wrongModifier.manifest.input.sha256 = sha256(wrongModifier.sceneBytes)
+  refused(wrongModifier)
+})
+
+test('existing trivet spacing edits preserve independent work and return to the original spacing without drift', () => {
+  const value = trivet(), lock = lockFor(value), current = instantiateRecipe(value).spec
+  current.materials[0].parameters.roughness = .51
+  current.cameras[0].lens += 5
+  const original = structuredClone(current)
+  let edited = current, state
+  for (const spacing of [64, 92, 52, 78]) {
+    const plan = planRecipeGeometryEdit(lock, edited, state, { 'slat-spacing': spacing })
+    assert.deepEqual(plan.changedParameters, ['slat-spacing'])
+    edited = applyPlan(edited, plan); state = plan.parameterState
+    checkCenteredSlats(edited, spacing)
+    assert.deepEqual(edited.materials, original.materials)
+    assert.deepEqual(edited.cameras, original.cameras)
+    assert.deepEqual(edited.halfLaps, original.halfLaps)
+  }
+  assert.deepEqual(edited, compileSceneSpec(original).spec)
+  assert.deepEqual(planRecipeGeometryEdit(lock, edited, state, { 'slat-spacing': 78 }).operations, [])
+  assert.deepEqual(current, original)
+})
+
+test('array offset edits preserve independent non-array modifiers in the same stack', () => {
+  const value = unjoinedArrays(), lock = lockFor(value), current = instantiateRecipe(value).spec
+  const bevel = { type: 'bevel', width: .0005, segments: 3, angle: 30 }
+  crossSlats(current).modifiers.push(bevel)
+  const edited = applyPlan(current, planRecipeGeometryEdit(lock, current, undefined, { 'slat-spacing': 64 }))
+  assert.deepEqual(crossSlats(edited).modifiers[1], compileSceneSpec(current).spec.entities.find(entity => entity.id === 'cross-slats').modifiers[1])
+  checkCenteredSlats(edited, 64)
+})
+
+test('an array binding addresses the declared modifier index and preserves preceding modifiers', () => {
+  const value = unjoinedArrays(), spec = JSON.parse(value.sceneBytes)
+  crossSlats(spec).modifiers.unshift(...Array.from({ length: 7 }, () => ({ type: 'bevel', width: .0005 })))
+  value.manifest.parameters.at(-1).bindings[0].modifierIndex = 7
+  value.sceneBytes = Buffer.from(JSON.stringify(spec)); value.manifest.input.sha256 = sha256(value.sceneBytes)
+  assert.equal(checked(value).ok, true, checked(value).summary)
+  const initial = instantiateRecipe(value).spec, lock = lockFor(value)
+  const edited = applyPlan(initial, planRecipeGeometryEdit(lock, initial, undefined, { 'slat-spacing': 64 }))
+  assert.deepEqual(crossSlats(edited).modifiers.slice(0, 7), crossSlats(initial).modifiers.slice(0, 7))
+  assert.equal(crossSlats(edited).modifiers[7].offset[0], .064)
+})
+
+test('manual array spacing, layout and transform conflicts never overwrite the current scene', () => {
+  const value = unjoinedArrays(), lock = lockFor(value)
+  for (const mutate of [
+    e => { e.modifiers[0].count = 4 }, e => { e.modifiers[0].offset[0] = .064 },
+    e => { e.modifiers[0].offset[1] = .001 }, e => { e.modifiers = [] },
+    e => { e.modifiers.unshift({ type: 'bevel', width: .0005 }) },
+    e => { e.transform.location[0] = .01 }, e => { e.transform.rotationEuler[2] = .2 },
+    e => { e.transform.scale[0] = 2 },
+    e => { e.generator = { shape: 'cube', dimensions: [.024, .24, .02] } },
+  ]) {
+    const current = instantiateRecipe(value).spec; mutate(crossSlats(current)); const before = structuredClone(current)
+    assert.throws(() => planRecipeGeometryEdit(lock, current, undefined, { 'slat-spacing': 64 }),
+      error => error.code === 'RECIPE_PARAMETER_CONFLICT')
+    assert.deepEqual(current, before)
+  }
+})
+
+test('historical trivet source locks retain version 1.0.0 and do not acquire spacing controls', () => {
+  const value = trivet(true), lock = lockFor(value), before = JSON.stringify(lock)
+  const supportedCapabilities = RECIPE_CAPABILITIES.filter(capability => capability !== 'recipe.array-bindings')
+  assert.equal(instantiateRecipe(value, {}, { supportedCapabilities }).recipe.version, '1.0.0')
+  assert.deepEqual(instantiateRecipeLock(lock), instantiateRecipe(value))
+  assert.throws(() => instantiateRecipeLock(lock, { 'slat-spacing': 64 }))
+  assert.equal(JSON.stringify(lock), before)
+})
 
 test('linked dimensions and positions resolve deterministically from an unchanged input; defaults remain exact', () => {
   const value = bundle(), before = JSON.stringify(value), source = JSON.parse(value.sceneBytes)

@@ -355,6 +355,7 @@ test('source files exclude external binaries and published images have declared 
     ['glazed-cup-v1','c4f93d87bfc528f1435160befda27ec5868d747f21fba50148bcf98a4abbbb92'],
     ['glazed-cup-v3','b8f7b70e26032ef9f6deae577856a71342c450a0e71e47c804876227d1086807'],
     ['glazed-cup-v2','ce84a64b8bb3314c83b84f2f96c907fca7ee74cc24ad425c52df6cd915af197f'],
+    ['walnut-trivet-v1','a949ddff4499e1156c35143b27cb055024ef1a11f58939fb035d2f0138ffba22'],
   ]) {
     const historical=`deepblend/tests/fixtures/${name}`
     const historicalRecipe=JSON.parse(readFileSync(join(ROOT,historical,'recipe.json')))
