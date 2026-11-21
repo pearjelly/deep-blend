@@ -269,7 +269,7 @@ def _build_mesh(obj, beams, cuts, to_local):
     return result
 
 
-def apply_half_lap(lower, upper, inspect=False):
+def apply_half_lap(lower, upper, inspect=False, edge_width=0):
     """Apply both sides after their array/mirror stacks, before dependent modifiers."""
     from mathutils import Vector
 
@@ -300,6 +300,11 @@ def apply_half_lap(lower, upper, inspect=False):
         for obj, beams, cuts, matrix in zip(objects, measured, recesses, matrices):
             inverse = matrix.inverted()
             staged.append(_build_mesh(obj, beams, cuts, lambda p: inverse @ Vector(p)))
+        if edge_width:
+            from deepblend_edge_finish import finish_timber_mesh
+            for index, (obj, beams, matrix) in enumerate(zip(objects, measured, matrices)):
+                mapping = [{side: _face_uv(obj.data, beam, side) for side in beam.faces} for beam in beams]
+                staged[index] = finish_timber_mesh(staged[index], matrix, beams, mapping, edge_width)
     except Exception:
         for mesh in staged:
             bpy.data.meshes.remove(mesh)

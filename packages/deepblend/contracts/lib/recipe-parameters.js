@@ -7,10 +7,11 @@ import { latheShellTargets } from './lathe-shell.js'
 import { canonicalStringify, sha256Canonical } from './canonical.js'
 import { instantiateRecipeLock, RecipeError } from './recipe.js'
 import { validateSceneSpec } from './scene-spec.js'
+import { findHalfLap, halfLapKey } from './half-lap.js'
 
 const axisOf = binding => ['x', 'y', 'z'].indexOf(binding.axis)
-const structural = parameter => parameter.bindings.some(binding => ['entity', 'generator', 'lathe-shell', 'curve-point', 'array'].includes(binding.kind))
-  && parameter.bindings.every(binding => ['entity', 'camera', 'generator', 'lathe-shell', 'curve-point', 'array'].includes(binding.kind))
+const structural = parameter => parameter.bindings.some(binding => ['entity', 'generator', 'lathe-shell', 'curve-point', 'array', 'half-lap'].includes(binding.kind))
+  && parameter.bindings.every(binding => ['entity', 'camera', 'generator', 'lathe-shell', 'curve-point', 'array', 'half-lap'].includes(binding.kind))
 const entity = (spec, id) => spec.entities.find(item => item.id === id)
 const vector = (target, property) => property === 'dimensions' ? target?.generator?.dimensions
   : property === 'targetPoint' ? target?.targetPoint : target?.transform?.location
@@ -62,6 +63,13 @@ export function planRecipeGeometryEdit(lock, currentSpec, parameterState, change
   }
   const conflicts = []
   for (const parameter of parameters) for (const binding of targets(parameter)) {
+    if (binding.kind === 'half-lap') {
+      const oldPair = findHalfLap(before.spec, binding.entityIds), currentPair = findHalfLap(currentSpec, binding.entityIds)
+      const expected = oldPair?.edgeWidth ?? 0, actual = currentPair?.edgeWidth ?? 0
+      if (!currentPair || !close(actual, expected)) conflicts.push({ parameterId: parameter.id,
+        entityIds: binding.entityIds, property: 'edgeWidth', expected, actual: currentPair ? actual : null })
+      continue
+    }
     if (!['entity', 'generator', 'curve-point', 'array'].includes(binding.kind)) continue
     const oldEntity = entity(before.spec, binding.entityId), currentEntity = entity(currentSpec, binding.entityId)
     const expected = boundValue(oldEntity, binding)
@@ -105,9 +113,15 @@ export function planRecipeGeometryEdit(lock, currentSpec, parameterState, change
 
   const changed = parameters.filter(parameter => before.values[parameter.id] !== after.values[parameter.id]
     || assembly && !parameterState?.assemblyRepair && Object.keys(changes).includes(parameter.id))
-  const generators = new Map(), modifierEdits = new Map(), locations = new Map(), cameras = new Map(), tracks = new Map(), animationOffsets = new Map()
+  const generators = new Map(), modifierEdits = new Map(), jointEdits = new Map(), locations = new Map(), cameras = new Map(), tracks = new Map(), animationOffsets = new Map()
   const protectedCameras = new Set()
   for (const parameter of changed) for (const binding of targets(parameter)) {
+    if (binding.kind === 'half-lap') {
+      const actual = findHalfLap(currentSpec, binding.entityIds), target = findHalfLap(after.spec, binding.entityIds)
+      jointEdits.set(halfLapKey(binding.entityIds), { op: 'joint.halfLap.set',
+        lowerEntityId: actual.lowerEntityId, upperEntityId: actual.upperEntityId, edgeWidth: target.edgeWidth ?? 0 })
+      continue
+    }
     const axis = axisOf(binding)
     if (binding.kind === 'camera') {
       const actual = currentSpec.cameras?.find(item => item.id === binding.cameraId)
@@ -165,6 +179,7 @@ export function planRecipeGeometryEdit(lock, currentSpec, parameterState, change
     ...[...generators].map(([entityId, generator]) => ({ op: 'entity.generator.set', entityId, generator })),
     ...[...modifierEdits].map(([entityId, modifiers]) => ({ op: 'entity.modifiers.set', entityId, modifiers })),
     ...[...locations].map(([entityId, location]) => ({ op: 'entity.transform.update', entityId, location })),
+    ...jointEdits.values(),
     ...cameras.values(),
     ...[...tracks.values()].map(track => ({ op: 'animation.track.set', track })),
   ]

@@ -1,13 +1,13 @@
 {
   "passed": true,
   "interaction": "cdp-browser-ui",
-  "uiSha256": "d2a8faed8ded57a444410f464cf24a5501e5a014e08bcfcb5458633fd56d48c6",
-  "bundleUiSha256": "018a34ac820df551b71eb01d20f2b949ae6de3e3dfa3a49ce93b16b7c991a22e",
-  "browserLoadedBatchSha256": "c3d8b7e3e971dca62d6ec192d7d80e0ae86d58520a6708a2c81881401c9951f1",
-  "servedBatchSha256": "c3d8b7e3e971dca62d6ec192d7d80e0ae86d58520a6708a2c81881401c9951f1",
+  "uiSha256": "6cfa7c8bb3f13ca39ef0b499fa26b92ea0f1091d249ae79f6caef5de9c51b2cf",
+  "bundleUiSha256": "e464c1cc3ea8932d374f008f1faa5def89471df99c63fcc7663029150aa09f7b",
+  "browserLoadedBatchSha256": "e388709153968a9ff9727acd60075157fceb354bd2d491c00b430f0fcb25b2c2",
+  "servedBatchSha256": "e388709153968a9ff9727acd60075157fceb354bd2d491c00b430f0fcb25b2c2",
   "browserLoadedBatchIdentical": true,
   "allHostBytesUnchanged": true,
-  "protectedHostFiles": 133,
+  "protectedHostFiles": 135,
   "nativeRegressionRerun": false,
   "dom": {
     "applied": true,

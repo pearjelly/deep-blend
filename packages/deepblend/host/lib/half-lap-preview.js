@@ -44,7 +44,7 @@ export async function previewHalfLap(host, input) {
     throw new BlenderError(BlenderErrorCode.SCENE_PATCH_INVALID, 'Preview one active half-lap change at a time.')
   }
   const { lowerEntityId, upperEntityId } = changes[0]
-  const joint = { lowerEntityId, upperEntityId }
+  const selection = { lowerEntityId, upperEntityId }
   const { projectId, baseRevision } = patch
   const timed = AbortSignal.timeout(45000)
   const signal = input.signal ? AbortSignal.any([input.signal, timed]) : timed
@@ -66,6 +66,7 @@ export async function previewHalfLap(host, input) {
   if (!validation.ok || !candidate.halfLaps?.some(pair => pair.lowerEntityId === lowerEntityId && pair.upperEntityId === upperEntityId)) {
     throw new BlenderError(BlenderErrorCode.SCENE_SPEC_INVALID, validation.ok ? 'The draft does not contain the requested half lap.' : validation.summary)
   }
+  const joint = structuredClone(candidate.halfLaps.find(pair => pair.lowerEntityId === lowerEntityId && pair.upperEntityId === upperEntityId))
 
   let scratch
   previewsInProgress.add(host)
@@ -80,7 +81,7 @@ export async function previewHalfLap(host, input) {
     writeFileSync(sceneSpecPath, sceneSpecCanonicalText(candidate))
     let lower, upper
     const { report } = await runtime.compileHalfLapInspection({
-      sceneSpecPath, projectRoot: store.projectDirectory(projectId), profile: 'preview', joint, signal,
+      sceneSpecPath, projectRoot: store.projectDirectory(projectId), profile: 'preview', joint: selection, signal,
       onWorkingDirectory: ({ directory }) => {
         if (existsSync(join(directory, 'result.blend'))) {
           throw new BlenderError(BlenderErrorCode.SCENE_VALIDATION_FAILED, 'Slot inspection produced a checkpoint instead of a draft.')

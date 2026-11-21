@@ -47,6 +47,7 @@ export const BOX_DIMENSIONS_FEATURE: 'geometry.primitive.dimensions';
 export const MESH_GEOMETRY_FEATURE: 'geometry.procedural.mesh';
 export const SUBDIVISION_FEATURE: 'geometry.modifier.subdivision';
 export const SURFACE_SCATTER_FEATURE: 'geometry.modifier.surface_scatter';
+export const HALF_LAP_EDGE_FINISH_FEATURE: 'geometry.joinery.half_lap.edge_finish';
 export function requiredSceneFeatures(spec: SceneSpec): string[];
 export function compileSceneSpec(spec: SceneSpec): {
   spec: SceneSpec; notices: SceneSpecIssue[];

@@ -25,6 +25,8 @@ import { compileSchema, formatIssues } from './json-schema.js'
 import { referenceImageIssues } from './reference-images.js'
 import { HANDLED_CUP_FIELDS, handledCupIssues, resolveHandledCup } from './handled-cup.js'
 import { MESH_FIELDS, meshGeneratorIssues } from './mesh-geometry.js'
+import { HALF_LAP_EDGE_FINISH_FEATURE } from './half-lap.js'
+export { HALF_LAP_EDGE_FINISH_FEATURE } from './half-lap.js'
 import sceneSpecSchema from './schemas/scene-spec.schema.json' with { type: 'json' }
 
 /** The one schema version this module understands. */
@@ -44,6 +46,7 @@ export function requiredSceneFeatures(spec) {
   if (entities.some(entity => entity.modifiers?.some(modifier => modifier.type === 'subdivision'))) features.push(SUBDIVISION_FEATURE)
   if (entities.some(entity => entity.modifiers?.some(modifier => modifier.type === 'surface_scatter'))) features.push(SURFACE_SCATTER_FEATURE)
   if (spec.halfLaps?.length) features.push(HALF_LAP_FEATURE)
+  if (spec.halfLaps?.some(pair => pair.edgeWidth > 0)) features.push(HALF_LAP_EDGE_FINISH_FEATURE)
   return features
 }
 

@@ -753,7 +753,7 @@ checkpoint 优先；当前 revision 没有 checkpoint 时，会先从 spec 编�
 | `project.reviewSubject.set` | `entityId`（实体 ID 或 `null`）；保存主要评审对象，null 恢复自动选择；实体须存在且非 empty，不移动相机 |
 | `entity.uv.project` | `entityId`（仅 mesh 生成器），`quarterTurns?`（0–3，缺省 0），`scale?`（0.0001–10000，缺省 1）；逐面重建 `faceUvs`，最长局部网格跨度对应 scale 次重复。仅用于平面面片，拒绝非平面面片；UV 岛重叠，不打包。保留几何、变换、材质与摄影 |
 | `project.aspectRatio.set` | `aspectRatio`（如 `16:9`）；仅更新项目参考标记，实际画幅由渲染配置控制 |
-| `joint.halfLap.set` | `lowerEntityId`、`upperEntityId`、`enabled?`；对上下表面等高的两组正交长方体木条开互补槽。下组在交叠处保留下半，上组保留上半。支持静态 mesh、阵列和镜像。槽口随编辑重算，`enabled:false` 移除搭接 |
+| `joint.halfLap.set` | `lowerEntityId`、`upperEntityId`、`enabled?`、`edgeWidth?`；对上下表面等高的两组正交长方体木条开互补槽。下组在交叠处保留下半，上组保留上半。支持静态 mesh、阵列和镜像。`edgeWidth` 为 0–0.005 m，正数对开槽后的凸边倒角，0 恢复锐边；省略则保持已有宽度。具体几何可能拒绝过大宽度。槽口随编辑重算，`enabled:false` 移除搭接 |
 
 逐面投影的 U 沿各面最长局部边，V 在面内与其垂直；`quarterTurns` 将投影后的 UV 坐标逆时针转动。缺省 0 将长边保留在 U 方向。统一按控制网格最长局部边界跨度归一化，保留各面比例与相对密度；修改器和物体变换在此后生效，因此旋转的副本可用同样选项。图片本身的木纹方向不自动识别，仍需实际材质预览。
 | `project.frameRange.set` | `frameStart`, `frameEnd`, `fps?` |

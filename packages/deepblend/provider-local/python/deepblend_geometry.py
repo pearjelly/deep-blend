@@ -147,7 +147,11 @@ def apply_model_modifiers(entities, entity_meshes, animation_tracks=None, half_l
                     raise ActionError('SCENE_SPEC_INVALID', 'half laps require distinct, static mesh timber groups with optional array or mirror modifiers')
                 joined.add(entity_id)
                 visit(entity_id)
-            measured = apply_half_lap(single_mesh(ids[0]), single_mesh(ids[1]), inspect=pair == half_lap_inspection)
+            selected = half_lap_inspection and all(pair.get(key) == half_lap_inspection.get(key) for key in ('lowerEntityId', 'upperEntityId'))
+            width = pair.get('edgeWidth', 0)
+            if isinstance(width, bool) or not isinstance(width, (int, float)) or not math.isfinite(width) or not 0 <= width <= .005:
+                raise ActionError('SCENE_SPEC_INVALID', 'half-lap edge width must be finite and in [0, 0.005] metres')
+            measured = apply_half_lap(single_mesh(ids[0]), single_mesh(ids[1]), inspect=bool(selected), edge_width=width)
             if measured is not None:
                 inspection = measured
             bpy.context.view_layer.update()

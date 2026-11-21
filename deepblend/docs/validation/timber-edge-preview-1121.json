@@ -1,0 +1,156 @@
+{
+  "schemaVersion": "deepblend.recipe-preview-provenance/v1",
+  "recipeId": "deepblend.walnut-trivet",
+  "recipeVersion": "1.2.0",
+  "sourceVersion": "1.1.0",
+  "sourceInputSha256": "005f2e6a19a535730b022ab1338de1034e60c0cfb1d13bb846602673f4033a61",
+  "inputSha256": "4290f5e49d52475f29e27bd62b8a81bc259bd5cb8156f152054664d7a4b8bfbd",
+  "sourceChanges": [
+    "Explicit per-face UVs on the two original control meshes",
+    "0.5 mm convex half-lap edge width"
+  ],
+  "rawNativePng": {
+    "sha256": "927c0b7005d98a091eab2b413a19236e724ffdf32b4ae7c1df001173f6c4572e",
+    "bytes": 379670
+  },
+  "packagedPng": {
+    "sha256": "1bfadbc47279dca97795046d766aa4cc7b1d64700ab639865d137abefb00bf36",
+    "bytes": 379027
+  },
+  "decodedRgbaSha256": "1f5b8fe0e289f7b4dc44c1d0d8a5a99d1a169a33c75d65c446c5cfca6e0d43c8",
+  "pixelsPreserved": true,
+  "render": {
+    "kind": "preview",
+    "path": "revisions/r0001/previews/hero.png",
+    "sourceRevision": "r0001",
+    "sourceDigest": "89da5f433455708418485fe131a5b467d95f7a94ed88e762c2c3b3eabbe255b1",
+    "at": "2026-11-21T15:33:06.264Z",
+    "cameraId": "hero",
+    "frame": 2,
+    "width": 720,
+    "height": 540,
+    "engine": "CYCLES",
+    "samples": 24,
+    "renderConfig": {
+      "engine": "CYCLES",
+      "resolution": [
+        720,
+        540
+      ],
+      "resolutionPercentage": 100,
+      "samples": 24,
+      "filmTransparent": false,
+      "viewTransform": "AgX",
+      "look": "None",
+      "exposure": 0,
+      "fps": 24,
+      "frameStart": 1,
+      "frameEnd": 3
+    },
+    "cameraFacts": {
+      "frame": 2,
+      "matrixWorld": [
+        [
+          0.7828232049942017,
+          -0.37229037284851074,
+          0.4985857307910919,
+          0.3100000023841858
+        ],
+        [
+          0.6222441792488098,
+          0.46836525201797485,
+          -0.6272528767585754,
+          -0.38999998569488525
+        ],
+        [
+          -1.637175728319562e-8,
+          0.8012701869010925,
+          0.5983027219772339,
+          0.3799999952316284
+        ],
+        [
+          0,
+          0,
+          0,
+          1
+        ]
+      ],
+      "type": "PERSP",
+      "lens": 51,
+      "orthoScale": 6,
+      "sensorWidth": 36,
+      "sensorHeight": 24,
+      "sensorFit": "AUTO",
+      "shift": [
+        0,
+        0
+      ],
+      "clip": [
+        0.0020000000949949026,
+        5
+      ],
+      "dof": {
+        "enabled": false,
+        "focusDistance": 10,
+        "focusObject": null,
+        "focusSubtarget": null,
+        "apertureFstop": 2.799999952316284,
+        "apertureBlades": 0,
+        "apertureRotation": 0,
+        "apertureRatio": 1
+      }
+    },
+    "bytes": 379670,
+    "sha256": "927c0b7005d98a091eab2b413a19236e724ffdf32b4ae7c1df001173f6c4572e",
+    "mime": "image/png"
+  },
+  "nativeReadback": {
+    "boundsMm": [
+      240,
+      240,
+      20
+    ],
+    "closedComponents": {
+      "longitudinal-slats": 4,
+      "cross-slats": 3
+    },
+    "spacingMm": 78,
+    "lower": "cross-slats",
+    "crossCentersMm": [
+      -78,
+      0,
+      78
+    ],
+    "crossings": 12,
+    "sampledCells": 126,
+    "overlapCells": 0
+  },
+  "uvReadback": {
+    "longitudinal-slats": {
+      "triangles": 2800,
+      "degenerateUvTriangles": 0,
+      "customCornerNormalsValid": true
+    },
+    "cross-slats": {
+      "triangles": 2580,
+      "degenerateUvTriangles": 0,
+      "customCornerNormalsValid": true
+    }
+  },
+  "runtimeSourceSha256": {
+    "bootstrap.py": "43121bb2a93b54ae7f014df48d74f89557047db83624069155a8b8c48e8a5546",
+    "deepblend_geometry.py": "657a91090e025ff152df4244389447a8bc460d543238931397dea8e0fd3bc321",
+    "deepblend_half_lap.py": "585f89b6b356cb84b1cb8f7132e82ae65fa92bf6d3c6f6c65ba75def102622ff",
+    "deepblend_edge_finish.py": "3bc9123a1e6dae22f6aff2c499b10af95b2b2c064e5f0235accf1ee3ebf1ecc2"
+  },
+  "hostRunEvidenceSha256": {
+    "request.json": "9a2e5f4af2600ff42f4f86451705c1d77b409b4bd44f3f3c77b5a9465c735663",
+    "response.json": "fc2a32dcdb96453e7c372d3c5dd2335798d57ee9ab64108d3ad449491ead86aa",
+    "result.json": "c5d9b914d797407a9096ec8a75a4587961ee874800bc06a80a82695e7d305a81"
+  },
+  "limits": [
+    "Actual source Host default creation/render and independent native reopen; no model calls.",
+    "Finite closed-mesh and sampled overlap checks do not certify manufacturing or all possible configurations.",
+    "Complete stable-release acceptance remains required."
+  ]
+}

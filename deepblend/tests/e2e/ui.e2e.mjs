@@ -157,8 +157,9 @@ try {
   // -------------------------------------------------------------------------
   // A server whose store is scratch space
   // -------------------------------------------------------------------------
-  const patch = await storePatch(store)
-  server = await startWeb({ workspacePath: REPO_ROOT, patch, keepHome: true })
+  const rows = JSON.parse(await storePatch(store))
+  rows.find(row => row.id === 'deepblend-blender-runtime').config.blenderPath = BLENDER_PATH
+  server = await startWeb({ workspacePath: REPO_ROOT, patch: JSON.stringify(rows), keepHome: true })
   console.log(`── test server on ${server.url.split('?')[0]} (store ${store}) ──`)
 
   // THIS SUITE DOES NOT CARE WHAT LANGUAGE THE PAGE IS IN, and that is deliberate. Since the workbench

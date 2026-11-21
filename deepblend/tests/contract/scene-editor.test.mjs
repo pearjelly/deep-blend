@@ -424,6 +424,41 @@ test('workbench half laps save both sides together, reload from either member, a
   assert.deepEqual(removal.next.halfLaps, [existing])
 })
 
+test('half-lap edge width uses millimetres, rejects invalid drafts, preserves roles and clears with zero', async t => {
+  const spec = compileSceneSpec(JSON.parse(readFileSync(new URL('../fixtures/walnut-trivet-v1.1/scene-spec.json', import.meta.url)))).spec
+  const { store, field, calls, projects, nodes } = await client(t, spec)
+  store.actions.selectEditorEntity('cross-slats')
+  const width = () => field('editor-half-lap-edge-width')
+  assert.equal(width().props.value, 0)
+  assert.equal(width().props.min, 0)
+  assert.equal(width().props.max, 5)
+  width().props.onChange({ target: { value: '0.5' } })
+  assert.equal(editor.draftFor(store.getState()).halfLap.edgeWidth, .0005)
+  field('editor-half-lap-role').props.onChange({ target: { value: 'upper' } })
+  assert.equal(width().props.value, .5)
+  assert.equal(calls.length, 0)
+  for (const value of ['-0.1', '5.1', '']) {
+    width().props.onChange({ target: { value } })
+    assert.equal(width().props['aria-invalid'], 'true')
+    assert.ok(editor.errors(editor.draftFor(store.getState())).length)
+    assert.equal(nodes().find(n => n.props?.['data-action'] === 'editor-apply').props.disabled, true)
+  }
+  width().props.onChange({ target: { value: '0.75' } })
+  assert.equal(width().props['aria-invalid'], undefined)
+  await store.actions.applyEditor()
+  assert.equal(calls.length, 1)
+  assert.deepEqual(calls[0].body.patch.operations, [{ op: 'joint.halfLap.set',
+    lowerEntityId: 'longitudinal-slats', upperEntityId: 'cross-slats', edgeWidth: .00075 }])
+  await waitFor(store, state => state.selected?.scene?.revision === 'r0002')
+  store.actions.setView('scene')
+  store.actions.selectEditorEntity('longitudinal-slats')
+  assert.equal(width().props.value, .75)
+  width().props.onChange({ target: { value: '0' } })
+  const removed = apply(projects['project-a'].spec, editor.draftFor(store.getState()))
+  assert.equal(removed.patch.operations[0].edgeWidth, 0)
+  assert.equal(Object.hasOwn(removed.next.halfLaps[0], 'edgeWidth'), false)
+})
+
 test('profile, path and all modifier controls are present; reordering retains original full definitions', async t => {
   const { store, field, nodes } = await client(t)
   assert.ok(field('editor-generator-profile-0-0'))

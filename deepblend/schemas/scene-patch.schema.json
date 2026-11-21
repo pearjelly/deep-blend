@@ -1859,10 +1859,18 @@
         {
           "type": "object",
           "additionalProperties": false,
-          "required": ["op", "aspectRatio"],
+          "required": [
+            "op",
+            "aspectRatio"
+          ],
           "properties": {
-            "op": { "const": "project.aspectRatio.set" },
-            "aspectRatio": { "type": "string", "pattern": "^[0-9]+:[0-9]+$" }
+            "op": {
+              "const": "project.aspectRatio.set"
+            },
+            "aspectRatio": {
+              "type": "string",
+              "pattern": "^[0-9]+:[0-9]+$"
+            }
           }
         },
         {
@@ -1887,6 +1895,12 @@
               "type": "boolean",
               "default": true,
               "description": "False removes the joint and restores the compiled timber groups."
+            },
+            "edgeWidth": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 0.005,
+              "description": "World-space convex-edge bevel offset in metres. Zero removes finishing; omission preserves an existing width when changing the two groups or their roles."
             }
           }
         }

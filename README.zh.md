@@ -21,7 +21,9 @@
 
 [安装并开始](#安装并开始) · [看看工作台](#看看工作台) · [文档导航](deepblend/docs/README.md) · [最新版本](https://github.com/pearjelly/deep-blend/releases/latest) · [参与贡献](CONTRIBUTING.md)
 
-**0.23.0 已在 GitHub 和 npm 发布**，可以逐面修复平面网格的重复纹理坐标，保持几何与摄影；也包含完整台灯表面放置和完整取景。完整验收、全新安装和公开三路安装均已核验；10 月 28 日两份社区公开目录均已读回 0.23.0。详见[发布记录](deepblend/docs/releases/0.23.0.md)与[社区收尾记录](deepblend/docs/validation/release-0.23.0-closeout.json)。
+**0.27.0 已在 GitHub 和 npm 发布**，创建或继续改稿时可将格栅垫横条间距设为 52–92 mm 并保持居中。完整验收、全新安装和公开三路安装均已核验。详见[发布记录](deepblend/docs/releases/0.27.0.md)；社区审核与目录传播另行跟进。
+
+[0.28.0 候选](deepblend/docs/releases/0.28.0.md)新增木条边缘倒角，保留旧配方锁；完整发布验收尚未完成，当前未公开发布。
 
 [独立创作候选](deepblend/docs/first-product-creation.md)新增运动预览、直接图片／影片交付及指定机位评审；这些候选改动尚未公开发布，也不代表已经通过独立用户或美术验收。
 
@@ -311,7 +313,7 @@ deepblend/
                       coverage-merge.mjs —— 那份读数的合并规则：行级判定写在模块里，因为它在四轮里错过四次
                                             （`contract/probe-merge.test.mjs` 用合成的 V8 报告驱动它）
   tests/              单元、契约、Blender 集成、组合激活、真实模型 e2e
-    contract/         159 个 *.test.mjs（当前源码）
+    contract/         160 个 *.test.mjs（当前源码）
     lib/              dsh-deployment.mjs —— 定位并加载运行中的 DSH 部署
                       command-claims.mjs —— 「文档里点名的命令是否存在」只有一份（模板与证据日志共用）
                       milestone-claims.mjs —— 「不许复述里程碑状态」只有一份（README / CONTRIBUTING / 模板共用）
@@ -330,6 +332,7 @@ packages/deepblend/
   provider-local/     BlenderRuntime：ctx.subprocess 传输层 + python/ 运行时
     python/           bootstrap.py 分派器 + 10 个动作模块（另有 deepblend_util.py 这一份工具）
                       deepblend_geometry.py 提供参数化网格，deepblend_images.py 构造图片材质，deepblend_bridge.py 提供实时连接
+                      deepblend_edge_finish.py 在搭接开槽后处理凸边、UV 与阴影法线，不增加原生动作
   host/               blenderStudio 门面、Project Store、Revision 事务、路径守卫
   tool/               20 个模型可见工具（Agent preset 平面，不发布服务）
   ui/                 工作台 UI：Host 半（闭集 HTTP 路由）+ Client 半（lib/client.js，
@@ -370,7 +373,7 @@ packages/deepblend/
 ```
 $ node deepblend/tests/run.mjs
 Error [ERR_MODULE_NOT_FOUND]: Cannot find package '@deepblend/dsh-blender-contracts'
-DeepBlend tests: 30/159 file(s) passed
+DeepBlend tests: 31/160 file(s) passed
 ```
 
 （这两个数字**由检查钉住** ✓：`contract/readme-fresh-clone.test.mjs` 会造一份没有 `node_modules` 的树、
@@ -430,8 +433,8 @@ CI 另有固定 Linux 运行时的真实检查，覆盖 Host 灰模/材质、Age
 Linux 专用安装器 `deepblend/tools/install-ci-runtimes.mjs` 提供 `npm run ci:runtimes:install` 与只读的 `npm run ci:runtimes:check`。
 范围与证据保留见[CI 说明](deepblend/docs/ci.md)；它不替代完整本地验收或在线美术评审。
 
-预期：**58 个套件、216 个文件**全部通过。其中契约层（`run.mjs`，不需要 Blender）的当前文件结构与实际断言快照分别记录为
-**159 个文件 = 2149 项自计断言（34 个文件打印计数）+ 2267 个 `node:test` 用例（125 个文件）**。
+预期：**58 个套件、217 个文件**全部通过。其中契约层（`run.mjs`，不需要 Blender）的当前文件结构与实际断言快照分别记录为
+**160 个文件 = 2149 项自计断言（34 个文件打印计数）+ 2286 个 `node:test` 用例（126 个文件）**。
 需要 Blender 的那几层把总断言数推到 **1400 项以上**（M4 那一次完整 run 记为 1400；
 M5 之后重测过一次，逐套件数字见 `deepblend/docs/milestone-status.md` §14）。
 

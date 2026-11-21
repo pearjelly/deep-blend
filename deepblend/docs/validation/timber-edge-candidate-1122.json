@@ -1,0 +1,683 @@
+{
+  "schemaVersion": "deepblend.timber-edge-candidate/v1",
+  "recordedAt": "2026-11-21T16:11:11.803167+00:00",
+  "pluginVersion": "0.28.0",
+  "status": "implemented; focused runtime and editor checks passed; first frozen run recorded environment failures; corrected complete acceptance and exact-source CI still required",
+  "baseSource": "0dc8c4112c81a19daa577057a5ee47e05000e333",
+  "recipe": {
+    "id": "deepblend.walnut-trivet",
+    "version": "1.2.0",
+    "edgeWidthMm": {
+      "default": 0.5,
+      "minimum": 0,
+      "maximum": 1
+    },
+    "historicalVersions": [
+      "1.0.0",
+      "1.1.0"
+    ],
+    "sourceAndPreview": "timber-edge-preview-1121.json"
+  },
+  "sourceFiles": {
+    "deepblend/recipes/walnut-trivet/recipe.json": {
+      "sha256": "9da44e177006146e9be74c229ae701f67c641644056a6ab9bdb19cf40421402a",
+      "bytes": 3880
+    },
+    "deepblend/recipes/walnut-trivet/scene-spec.json": {
+      "sha256": "4290f5e49d52475f29e27bd62b8a81bc259bd5cb8156f152054664d7a4b8bfbd",
+      "bytes": 11398
+    },
+    "deepblend/recipes/walnut-trivet/preview.png": {
+      "sha256": "1bfadbc47279dca97795046d766aa4cc7b1d64700ab639865d137abefb00bf36",
+      "bytes": 379027
+    },
+    "packages/deepblend/provider-local/python/bootstrap.py": {
+      "sha256": "43121bb2a93b54ae7f014df48d74f89557047db83624069155a8b8c48e8a5546",
+      "bytes": 35212
+    },
+    "packages/deepblend/provider-local/python/deepblend_half_lap.py": {
+      "sha256": "585f89b6b356cb84b1cb8f7132e82ae65fa92bf6d3c6f6c65ba75def102622ff",
+      "bytes": 17968
+    },
+    "packages/deepblend/provider-local/python/deepblend_edge_finish.py": {
+      "sha256": "3bc9123a1e6dae22f6aff2c499b10af95b2b2c064e5f0235accf1ee3ebf1ecc2",
+      "bytes": 8009
+    },
+    "packages/deepblend/provider-local/python/deepblend_geometry.py": {
+      "sha256": "657a91090e025ff152df4244389447a8bc460d543238931397dea8e0fd3bc321",
+      "bytes": 15063
+    },
+    "packages/deepblend/contracts/lib/half-lap.js": {
+      "sha256": "db3462e0ef17cda4f75295b91f9a7c7cf43db0cf75621dc3be287568828ba378",
+      "bytes": 414
+    },
+    "packages/deepblend/contracts/lib/recipe.js": {
+      "sha256": "e3d5fd7392ae56bb89e3b314b85b0e6f2146d92b55a82cc02171e2ddb7d51c4a",
+      "bytes": 30974
+    },
+    "packages/deepblend/contracts/lib/recipe-parameters.js": {
+      "sha256": "88fcd90a7c9b3c6fd904e8484d3ef22bdd065be1c959b71d0c6584378346c8f6",
+      "bytes": 13681
+    },
+    "packages/deepblend/contracts/lib/scene-patch.js": {
+      "sha256": "641bb1a289b975f96d9e3964549c85ee99fe5e6e4275f54e33d2c031b74c7271",
+      "bytes": 55627
+    },
+    "packages/deepblend/contracts/lib/scene-spec.js": {
+      "sha256": "ee30eea1de74a1a9b55e07b87f840b19cd36b3ff6bd6747fca830aaa5384baf0",
+      "bytes": 63114
+    },
+    "deepblend/tests/e2e/trivet-spacing-ui.e2e.mjs": {
+      "sha256": "c37e68b1cbe1350e5ae9a8b3c7b428add4ed55cd78f1c93c6077fe8688cea4b7",
+      "bytes": 14453
+    },
+    "deepblend/tests/e2e/trivet-spacing-readback.py": {
+      "sha256": "58de5e97d3d624ca223f6c4ff823af2926fbc34291659df518eb598fe8abf567",
+      "bytes": 5703
+    },
+    "deepblend/tests/blender-integration/timber-edge-finish-checks.py": {
+      "sha256": "ce4efd52e4a42d42e790b67a34566ef50c0dae7ac402f6a65c840ff763930d03",
+      "bytes": 10262
+    },
+    "deepblend/tests/e2e/ui.e2e.mjs": {
+      "sha256": "489f908d0c39696ad13163cdc99d02acf7f30e1b87a822f34a9f4e937fdfe05b",
+      "bytes": 45090
+    }
+  },
+  "scopedChecks": {
+    "manualBrowser": {
+      "checks": 9,
+      "report": {
+        "file": "edge-ui-fifth/result.json",
+        "sha256": "894858b9e073cce5699f2aab3869d1c32675e5d5bfcc7b17f4daae2eb8870ee5",
+        "bytes": 1045
+      }
+    },
+    "galleryBrowser": {
+      "checks": 36,
+      "report": {
+        "file": "gallery-finish-final/report.json",
+        "sha256": "993fbc1ca5e4f72cef900d1752e6f23813bb10e94998cadef3b1baa53e07ae52",
+        "bytes": 10633
+      },
+      "nativeReopens": 7,
+      "nativeMeasurements": {
+        "trivet-spacing-52-r0001": {
+          "boundsMm": [
+            240,
+            240,
+            20
+          ],
+          "closedComponents": {
+            "longitudinal-slats": 4,
+            "cross-slats": 3
+          },
+          "spacingMm": 52,
+          "lower": "cross-slats",
+          "edgeWidthMm": 0,
+          "degenerateUvTriangles": 0,
+          "cornerNormalsValid": true,
+          "crossCentersMm": [
+            -52,
+            0,
+            52
+          ],
+          "crossings": 12,
+          "sampledCells": 126,
+          "overlapCells": 0
+        },
+        "trivet-spacing-92-r0001": {
+          "boundsMm": [
+            240,
+            240,
+            20
+          ],
+          "closedComponents": {
+            "longitudinal-slats": 4,
+            "cross-slats": 3
+          },
+          "spacingMm": 92,
+          "lower": "cross-slats",
+          "edgeWidthMm": 1,
+          "degenerateUvTriangles": 0,
+          "cornerNormalsValid": true,
+          "crossCentersMm": [
+            -92,
+            0,
+            92
+          ],
+          "crossings": 12,
+          "sampledCells": 126,
+          "overlapCells": 0
+        },
+        "trivet-spacing-64-r0001": {
+          "boundsMm": [
+            240,
+            240,
+            20
+          ],
+          "closedComponents": {
+            "longitudinal-slats": 4,
+            "cross-slats": 3
+          },
+          "spacingMm": 64,
+          "lower": "cross-slats",
+          "edgeWidthMm": 0.5,
+          "degenerateUvTriangles": 0,
+          "cornerNormalsValid": true,
+          "crossCentersMm": [
+            -64,
+            0,
+            64
+          ],
+          "crossings": 12,
+          "sampledCells": 126,
+          "overlapCells": 0
+        },
+        "trivet-spacing-64-r0002": {
+          "boundsMm": [
+            240,
+            240,
+            20
+          ],
+          "closedComponents": {
+            "longitudinal-slats": 4,
+            "cross-slats": 3
+          },
+          "spacingMm": 92,
+          "lower": "cross-slats",
+          "edgeWidthMm": 1,
+          "degenerateUvTriangles": 0,
+          "cornerNormalsValid": true,
+          "crossCentersMm": [
+            -92,
+            0,
+            92
+          ],
+          "crossings": 12,
+          "sampledCells": 126,
+          "overlapCells": 0
+        },
+        "trivet-spacing-64-r0003": {
+          "boundsMm": [
+            240,
+            240,
+            20
+          ],
+          "closedComponents": {
+            "longitudinal-slats": 4,
+            "cross-slats": 3
+          },
+          "spacingMm": 78,
+          "lower": "cross-slats",
+          "edgeWidthMm": 0,
+          "degenerateUvTriangles": 0,
+          "cornerNormalsValid": true,
+          "crossCentersMm": [
+            -78,
+            0,
+            78
+          ],
+          "crossings": 12,
+          "sampledCells": 126,
+          "overlapCells": 0
+        },
+        "trivet-spacing-64-r0004": {
+          "boundsMm": [
+            240,
+            240,
+            20
+          ],
+          "closedComponents": {
+            "longitudinal-slats": 4,
+            "cross-slats": 3
+          },
+          "spacingMm": 64,
+          "lower": "cross-slats",
+          "edgeWidthMm": 0.5,
+          "degenerateUvTriangles": 0,
+          "cornerNormalsValid": true,
+          "crossCentersMm": [
+            -64,
+            0,
+            64
+          ],
+          "crossings": 12,
+          "sampledCells": 126,
+          "overlapCells": 0
+        },
+        "relocated-zip": {
+          "boundsMm": [
+            240,
+            240,
+            20
+          ],
+          "closedComponents": {
+            "longitudinal-slats": 4,
+            "cross-slats": 3
+          },
+          "spacingMm": 64,
+          "lower": "cross-slats",
+          "edgeWidthMm": 0.5,
+          "degenerateUvTriangles": 0,
+          "cornerNormalsValid": true,
+          "crossCentersMm": [
+            -64,
+            0,
+            64
+          ],
+          "crossings": 12,
+          "sampledCells": 126,
+          "overlapCells": 0
+        }
+      }
+    },
+    "nativeMatrix": {
+      "checks": 10,
+      "report": {
+        "file": "portable-native-matrix.json",
+        "sha256": "4e9597607537f2d293e3be0ba54587d9f0073d42e9198c148cf4ff1c4d264ad8",
+        "bytes": 3141
+      },
+      "results": [
+        {
+          "spacing": 0.052,
+          "width": 0.00025,
+          "reversed": false,
+          "crossings": 12,
+          "groups": {
+            "longitudinal-slats": {
+              "vertices": 1408,
+              "polygons": 1440,
+              "triangles": 2800,
+              "degenerateUvTriangles": 0
+            },
+            "cross-slats": {
+              "vertices": 1296,
+              "polygons": 1326,
+              "triangles": 2580,
+              "degenerateUvTriangles": 0
+            }
+          }
+        },
+        {
+          "spacing": 0.064,
+          "width": 0.0005,
+          "reversed": false,
+          "crossings": 12,
+          "groups": {
+            "longitudinal-slats": {
+              "vertices": 1408,
+              "polygons": 1440,
+              "triangles": 2800,
+              "degenerateUvTriangles": 0
+            },
+            "cross-slats": {
+              "vertices": 1296,
+              "polygons": 1326,
+              "triangles": 2580,
+              "degenerateUvTriangles": 0
+            }
+          }
+        },
+        {
+          "spacing": 0.092,
+          "width": 0.001,
+          "reversed": false,
+          "crossings": 12,
+          "groups": {
+            "longitudinal-slats": {
+              "vertices": 1408,
+              "polygons": 1440,
+              "triangles": 2800,
+              "degenerateUvTriangles": 0
+            },
+            "cross-slats": {
+              "vertices": 1296,
+              "polygons": 1326,
+              "triangles": 2580,
+              "degenerateUvTriangles": 0
+            }
+          }
+        },
+        {
+          "spacing": 0.064,
+          "width": 0.0005,
+          "reversed": true,
+          "crossings": 12,
+          "groups": {
+            "longitudinal-slats": {
+              "vertices": 1408,
+              "polygons": 1440,
+              "triangles": 2800,
+              "degenerateUvTriangles": 0
+            },
+            "cross-slats": {
+              "vertices": 1296,
+              "polygons": 1326,
+              "triangles": 2580,
+              "degenerateUvTriangles": 0
+            }
+          }
+        },
+        {
+          "positiveNonuniformScaleAndCommonRotationVersusBakedReference": {
+            "longitudinal-slats": {
+              "maximumWorldPositionErrorM": 8.161702118890973e-08,
+              "maximumWorldNormalError": 0.0006287684287144131
+            },
+            "cross-slats": {
+              "maximumWorldPositionErrorM": 7.300048299977713e-08,
+              "maximumWorldNormalError": 0.0006583404168270726
+            }
+          }
+        },
+        {
+          "legacyUv": {
+            "longitudinal-slats": {
+              "vertices": 1408,
+              "polygons": 1440,
+              "triangles": 2800,
+              "degenerateUvTriangles": 211
+            },
+            "cross-slats": {
+              "vertices": 1296,
+              "polygons": 1326,
+              "triangles": 2580,
+              "degenerateUvTriangles": 230
+            }
+          },
+          "limit": "Legacy collapsed original face UVs are preserved; the new recipe needs explicit face UVs."
+        },
+        {
+          "secondMemberRefusalLeavesOriginalsAndDataInventoryUnchanged": true
+        },
+        {
+          "collapsing5mmBoundaryRefusedWithoutChangingOriginalsOrDataInventory": true
+        },
+        {
+          "copiedNativeModifierFailureLeavesMeshesObjectsSelectionAndOriginalsUnchanged": true
+        },
+        {
+          "successfulCopiedNativeModifierOutputReplacesInputsWithoutLeakingMeshes": true
+        }
+      ]
+    },
+    "unitDiagnostic": {
+      "passedFiles": 158,
+      "totalFiles": 160,
+      "log": {
+        "file": "unit-diagnostic-first.log",
+        "sha256": "a4c419597310ed2f062932bd0ab82546f9186cbd27b5b481862fa0d3b061efb8",
+        "bytes": 559518
+      },
+      "limits": "Not a complete pass. Documented counts and fresh-clone example failed; the corrected targeted checks passed separately."
+    },
+    "correctedDocumentation": [
+      {
+        "checks": 21,
+        "log": {
+          "file": "documented-counts-final.log",
+          "sha256": "56280f4fa3091d80b996423da626820b6e22e31d084e5f54fcc8399a0ccf42e3",
+          "bytes": 1761
+        }
+      },
+      {
+        "checks": 1,
+        "log": {
+          "file": "fresh-clone-final.log",
+          "sha256": "861065ee2c0cc2caff4211e8ab60c2b7846630f5228ccfeeb96f4e91299425d0",
+          "bytes": 205
+        }
+      }
+    ],
+    "countSnapshot": {
+      "selfCounted": 2149,
+      "printingFiles": 34,
+      "nodeCases": 2286,
+      "nodeFiles": 126,
+      "log": {
+        "file": "contract-count-final.log",
+        "sha256": "a68cc0a0a83331001bdd2383f5bf75a2ae0051a56572ec1b6a0a6e1a80311a5f",
+        "bytes": 2350
+      },
+      "scope": "This command checks totals and does not enforce Node passed status; not a fresh continuous all-file pass."
+    },
+    "nativeMatrixBeforeFreeze": {
+      "checks": 10,
+      "sha256": "c22628989415a91566a5d007283f5270d13ef2725b7c74fa39822efb0edcf833",
+      "results": [
+        {
+          "spacing": 0.052,
+          "width": 0.00025,
+          "reversed": false,
+          "crossings": 12,
+          "groups": {
+            "longitudinal-slats": {
+              "vertices": 1408,
+              "polygons": 1440,
+              "triangles": 2800,
+              "degenerateUvTriangles": 0
+            },
+            "cross-slats": {
+              "vertices": 1296,
+              "polygons": 1326,
+              "triangles": 2580,
+              "degenerateUvTriangles": 0
+            }
+          }
+        },
+        {
+          "spacing": 0.064,
+          "width": 0.0005,
+          "reversed": false,
+          "crossings": 12,
+          "groups": {
+            "longitudinal-slats": {
+              "vertices": 1408,
+              "polygons": 1440,
+              "triangles": 2800,
+              "degenerateUvTriangles": 0
+            },
+            "cross-slats": {
+              "vertices": 1296,
+              "polygons": 1326,
+              "triangles": 2580,
+              "degenerateUvTriangles": 0
+            }
+          }
+        },
+        {
+          "spacing": 0.092,
+          "width": 0.001,
+          "reversed": false,
+          "crossings": 12,
+          "groups": {
+            "longitudinal-slats": {
+              "vertices": 1408,
+              "polygons": 1440,
+              "triangles": 2800,
+              "degenerateUvTriangles": 0
+            },
+            "cross-slats": {
+              "vertices": 1296,
+              "polygons": 1326,
+              "triangles": 2580,
+              "degenerateUvTriangles": 0
+            }
+          }
+        },
+        {
+          "spacing": 0.064,
+          "width": 0.0005,
+          "reversed": true,
+          "crossings": 12,
+          "groups": {
+            "longitudinal-slats": {
+              "vertices": 1408,
+              "polygons": 1440,
+              "triangles": 2800,
+              "degenerateUvTriangles": 0
+            },
+            "cross-slats": {
+              "vertices": 1296,
+              "polygons": 1326,
+              "triangles": 2580,
+              "degenerateUvTriangles": 0
+            }
+          }
+        },
+        {
+          "positiveNonuniformScaleAndCommonRotationVersusBakedReference": {
+            "longitudinal-slats": {
+              "maximumWorldPositionErrorM": 8.161702118890973e-08,
+              "maximumWorldNormalError": 0.0006287684287144131
+            },
+            "cross-slats": {
+              "maximumWorldPositionErrorM": 7.300048299977713e-08,
+              "maximumWorldNormalError": 0.0006583404168270726
+            }
+          }
+        },
+        {
+          "legacyUv": {
+            "longitudinal-slats": {
+              "vertices": 1408,
+              "polygons": 1440,
+              "triangles": 2800,
+              "degenerateUvTriangles": 211
+            },
+            "cross-slats": {
+              "vertices": 1296,
+              "polygons": 1326,
+              "triangles": 2580,
+              "degenerateUvTriangles": 230
+            }
+          },
+          "limit": "Legacy collapsed original face UVs are preserved; the new recipe needs explicit face UVs."
+        },
+        {
+          "secondMemberRefusalLeavesOriginalsAndDataInventoryUnchanged": true
+        },
+        {
+          "fiveMillimetreBoundary": "refused without changing originals or data inventory"
+        },
+        {
+          "copiedNativeModifierFailureLeavesMeshesObjectsSelectionAndOriginalsUnchanged": true
+        },
+        {
+          "successfulCopiedNativeModifierOutputReplacesInputsWithoutLeakingMeshes": true
+        }
+      ],
+      "scope": "Actual component traversal, UV and oriented normals are required; at 5 mm the compiler may produce a healthy limited result or refuse atomically. The current run refused."
+    },
+    "m4ExplicitRuntime": {
+      "checksPassed": 72,
+      "checksTotal": 72,
+      "logSha256": "8e813223cc0be831ad72392f11ac848460996ec02aba7b3a3e12582cbcb88e93",
+      "realChromeDshAndBlender": true,
+      "checkoutManagedInstallAbsentDuringRun": true,
+      "selectedBlenderVersion": "5.2.1 LTS",
+      "scope": "The same existing explicit Blender path is now assigned to the test Host runtime. Assertions, time limits, interactions and creation guards are unchanged. The full test passes without a checkout-local managed Blender."
+    },
+    "runtimeEnvironmentProbe": {
+      "source": "489b27b2af0629f1e9a076e66b03e812ced4db0b",
+      "results": [
+        {
+          "label": "automatic-path",
+          "http": 500,
+          "error": "BLENDER_NOT_FOUND",
+          "creationRequestProtocol": "deepblend.creation-request/v1",
+          "nativeCheckpointExists": false
+        },
+        {
+          "label": "explicit-path",
+          "http": 200,
+          "error": null,
+          "creationRequestProtocol": "deepblend.creation-request/v1",
+          "nativeCheckpointExists": true
+        }
+      ],
+      "scope": "Real independent Host compositions, unchanged requests and actual saved .blend after passing the explicit executable; no delayed response or simulated runtime."
+    }
+  },
+  "review": {
+    "full": {
+      "file": "impeccable-finish-review.md",
+      "sha256": "729e55d7fd4ba31936039a318bb6ac401d2ac25707f1db2cd86c4b5beaf2914f",
+      "bytes": 4380
+    },
+    "verdict": {
+      "file": "impeccable-finish-verdict.md",
+      "sha256": "62bc43e92593a869da2e48c977deaae777e1c0108e1144ac63a1071953919ffe",
+      "bytes": 781
+    },
+    "scope": "ship verdict scores the sole truthful-help correction; not a release or whole-surface acceptance verdict",
+    "documenter": {
+      "file": "impeccable-documentation.md",
+      "sha256": "9c72b9e68cac8201fccf16704d022568e02600498e375ace4d08552757c41ab8",
+      "bytes": 5797
+    },
+    "detector": {
+      "file": "impeccable-detect.json",
+      "sha256": "37517e5f3dc66819f61f5a7bb8ace1921282415f10551d2defa5c3eb0985b570",
+      "bytes": 3
+    },
+    "authoritativeDesignPreserved": true,
+    "preexistingSidecarFreshnessDriftPreserved": true
+  },
+  "failuresRetained": {
+    "native": [
+      "native-finish-matrix-first.log: test setup used incorrect spacing location",
+      "native-finish-matrix-second.log and third.log: 5 mm geometry refuses",
+      "native-finish-matrix-fourth.log and fifth.log: transformed shading mismatch, corrected with explicit 45-degree threshold",
+      "native-finish-matrix-seventh.log: copied modifier output leak, corrected"
+    ],
+    "browser": [
+      "edge-ui-first.log: bootstrap compared complete pair rather than IDs",
+      "edge-ui-second.log: removal assertion omitted preserved width; product behavior retained"
+    ],
+    "documentation": [
+      "recipe12-third-party.log: stale client-bound documentation captures; recaptured with original pixels and source metadata",
+      "unit-diagnostic-first.log: two outdated documentation expectations, retained as failures"
+    ],
+    "frozenAcceptance": {
+      "source": "489b27b2af0629f1e9a076e66b03e812ced4db0b",
+      "startedAt": "2026-11-21T16:18:05.725405+00:00",
+      "verdict": "not accepted; two failures already observed in the still-continuing original run",
+      "failures": [
+        {
+          "suite": "Host composition activation",
+          "passed": 15,
+          "total": 18,
+          "reason": "The dedicated checkout lacks the managed Blender installation required by the unchanged auto-discovery assertions."
+        },
+        {
+          "suite": "Workbench UI in a real browser (M4)",
+          "passed": 6,
+          "total": 7,
+          "reason": "The test checked the explicit DEEPBLEND_BLENDER_PATH, but did not pass it to its own Host. The Host returned BLENDER_NOT_FOUND, preserved the typed inputs and showed the environment guidance. This was not a readiness-click failure."
+        }
+      ],
+      "originalLog": "acceptance-489b27b/full.log",
+      "preservedScreenshotSha256": "2dd795f57a6cd1dca284cfe93d573f76e584ae21a9b8a97ddfe93bee73ca4ed6",
+      "correction": "Pass the checked path to the M4 Host. Provision the existing exact Blender build at the isolated checkout managed-install entry for default-discovery coverage; keep the activation assertions verbatim. Run a new complete 58-suite acceptance after freezing the corrected source."
+    },
+    "diagnosticVerifier": [
+      "environment-proof.log: the first helper guessed different error names; the real response was BLENDER_NOT_FOUND. The corrected helper checks that actual code, then proves successful creation with the explicit path. Product behavior was not changed."
+    ]
+  },
+  "limits": [
+    "The current 5 mm trivet finish is refused without replacing original meshes; it is not counted as a successful geometry case.",
+    "Historical collapsed original UVs remain unless explicitly projected; the new recipe supplies explicit face UVs.",
+    "Finite mesh and cell measurements are not continuous collision or manufacturing certification.",
+    "No model calls or independent-creator acceptance are claimed."
+  ],
+  "pending": [
+    "One continuous 58-suite acceptance on unchanged committed source",
+    "Five exact-source CI jobs and raw source-bound evidence",
+    "Final-source packaging and isolated actual installation",
+    "GitHub and seven npm publication, anonymous archives and all three installation routes",
+    "Authorized existing community listing update and separate upstream/catalog observations"
+  ]
+}
