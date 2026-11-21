@@ -1037,3 +1037,12 @@ npm 首包写入后即时读回为 404。确认首包的公开版本和归档后
 候选与合并提交各五项 CI 通过。九件 GitHub 附件、七个 npm 包的 209 个文件均已公开读回，三条安装路线一致。主包经临时 GitHub 任务重建，SHA-256 与本机验过的归档一致后上传；两次本机上传中断及临时构建任务的失败记录均已保留。npm 每个版本写入一次，等待公开归档可读后才发 bundle。[GitHub Release](https://github.com/pearjelly/deep-blend/releases/tag/v0.26.0) · [发布证据](validation/release-0.26.0.json)
 
 新社区条目已提交 [PR #17521](https://github.com/awesome-dsh-plugin/awesome-dsh-plugin/pull/17521)。上一份社区 PR #14273 已合并，发新版前的普通 index/plugins 地址均读回 0.25.0。持续发布在本聊天暂停后于本日恢复，今日完成一个公开稳定版本。
+
+
+### 2026-11-21 · 0.27.0 居中的格栅间距
+
+北京时间 21:35:08 从主线 `49e8b6e4` 公开。创建或继续修改格栅垫时，可用一个 52–92 mm 参数同步调整阵列偏移与对象位置，保持三根横条居中；旧配方锁和历史工程保留。[发布说明](releases/0.27.0.md)
+
+连续 58 套验收、159 个单元/契约文件、候选与主线各五项 CI 通过。最终安装包 23 项浏览器/原生检查通过，七个重开工程均保有七个闭合实体、十二处交叉与零采样重叠。九件 GitHub 资产、七个 npm 包的 209 个文件已从公开渠道读回，三条全新缓存安装路线均为 0.27.0，实际组件文件、工作台与两项预设一致。每个 npm 版本写入一次。[GitHub Release](https://github.com/pearjelly/deep-blend/releases/tag/v0.27.0) · [发布证据](validation/release-0.27.0.json)
+
+社区更新沿用 [PR #17521](https://github.com/awesome-dsh-plugin/awesome-dsh-plugin/pull/17521)，只改本条目两行描述；上游合并和目录传播待确认。本日已完成稳定公开发布，持续迭代目标保持进行中。

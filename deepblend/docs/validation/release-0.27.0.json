@@ -1,0 +1,1918 @@
+{
+  "schemaVersion": "deepblend.release-publication-status/v1",
+  "releaseLabel": "0.27.0",
+  "recordedAt": "2026-11-21T13:56:22.435564+00:00",
+  "status": "GitHub and seven npm packages published; three public installation routes verified; existing community listing PR updated",
+  "publishedAt": "2026-11-21T13:35:08Z",
+  "releaseUrl": "https://github.com/pearjelly/deep-blend/releases/tag/v0.27.0",
+  "sourcePullRequest": {
+    "mergeCommit": {
+      "oid": "49e8b6e4cfb82f2d92b4f447c8b581991ae87d16"
+    },
+    "mergedAt": "2026-11-21T13:02:42Z",
+    "number": 85,
+    "state": "MERGED",
+    "url": "https://github.com/pearjelly/deep-blend/pull/85",
+    "tree": "bb8cd84f9729ed7b9b90d5b83370ce7dc6180cf2",
+    "treeMatchesProspective": true
+  },
+  "acceptedSourceCommit": "bccf5f46934aabf4fef3400ebd32a6600bdff318",
+  "mergedSourceCommit": "49e8b6e4cfb82f2d92b4f447c8b581991ae87d16",
+  "acceptance": {
+    "commit": "bccf5f46934aabf4fef3400ebd32a6600bdff318",
+    "startedAt": "2026-11-21T11:52:33.695284+00:00",
+    "completedAt": "2026-11-21T12:58:19.585877+00:00",
+    "kernelExitCode": 0,
+    "allTrackedSourceUnchanged": true,
+    "trackedFiles": 1100,
+    "expectedSuites": 58,
+    "observedSuites": 58,
+    "verdicts": [
+      {
+        "label": "unit + contract (no Blender required)",
+        "passed": true
+      },
+      {
+        "label": "Blender capability probe (M0)",
+        "passed": true
+      },
+      {
+        "label": "Blender batch SceneSpec + revision loop (M1)",
+        "passed": true
+      },
+      {
+        "label": "Public runtime conformance: packed checker, native evidence, cancellation and partial resume",
+        "passed": true
+      },
+      {
+        "label": "Saved native local surface rays: analytic dimensions, overlap, occlusion and explicit refusals",
+        "passed": true
+      },
+      {
+        "label": "Surface placement: saved mesh contact, rigid imported hierarchies and same-frame previews",
+        "passed": true
+      },
+      {
+        "label": "Handled cup: public generator, closed mesh, dimensional edits and immutable inspections",
+        "passed": true
+      },
+      {
+        "label": "Model resource bundles: glTF/GLB/OBJ textures, locked files and old revision rebuild",
+        "passed": true
+      },
+      {
+        "label": "Asset library: real uploads, isolated previews and source fidelity",
+        "passed": true
+      },
+      {
+        "label": "Fixed-view inspections: isolated beauty/clay, measured cameras and source protection",
+        "passed": true
+      },
+      {
+        "label": "Blender live session: one process, many operations (M6 Live Bridge, transport)",
+        "passed": true
+      },
+      {
+        "label": "Host composition activation",
+        "passed": true
+      },
+      {
+        "label": "Agent preset tool plane + degradation path (M0)",
+        "passed": true
+      },
+      {
+        "label": "Agent preset M1 tool plane (all seven tools)",
+        "passed": true
+      },
+      {
+        "label": "Blender visual loop: multi-view, scoring, repair, handover (M2)",
+        "passed": true
+      },
+      {
+        "label": "Agent preset M2 tool plane (all ten tools, image return)",
+        "passed": true
+      },
+      {
+        "label": "Blender persistent render job: restart, resume, cancel, delivery (M3)",
+        "passed": true
+      },
+      {
+        "label": "Saved-shot delivery: native camera cuts, per-frame evidence and frozen selection on resume",
+        "passed": true
+      },
+      {
+        "label": "Completed frames: native encoding, process cancellation and prior delivery protection (no Blender)",
+        "passed": true
+      },
+      {
+        "label": "Agent preset M3 tool plane (all nineteen tools, real delivery)",
+        "passed": true
+      },
+      {
+        "label": "M5 hardening: allowlist, deadline, capture cap, budgets, workspace boundary",
+        "passed": true
+      },
+      {
+        "label": "M5 concurrency: two sessions on one store, and the realms that keep them apart",
+        "passed": true
+      },
+      {
+        "label": "M5 approval: the threshold refuses an unapproved expensive render",
+        "passed": true
+      },
+      {
+        "label": "M5 assets: local automatic, network approved, and the caps in between",
+        "passed": true
+      },
+      {
+        "label": "Workbench UI plane: closed route set, writes through the Host, client seat table (M4)",
+        "passed": true
+      },
+      {
+        "label": "Image readiness: opt-in local check, explicit cost and safe failure",
+        "passed": true
+      },
+      {
+        "label": "Workbench UI in a real browser: manage a project, refresh, cancel, no browser Blender (M4)",
+        "passed": true
+      },
+      {
+        "label": "Standalone fullscreen workbench: its own route, the console's own bundle, refresh (M6)",
+        "passed": true
+      },
+      {
+        "label": "Render selection: native profile, submitted revision, frame dimensions and encoded delivery",
+        "passed": true
+      },
+      {
+        "label": "Still delivery: real Blender and browser with unavailable video encoders",
+        "passed": true
+      },
+      {
+        "label": "Motion preview: native playback, explicit save and lost-reply recovery",
+        "passed": true
+      },
+      {
+        "label": "Motion frame audit: real intermediate clipping and complete preview evidence",
+        "passed": true
+      },
+      {
+        "label": "Motion save guard: recompiled intermediate clipping and atomic recovery",
+        "passed": true
+      },
+      {
+        "label": "Speaker motion: complete visible selection, hidden construction tools and native save",
+        "passed": true
+      },
+      {
+        "label": "Imported model motion: fitted camera, saved framing and preserved source bundle",
+        "passed": true
+      },
+      {
+        "label": "Preview PNG saving: native browser files, exact source, refusal, retry and narrow layout",
+        "passed": true
+      },
+      {
+        "label": "First creation recovery: actual failures, lost reply, retry and immutable native output",
+        "passed": true
+      },
+      {
+        "label": "Photography editor: native camera and light edits, saved inspections and conditional restore",
+        "passed": true
+      },
+      {
+        "label": "Asset library in a real browser: upload, preview, apply and revision conflicts",
+        "passed": true
+      },
+      {
+        "label": "Resource bundle upload: real files and directories, cancellation recovery, glTF/GLB/OBJ preview and apply",
+        "passed": true
+      },
+      {
+        "label": "Handled cup editor: real dimensions, refusals and revision reload",
+        "passed": true
+      },
+      {
+        "label": "Material surface editor: UV drafts, native refusals, saved graph and real pixels",
+        "passed": true
+      },
+      {
+        "label": "Mesh UV projection: real editor save, native area and revision protection",
+        "passed": true
+      },
+      {
+        "label": "Timber half laps: unsaved preview, bound confirmation and independent native readback",
+        "passed": true
+      },
+      {
+        "label": "Recipe versions: native UV defaults, gallery selection and historical project locks",
+        "passed": true
+      },
+      {
+        "label": "Paired lamp dimensions: native walls, liner gap, neck, history and inspection camera",
+        "passed": true
+      },
+      {
+        "label": "Lamp dimension workbench: native creation, coupled save, conflicts, reload and history",
+        "passed": true
+      },
+      {
+        "label": "Complete lamp placement: native23-member pose, actual support, continuation and atomic fault rejection",
+        "passed": true
+      },
+      {
+        "label": "Complete lamp workbench: one placement,250 to230 continuation, source protection and mobile controls",
+        "passed": true
+      },
+      {
+        "label": "Calibrated complete views: native imported hierarchy, shifted lenses, roll and atomic refusal",
+        "passed": true
+      },
+      {
+        "label": "Complete view workbench: native23-member fit, preserved animation and exact refresh replay",
+        "passed": true
+      },
+      {
+        "label": "Linked speaker dimensions: native assembly creation and historical project protection",
+        "passed": true
+      },
+      {
+        "label": "Existing assembly dimensions: native edits, preserved styles and conditional history restore",
+        "passed": true
+      },
+      {
+        "label": "Centered trivet spacing: native gallery creation, saved edits and relocated editable ZIP",
+        "passed": true
+      },
+      {
+        "label": "Preview history: native attempts, source labels, editor comparison and restore",
+        "passed": true
+      },
+      {
+        "label": "Independent Host processes: native previews, protected indices and sheet rotation",
+        "passed": true
+      },
+      {
+        "label": "Review history: independent native Hosts, immutable image pairs and latest QA",
+        "passed": true
+      },
+      {
+        "label": "Fixed-view inspection workbench: real images, revision history and cancellation",
+        "passed": true
+      }
+    ],
+    "logBytes": 873103,
+    "logSha256": "28e2e8119a361352ca8997a70f9e26ad92e9a56dfc478b2e973b3a956180e169",
+    "passed": true
+  },
+  "actualAcceptedSourceAudit": {
+    "at": "2026-11-21T12:59:55.721980+00:00",
+    "commit": "bccf5f46934aabf4fef3400ebd32a6600bdff318",
+    "trackedFiles": 1100,
+    "symlinks": 0,
+    "allPathsAndBytesMatchFrozenSnapshot": true,
+    "allBlobBytesMatchGitHead": true,
+    "allActualFileModesMatchGitHead": true
+  },
+  "candidateCi": {
+    "runId": 44900622349,
+    "checksPassed": 5,
+    "archives": [
+      {
+        "id": 14706766033,
+        "name": "linux-inspections-44900622349-1",
+        "bytes": 223118922,
+        "sha256": "24e3f8a4c74603e1945c96ba1e2a37261b1404625b7108c93e76656ded9a5d6c",
+        "entries": 3674,
+        "crcVerified": true,
+        "sourceTreeMatchesCandidate": true,
+        "context": {
+          "sourceCommit": "45df4224d22e46bf02641ceec7c2464a01f30305",
+          "runId": "44900622349",
+          "attempt": "1",
+          "imageVersion": "20261116.133.1",
+          "platform": "linux",
+          "arch": "x64",
+          "release": "7.0.0-1014-aws",
+          "node": "v22.23.3"
+        }
+      },
+      {
+        "id": 14706470514,
+        "name": "linux-render-photography-44900622349-1",
+        "bytes": 66968764,
+        "sha256": "799c56771e7e3d43331e6578992ea47aa5bd6c182f38aa5151b9b872cbd4167e",
+        "entries": 677,
+        "crcVerified": true,
+        "sourceTreeMatchesCandidate": true,
+        "context": {
+          "sourceCommit": "45df4224d22e46bf02641ceec7c2464a01f30305",
+          "runId": "44900622349",
+          "attempt": "1",
+          "imageVersion": "20261116.133.1",
+          "platform": "linux",
+          "arch": "x64",
+          "release": "7.0.0-1014-aws",
+          "node": "v22.23.3"
+        },
+        "trivetSpacing": {
+          "checksPassed": 23,
+          "checkpointsIndependentlyReopened": 7,
+          "native": {
+            "trivet-spacing-52-r0001": {
+              "boundsMm": [
+                240,
+                240,
+                20
+              ],
+              "closedComponents": {
+                "longitudinal-slats": 4,
+                "cross-slats": 3
+              },
+              "spacingMm": 52,
+              "lower": "cross-slats",
+              "crossCentersMm": [
+                -52,
+                0,
+                52
+              ],
+              "crossings": 12,
+              "sampledCells": 126,
+              "overlapCells": 0
+            },
+            "trivet-spacing-92-r0001": {
+              "boundsMm": [
+                240,
+                240,
+                20
+              ],
+              "closedComponents": {
+                "longitudinal-slats": 4,
+                "cross-slats": 3
+              },
+              "spacingMm": 92,
+              "lower": "cross-slats",
+              "crossCentersMm": [
+                -92,
+                0,
+                92
+              ],
+              "crossings": 12,
+              "sampledCells": 126,
+              "overlapCells": 0
+            },
+            "trivet-spacing-64-r0001": {
+              "boundsMm": [
+                240,
+                240,
+                20
+              ],
+              "closedComponents": {
+                "longitudinal-slats": 4,
+                "cross-slats": 3
+              },
+              "spacingMm": 64,
+              "lower": "cross-slats",
+              "crossCentersMm": [
+                -64,
+                0,
+                64
+              ],
+              "crossings": 12,
+              "sampledCells": 126,
+              "overlapCells": 0
+            },
+            "trivet-spacing-64-r0002": {
+              "boundsMm": [
+                240,
+                240,
+                20
+              ],
+              "closedComponents": {
+                "longitudinal-slats": 4,
+                "cross-slats": 3
+              },
+              "spacingMm": 92,
+              "lower": "cross-slats",
+              "crossCentersMm": [
+                -92,
+                0,
+                92
+              ],
+              "crossings": 12,
+              "sampledCells": 126,
+              "overlapCells": 0
+            },
+            "trivet-spacing-64-r0003": {
+              "boundsMm": [
+                240,
+                240,
+                20
+              ],
+              "closedComponents": {
+                "longitudinal-slats": 4,
+                "cross-slats": 3
+              },
+              "spacingMm": 78,
+              "lower": "cross-slats",
+              "crossCentersMm": [
+                -78,
+                0,
+                78
+              ],
+              "crossings": 12,
+              "sampledCells": 126,
+              "overlapCells": 0
+            },
+            "trivet-spacing-64-r0004": {
+              "boundsMm": [
+                240,
+                240,
+                20
+              ],
+              "closedComponents": {
+                "longitudinal-slats": 4,
+                "cross-slats": 3
+              },
+              "spacingMm": 64,
+              "lower": "cross-slats",
+              "crossCentersMm": [
+                -64,
+                0,
+                64
+              ],
+              "crossings": 12,
+              "sampledCells": 126,
+              "overlapCells": 0
+            },
+            "relocated-zip": {
+              "boundsMm": [
+                240,
+                240,
+                20
+              ],
+              "closedComponents": {
+                "longitudinal-slats": 4,
+                "cross-slats": 3
+              },
+              "spacingMm": 64,
+              "lower": "cross-slats",
+              "crossCentersMm": [
+                -64,
+                0,
+                64
+              ],
+              "crossings": 12,
+              "sampledCells": 126,
+              "overlapCells": 0
+            }
+          },
+          "archive": {
+            "revision": "r0004",
+            "filesVerified": 10,
+            "archiveSha256": "34419111339fd403e7a2f57be50b38a2de9d0a006a0a7232733db3c558356320"
+          }
+        }
+      },
+      {
+        "id": 14705972003,
+        "name": "linux-cup-parameters-44900622349-1",
+        "bytes": 10108404,
+        "sha256": "2efc12115234d722846e72f16ee54e5c5dfc7e4d395a0e1672d0c13c693ab033",
+        "entries": 99,
+        "crcVerified": true,
+        "sourceTreeMatchesCandidate": true,
+        "context": {
+          "sourceCommit": "45df4224d22e46bf02641ceec7c2464a01f30305",
+          "runId": "44900622349",
+          "attempt": "1",
+          "imageVersion": "20261116.133.1",
+          "platform": "linux",
+          "arch": "x64",
+          "release": "7.0.0-1014-aws",
+          "node": "v22.23.3"
+        }
+      },
+      {
+        "id": 14705946798,
+        "name": "harness-021-44900622349-1",
+        "bytes": 3285129,
+        "sha256": "e948b1ec4f39e1b7ffc2c4d3d5ce0db2efb02c1941c68a6c88b43b8dacfd53e2",
+        "entries": 62,
+        "crcVerified": true,
+        "sourceTreeMatchesCandidate": true,
+        "context": {
+          "sourceCommit": "45df4224d22e46bf02641ceec7c2464a01f30305",
+          "runId": "44900622349",
+          "attempt": "1",
+          "imageVersion": "20261116.133.1",
+          "platform": "linux",
+          "arch": "x64",
+          "release": "7.0.0-1014-aws",
+          "node": "v22.23.3"
+        }
+      }
+    ]
+  },
+  "mainCi": {
+    "id": 44906873063,
+    "head_sha": "49e8b6e4cfb82f2d92b4f447c8b581991ae87d16",
+    "status": "completed",
+    "conclusion": "success",
+    "html_url": "https://github.com/pearjelly/deep-blend/actions/runs/44906873063"
+  },
+  "bundleSourceEquivalence": {
+    "acceptedSource": "bccf5f46934aabf4fef3400ebd32a6600bdff318",
+    "mergedSource": "49e8b6e4cfb82f2d92b4f447c8b581991ae87d16",
+    "packagesTree": "92c7999860058163c531219a3c7e9f5a4bdd7c0f",
+    "onlyExpectedReleaseRecordDocsDiffer": [
+      "deepblend/docs/daily-releases.md",
+      "deepblend/docs/listing-entry.yml",
+      "deepblend/docs/product-roadmap.md",
+      "deepblend/docs/releases/0.26.0.md",
+      "deepblend/docs/validation/release-0.26.0.json"
+    ],
+    "candidateArchiveSha256": "bf36a614986255fa7fea56fc603d43dd0cdd49f6888d1a81b5fb57ec6234cc61",
+    "finalArchiveSha256": "ce4d873b91c8e3c04539f87615fe52bdda14b05fdfa294811d8a1adcbb9081a5",
+    "finalArchiveBytes": 73182011,
+    "members": 471,
+    "identicalNonRootMembers": 470,
+    "allMemberPathsAndModesIdentical": true,
+    "onlyRootDifference": "Six pinned source references updated from accepted candidate to merged source.",
+    "completeAcceptance": {
+      "commit": "bccf5f46934aabf4fef3400ebd32a6600bdff318",
+      "suites": 58,
+      "logSha256": "28e2e8119a361352ca8997a70f9e26ad92e9a56dfc478b2e973b3a956180e169",
+      "allTrackedSourceUnchanged": true
+    }
+  },
+  "installedArtifactAcceptance": {
+    "archiveSha256": "ce4d873b91c8e3c04539f87615fe52bdda14b05fdfa294811d8a1adcbb9081a5",
+    "platform": "darwin",
+    "arch": "arm64",
+    "ownPackageVersions": {
+      "@deepblend/dsh-blender-bundle": "0.27.0",
+      "@deepblend/dsh-blender-contracts": "0.27.0",
+      "@deepblend/dsh-blender-host": "0.27.0",
+      "@deepblend/dsh-blender-preset": "0.27.0",
+      "@deepblend/dsh-blender-provider-local": "0.27.0",
+      "@deepblend/dsh-blender-tool": "0.27.0",
+      "@deepblend/dsh-blender-ui": "0.27.0"
+    },
+    "packedFilesByteVerification": {
+      "archiveSha256": "ce4d873b91c8e3c04539f87615fe52bdda14b05fdfa294811d8a1adcbb9081a5",
+      "version": "0.27.0",
+      "source": "49e8b6e4cfb82f2d92b4f447c8b581991ae87d16",
+      "packedFilesByteVerified": 471,
+      "executableFiles": 3,
+      "allExecutableModesMatchArchive": true,
+      "allResolvedFilesStayInsideInstalledBundle": true,
+      "rootSourceReferencesVerified": 6
+    },
+    "workbenchHttp": 200,
+    "presets": [
+      "deepblend",
+      "deepblend-dev"
+    ],
+    "client": {
+      "installedClientSha256": "018a34ac820df551b71eb01d20f2b949ae6de3e3dfa3a49ce93b16b7c991a22e",
+      "servedBatchSha256": "c3d8b7e3e971dca62d6ec192d7d80e0ae86d58520a6708a2c81881401c9951f1",
+      "installedClientInServedBatch": true
+    },
+    "browserChecks": [
+      {
+        "name": "52 mm: creation offers the authored 78 mm default",
+        "ok": true
+      },
+      {
+        "name": "an out-of-range creation is disabled before any project write",
+        "ok": true
+      },
+      {
+        "name": "trivet-spacing-52/r0001: the committed source has its own decoded native preview",
+        "ok": true
+      },
+      {
+        "name": "52 mm: creation locks the selected version, input bytes and spacing",
+        "ok": true
+      },
+      {
+        "name": "92 mm: creation offers the authored 78 mm default",
+        "ok": true
+      },
+      {
+        "name": "trivet-spacing-92/r0001: the committed source has its own decoded native preview",
+        "ok": true
+      },
+      {
+        "name": "92 mm: creation locks the selected version, input bytes and spacing",
+        "ok": true
+      },
+      {
+        "name": "64 mm: creation offers the authored 78 mm default",
+        "ok": true
+      },
+      {
+        "name": "trivet-spacing-64/r0001: the committed source has its own decoded native preview",
+        "ok": true
+      },
+      {
+        "name": "64 mm: creation locks the selected version, input bytes and spacing",
+        "ok": true
+      },
+      {
+        "name": "out-of-range saved spacing blocks a write",
+        "ok": true
+      },
+      {
+        "name": "trivet-spacing-64/r0002: the committed source has its own decoded native preview",
+        "ok": true
+      },
+      {
+        "name": "r0002: spacing is saved on the existing project with its original source lock",
+        "ok": true
+      },
+      {
+        "name": "trivet-spacing-64/r0003: the committed source has its own decoded native preview",
+        "ok": true
+      },
+      {
+        "name": "r0003: spacing is saved on the existing project with its original source lock",
+        "ok": true
+      },
+      {
+        "name": "trivet-spacing-64/r0004: the committed source has its own decoded native preview",
+        "ok": true
+      },
+      {
+        "name": "r0004: spacing is saved on the existing project with its original source lock",
+        "ok": true
+      },
+      {
+        "name": "returning to 64 mm has no cumulative geometry drift",
+        "ok": true
+      },
+      {
+        "name": "refresh reads the actual saved spacing",
+        "ok": true
+      },
+      {
+        "name": "the existing spacing controls fit a 390 px workbench",
+        "ok": true
+      },
+      {
+        "name": "the browser-downloaded ZIP preserves every listed byte, selected checkpoint and parameter state",
+        "ok": true
+      },
+      {
+        "name": "independent Blender reopening confirms centered spacing, seven closed solids, twelve crossings and no sampled overlap in all seven checkpoints",
+        "ok": true
+      },
+      {
+        "name": "all original native files, scene data, source locks and previews remain byte-identical",
+        "ok": true
+      }
+    ],
+    "nativeReadback": {
+      "trivet-spacing-52-r0001": {
+        "boundsMm": [
+          240,
+          240,
+          20
+        ],
+        "closedComponents": {
+          "longitudinal-slats": 4,
+          "cross-slats": 3
+        },
+        "spacingMm": 52,
+        "lower": "cross-slats",
+        "crossCentersMm": [
+          -52,
+          0,
+          52
+        ],
+        "crossings": 12,
+        "sampledCells": 126,
+        "overlapCells": 0
+      },
+      "trivet-spacing-92-r0001": {
+        "boundsMm": [
+          240,
+          240,
+          20
+        ],
+        "closedComponents": {
+          "longitudinal-slats": 4,
+          "cross-slats": 3
+        },
+        "spacingMm": 92,
+        "lower": "cross-slats",
+        "crossCentersMm": [
+          -92,
+          0,
+          92
+        ],
+        "crossings": 12,
+        "sampledCells": 126,
+        "overlapCells": 0
+      },
+      "trivet-spacing-64-r0001": {
+        "boundsMm": [
+          240,
+          240,
+          20
+        ],
+        "closedComponents": {
+          "longitudinal-slats": 4,
+          "cross-slats": 3
+        },
+        "spacingMm": 64,
+        "lower": "cross-slats",
+        "crossCentersMm": [
+          -64,
+          0,
+          64
+        ],
+        "crossings": 12,
+        "sampledCells": 126,
+        "overlapCells": 0
+      },
+      "trivet-spacing-64-r0002": {
+        "boundsMm": [
+          240,
+          240,
+          20
+        ],
+        "closedComponents": {
+          "longitudinal-slats": 4,
+          "cross-slats": 3
+        },
+        "spacingMm": 92,
+        "lower": "cross-slats",
+        "crossCentersMm": [
+          -92,
+          0,
+          92
+        ],
+        "crossings": 12,
+        "sampledCells": 126,
+        "overlapCells": 0
+      },
+      "trivet-spacing-64-r0003": {
+        "boundsMm": [
+          240,
+          240,
+          20
+        ],
+        "closedComponents": {
+          "longitudinal-slats": 4,
+          "cross-slats": 3
+        },
+        "spacingMm": 78,
+        "lower": "cross-slats",
+        "crossCentersMm": [
+          -78,
+          0,
+          78
+        ],
+        "crossings": 12,
+        "sampledCells": 126,
+        "overlapCells": 0
+      },
+      "trivet-spacing-64-r0004": {
+        "boundsMm": [
+          240,
+          240,
+          20
+        ],
+        "closedComponents": {
+          "longitudinal-slats": 4,
+          "cross-slats": 3
+        },
+        "spacingMm": 64,
+        "lower": "cross-slats",
+        "crossCentersMm": [
+          -64,
+          0,
+          64
+        ],
+        "crossings": 12,
+        "sampledCells": 126,
+        "overlapCells": 0
+      },
+      "relocated-zip": {
+        "boundsMm": [
+          240,
+          240,
+          20
+        ],
+        "closedComponents": {
+          "longitudinal-slats": 4,
+          "cross-slats": 3
+        },
+        "spacingMm": 64,
+        "lower": "cross-slats",
+        "crossCentersMm": [
+          -64,
+          0,
+          64
+        ],
+        "crossings": 12,
+        "sampledCells": 126,
+        "overlapCells": 0
+      }
+    },
+    "editableZip": {
+      "revision": "r0004",
+      "filesVerified": 10,
+      "archiveSha256": "3abd5a7b7eb1fd202221f2c1419580e9775dec16f13d4912dd99a2ed890de353"
+    },
+    "imageDecode": [
+      {
+        "format": "png",
+        "width": 720,
+        "height": 540,
+        "decodedSha256": "3ac04d6fba238e10416af5f5b3b1f0fb025c402cbe2344a5179155fc30b96bbf"
+      },
+      {
+        "format": "jpeg",
+        "width": 64,
+        "height": 64,
+        "decodedSha256": "89fc393c7461f0c67e7a7d2518180a5c46eb6263105cb69f7f1f27d99969aa6d"
+      }
+    ],
+    "publicPreview": {
+      "sourceFile": "trivet-spacing-64-r0004.png",
+      "publishedFile": "walnut-trivet-preview.png",
+      "sourceSha256": "fe4986976dbf2bdae532fde600a463cec248e6d16591b8d0fae09bcae9b71b4a",
+      "publishedSha256": "c6bcca08dcc133752018c3e9884bd45517d549dfeec4773585968dbaec9b3a6a",
+      "width": 720,
+      "height": 540,
+      "decodedRgbaSha256": "4b60d3ca0a398b28dfdc9b631d7599d799a0b09d5bb01540b62bf3c5de8e0793",
+      "pixelsByteIdentical": true,
+      "removedMetadataChunks": [
+        "eXIf",
+        "tEXt",
+        "tEXt",
+        "tEXt",
+        "tEXt",
+        "tEXt",
+        "tEXt",
+        "tEXt",
+        "tEXt",
+        "tEXt",
+        "tEXt",
+        "tEXt"
+      ],
+      "method": "Removed only text, time and EXIF chunks; all retained PNG chunks and compressed image data are unchanged."
+    },
+    "previewSamples": 24,
+    "shutdown": {
+      "code": 0,
+      "signal": null
+    }
+  },
+  "sameProfileUpgrade": {
+    "upgradedFrom": "0.26.0",
+    "upgradedTo": "0.27.0",
+    "oldRecipeVersion": "1.0.0",
+    "newRecipeVersion": "1.1.0",
+    "protectedFiles": 9,
+    "allOldFilesByteIdentical": true,
+    "native": {
+      "old-026": {
+        "boundsMm": [
+          240,
+          240,
+          20
+        ],
+        "closedComponents": {
+          "longitudinal-slats": 4,
+          "cross-slats": 3
+        },
+        "spacingMm": 78,
+        "lower": "cross-slats",
+        "crossCentersMm": [
+          -78,
+          0,
+          78
+        ],
+        "crossings": 12,
+        "sampledCells": 126,
+        "overlapCells": 0
+      },
+      "new-027": {
+        "boundsMm": [
+          240,
+          240,
+          20
+        ],
+        "closedComponents": {
+          "longitudinal-slats": 4,
+          "cross-slats": 3
+        },
+        "spacingMm": 64,
+        "lower": "cross-slats",
+        "crossCentersMm": [
+          -64,
+          0,
+          64
+        ],
+        "crossings": 12,
+        "sampledCells": 126,
+        "overlapCells": 0
+      },
+      "edited-027": {
+        "boundsMm": [
+          240,
+          240,
+          20
+        ],
+        "closedComponents": {
+          "longitudinal-slats": 4,
+          "cross-slats": 3
+        },
+        "spacingMm": 92,
+        "lower": "cross-slats",
+        "crossCentersMm": [
+          -92,
+          0,
+          92
+        ],
+        "crossings": 12,
+        "sampledCells": 126,
+        "overlapCells": 0
+      }
+    },
+    "testedCandidateArchiveSha256": "bf36a614986255fa7fea56fc603d43dd0cdd49f6888d1a81b5fb57ec6234cc61",
+    "sameRuntimeFilesVerifiedInFinalArchive": true
+  },
+  "github": {
+    "tagName": "v0.27.0",
+    "publishedAt": "2026-11-21T13:35:08Z",
+    "targetCommitish": "49e8b6e4cfb82f2d92b4f447c8b581991ae87d16",
+    "url": "https://github.com/pearjelly/deep-blend/releases/tag/v0.27.0",
+    "checkedAt": "2026-11-21T13:41:06.822721+00:00",
+    "notesVerified": true,
+    "assets": [
+      {
+        "name": "SHA256SUMS",
+        "size": 758,
+        "sha256": "10ef68912332a875824e2e0c42ba6dfcdde52fb5b3c68c76208548708a015418",
+        "url": "https://github.com/pearjelly/deep-blend/releases/download/v0.27.0/SHA256SUMS",
+        "anonymousDownloadMatches": true
+      },
+      {
+        "name": "deepblend-bundle.tgz",
+        "size": 73182011,
+        "sha256": "ce4d873b91c8e3c04539f87615fe52bdda14b05fdfa294811d8a1adcbb9081a5",
+        "url": "https://github.com/pearjelly/deep-blend/releases/download/v0.27.0/deepblend-bundle.tgz",
+        "anonymousDownloadMatches": true
+      },
+      {
+        "name": "native-payload-verification.json",
+        "size": 8003,
+        "sha256": "11cae07a259e82e0550abd5cc3a9b70e94e6166b42c0fed6a009d8145ac7cab2",
+        "url": "https://github.com/pearjelly/deep-blend/releases/download/v0.27.0/native-payload-verification.json",
+        "anonymousDownloadMatches": true
+      },
+      {
+        "name": "own-package-copy-verification.json",
+        "size": 1199,
+        "sha256": "84ba4d0a3302c565ab212faa9ae79f50082b0a26a5bf8df51fe252113a83ce32",
+        "url": "https://github.com/pearjelly/deep-blend/releases/download/v0.27.0/own-package-copy-verification.json",
+        "anonymousDownloadMatches": true
+      },
+      {
+        "name": "software-acceptance.json",
+        "size": 33055,
+        "sha256": "3d0de2dba73b683adb5198688f71a6004adcddafbe589f92f52edd2273997f71",
+        "url": "https://github.com/pearjelly/deep-blend/releases/download/v0.27.0/software-acceptance.json",
+        "anonymousDownloadMatches": true
+      },
+      {
+        "name": "source-equivalence.json",
+        "size": 1105,
+        "sha256": "b5338967052a7af18ae666dce2bfcb74cb6c48e16b76d39637592ad1d2a7f740",
+        "url": "https://github.com/pearjelly/deep-blend/releases/download/v0.27.0/source-equivalence.json",
+        "anonymousDownloadMatches": true
+      },
+      {
+        "name": "walnut-trivet-64mm-editable.zip",
+        "size": 783031,
+        "sha256": "3abd5a7b7eb1fd202221f2c1419580e9775dec16f13d4912dd99a2ed890de353",
+        "url": "https://github.com/pearjelly/deep-blend/releases/download/v0.27.0/walnut-trivet-64mm-editable.zip",
+        "anonymousDownloadMatches": true
+      },
+      {
+        "name": "walnut-trivet-preview.png",
+        "size": 373797,
+        "sha256": "c6bcca08dcc133752018c3e9884bd45517d549dfeec4773585968dbaec9b3a6a",
+        "url": "https://github.com/pearjelly/deep-blend/releases/download/v0.27.0/walnut-trivet-preview.png",
+        "anonymousDownloadMatches": true
+      },
+      {
+        "name": "walnut-trivet-workbench-390px.png",
+        "size": 70742,
+        "sha256": "54dc2fde0f6258840a0da82a47d331174d426e0ffb4f9ba6daf5761afee5fc13",
+        "url": "https://github.com/pearjelly/deep-blend/releases/download/v0.27.0/walnut-trivet-workbench-390px.png",
+        "anonymousDownloadMatches": true
+      }
+    ]
+  },
+  "npm": {
+    "sourceCommit": "49e8b6e4cfb82f2d92b4f447c8b581991ae87d16",
+    "verifiedAt": "2026-11-21T13:48:26.097Z",
+    "packageCount": 7,
+    "fileCount": 209,
+    "writeAttemptsPerPackage": {
+      "@deepblend/dsh-blender-contracts": 1,
+      "@deepblend/dsh-blender-host": 1,
+      "@deepblend/dsh-blender-preset": 1,
+      "@deepblend/dsh-blender-provider-local": 1,
+      "@deepblend/dsh-blender-tool": 1,
+      "@deepblend/dsh-blender-ui": 1,
+      "@deepblend/dsh-blender-bundle": 1
+    },
+    "publicationLedgerSha256": "203fa0a82b1835f0ec54111c070066ba44ec2ee480896521a2ebaae3a7f85e24",
+    "packages": [
+      {
+        "name": "@deepblend/dsh-blender-contracts",
+        "version": "0.27.0",
+        "latest": "0.27.0",
+        "tarball": "https://registry.npmjs.org/@deepblend/dsh-blender-contracts/-/dsh-blender-contracts-0.27.0.tgz",
+        "bytes": 192525,
+        "integrity": "sha512-vRIgVpel1O8qJBWSBOu01onFRgHOed4p1EyriD94r3oYEOrLAeWzZIIeAWcJZLJ7D3yEoWvqL+MzBQl9UxyLTg==",
+        "files": 46,
+        "allBytesAndModesMatchPreparedSource": true
+      },
+      {
+        "name": "@deepblend/dsh-blender-host",
+        "version": "0.27.0",
+        "latest": "0.27.0",
+        "tarball": "https://registry.npmjs.org/@deepblend/dsh-blender-host/-/dsh-blender-host-0.27.0.tgz",
+        "bytes": 3411832,
+        "integrity": "sha512-W4K3zNiopG1sX5nlFLZFRHebzXiwpSJC9+s7VvQKU1Ld43YSHcfFQ1u6PmvsBWYS3Be4ooR00e/m1CPXplc+rg==",
+        "files": 67,
+        "allBytesAndModesMatchPreparedSource": true
+      },
+      {
+        "name": "@deepblend/dsh-blender-preset",
+        "version": "0.27.0",
+        "latest": "0.27.0",
+        "tarball": "https://registry.npmjs.org/@deepblend/dsh-blender-preset/-/dsh-blender-preset-0.27.0.tgz",
+        "bytes": 36699,
+        "integrity": "sha512-md0ZFa4hpwBKiAWmCApSgFrWkdOXPLzuPPzlD+9a7uRaNYb4dEyUXvaVoB210HGHYs6lTlC88g+CgMXzBUrkCw==",
+        "files": 9,
+        "allBytesAndModesMatchPreparedSource": true
+      },
+      {
+        "name": "@deepblend/dsh-blender-provider-local",
+        "version": "0.27.0",
+        "latest": "0.27.0",
+        "tarball": "https://registry.npmjs.org/@deepblend/dsh-blender-provider-local/-/dsh-blender-provider-local-0.27.0.tgz",
+        "bytes": 195791,
+        "integrity": "sha512-xxuMivQXklUko9tljsMztrp+NKs92DBzO2E126ZBpSGH3KP6ws5B74s4BRg1dd8CO/GHAUY3e+nvKg9W0/wchQ==",
+        "files": 43,
+        "allBytesAndModesMatchPreparedSource": true
+      },
+      {
+        "name": "@deepblend/dsh-blender-tool",
+        "version": "0.27.0",
+        "latest": "0.27.0",
+        "tarball": "https://registry.npmjs.org/@deepblend/dsh-blender-tool/-/dsh-blender-tool-0.27.0.tgz",
+        "bytes": 63498,
+        "integrity": "sha512-x2DX+tm39EsUyz1sJqPMDWvq7YWA3TEzEuktFgFYYZ324FXOf2GMr3zED6zJjkiMI8q5ad80r6ohL/LvukK8mQ==",
+        "files": 14,
+        "allBytesAndModesMatchPreparedSource": true
+      },
+      {
+        "name": "@deepblend/dsh-blender-ui",
+        "version": "0.27.0",
+        "latest": "0.27.0",
+        "tarball": "https://registry.npmjs.org/@deepblend/dsh-blender-ui/-/dsh-blender-ui-0.27.0.tgz",
+        "bytes": 178241,
+        "integrity": "sha512-NNk/mZCKnuew8ATombJZNWEtLi5qzZn/bLXPgFoU88Mh368AojQ0Ign8A1pohdHkD+wB9hsJ5/6fCdfMr07JBQ==",
+        "files": 3,
+        "allBytesAndModesMatchPreparedSource": true
+      },
+      {
+        "name": "@deepblend/dsh-blender-bundle",
+        "version": "0.27.0",
+        "latest": "0.27.0",
+        "tarball": "https://registry.npmjs.org/@deepblend/dsh-blender-bundle/-/dsh-blender-bundle-0.27.0.tgz",
+        "bytes": 477342,
+        "integrity": "sha512-HsGLnq3yOovLOA6C60ykbYBMA+uUistwbdXuJnqKQaNkTiN3rNkCbQ+4GAhvQ4zE8JkUL7iJuFN4StNm1w0QuQ==",
+        "files": 27,
+        "allBytesAndModesMatchPreparedSource": true
+      }
+    ]
+  },
+  "installationComparison": {
+    "source": "49e8b6e4cfb82f2d92b4f447c8b581991ae87d16",
+    "expected": "0.27.0",
+    "checkedAt": "2026-11-21T13:53:24.917Z",
+    "readings": [
+      {
+        "id": "source",
+        "spec": "github:pearjelly/deep-blend#path:/packages/deepblend/bundle",
+        "startedAt": "2026-11-21T13:43:26.443Z",
+        "version": "@deepblend/dsh-blender-bundle@0.27.0",
+        "workbench": "HTTP 200, text/html; charset=utf-8, reserves #deepblend-workbench=true, imports its own client bundle=true",
+        "fetched": "19",
+        "presets": "[\"deepblend\",\"deepblend-dev\"]",
+        "verdict": "the spec installs, serves DeepBlend and delivers both presets — github:pearjelly/deep-blend#path:/packages/deepblend/bundle",
+        "logSha256": "739b80cf49cadbb20dd40820bc8adb1fbaf0dbd0aca92c28ac961046fbc77307"
+      },
+      {
+        "id": "npm",
+        "spec": "@deepblend/dsh-blender-bundle",
+        "startedAt": "2026-11-21T13:47:42.882Z",
+        "version": "@deepblend/dsh-blender-bundle@0.27.0",
+        "workbench": "HTTP 200, text/html; charset=utf-8, reserves #deepblend-workbench=true, imports its own client bundle=true",
+        "fetched": "19",
+        "presets": "[\"deepblend\",\"deepblend-dev\"]",
+        "verdict": "the spec installs, serves DeepBlend and delivers both presets — @deepblend/dsh-blender-bundle",
+        "logSha256": "7ce3ad4736a0354990eaade7a0f9890f2c272edc95fe5d89dbe2f868d2eee8d0"
+      },
+      {
+        "id": "tarball",
+        "spec": "https://github.com/pearjelly/deep-blend/releases/latest/download/deepblend-bundle.tgz",
+        "startedAt": "2026-11-21T13:43:26.443Z",
+        "version": "@deepblend/dsh-blender-bundle@0.27.0",
+        "workbench": "HTTP 200, text/html; charset=utf-8, reserves #deepblend-workbench=true, imports its own client bundle=true",
+        "fetched": "1",
+        "presets": "[\"deepblend\",\"deepblend-dev\"]",
+        "verdict": "the spec installs, serves DeepBlend and delivers both presets — https://github.com/pearjelly/deep-blend/releases/latest/download/deepblend-bundle.tgz",
+        "logSha256": "fa88b8de8ee19d22b2556cec7b601194d984d96412e1b12dd275a48702687abd"
+      }
+    ],
+    "comparison": {
+      "lines": [
+        "source installed: @deepblend/dsh-blender-bundle@0.27.0",
+        "npm installed: @deepblend/dsh-blender-bundle@0.27.0",
+        "tarball installed: @deepblend/dsh-blender-bundle@0.27.0",
+        "all three serve: @deepblend/dsh-blender-bundle@0.27.0",
+        "and the repository says: 0.27.0",
+        "source workbench route: HTTP 200",
+        "npm workbench route: HTTP 200",
+        "tarball workbench route: HTTP 200",
+        "all three deployed presets: [\"deepblend\",\"deepblend-dev\"]",
+        "source packages pnpm fetched: 19",
+        "npm packages pnpm fetched: 19",
+        "tarball packages pnpm fetched: 1"
+      ],
+      "problems": []
+    },
+    "exitCode": 0
+  },
+  "installedPublicComponentFileAudits": {
+    "source": {
+      "route": "source",
+      "source": "49e8b6e4cfb82f2d92b4f447c8b581991ae87d16",
+      "observedAt": "2026-11-21T13:52:13.730634+00:00",
+      "homeSha256": "0e91c4df12901a5f6e8c958fb10dfc573f6d80da83bad7a7e53dcf987ce3877a",
+      "allSevenComponentsInsideProfile": true,
+      "components": [
+        {
+          "name": "@deepblend/dsh-blender-contracts",
+          "version": "0.27.0",
+          "files": 46,
+          "fileSha256": {
+            "lib/artistic-review.js": "2fc31925886b7a14e16a4635f623b4f9ffc96ebfe5c3558beb10aaa822dba028",
+            "lib/assembly-placement.js": "0145c6c064cafc05b5a44f8d417fb839f95b31b376dad383af27e6efebd1fbd7",
+            "lib/asset-content.js": "903267b6596a8db5e74137032ef8416daf82c5c86517e76b11bfab29d4c4f5f9",
+            "lib/bitmap-font.js": "090807d6e5d76f493ea1b1d2a2a269592a5c475b536c95027c1f74ffce13fd70",
+            "lib/camera-fit.js": "463427940d159dfc37efc320bb9dba8a208e3700dcb03ffb1ee628cc413ac0a4",
+            "lib/canonical.js": "5ea4ed8409f2bcfc15415903917df21f42cfb8d70ee01d1b7a29550b3330aed7",
+            "lib/config-surface.js": "b781c8af9e7537e48e9d112b3741a855f640a03952df8171c5cf04a0e818a451",
+            "lib/contact-sheet.js": "037e0a199ebaeff725444422bb9af6764c3979149e411facb0582d5dec72ca7f",
+            "lib/cup-placement.js": "237e73183b6d0973732054780376117f58114419e21c9505a94bc63a3aacc300",
+            "lib/deployment-paths.js": "58ac1e2dd248db3e989b78a348da82071ff36bc27e65efaa37aad70a18a1c40b",
+            "lib/geometry-inspection.js": "362d43c5ae2ac0255f91a0b4eb16add3debfa50f10c726e1e07eafb76cd8ece3",
+            "lib/handled-cup.js": "b4f5a9dafb1cb3a4916d3ba29d390a6793be97946c0693cdabbdfd8ad1e20950",
+            "lib/index.js": "923e8b0ddb43840e1607b6c9a15b83dc9f0a110412a8fd3b2792ee4c736c76a2",
+            "lib/json-schema.js": "47579f4ecef28684c33b012798a6a9581272e43d7ad1f4595a43809c292f0a79",
+            "lib/lamp-assembly-repair.js": "14f9dcbd0cdb9974e964ac73cd396a0f00ee4b9bebe30f47f6e542ab637f215b",
+            "lib/lamp-placement.js": "fca1f11583011825f5678856826851ed6d48025b42a2310a4a4313c873adf501",
+            "lib/lathe-shell.js": "93f57674caf5f6374c86faec08d655137e7ecd056b0279c76a4b600c3fbc95d0",
+            "lib/mesh-geometry.js": "ef3b988f4fad7f53a0f8e92635433452705a579bfc5a4271953ed2a62e864048",
+            "lib/mesh-uv.js": "749511994a50c9789ea55f9090702ea640275c8546cd33591b80aa4ca3105da3",
+            "lib/photography-snapshot.js": "563f0e503383b24978c40c95688968775ea99081ce4301e64843b629e6384d35",
+            "lib/png.js": "076fe8f8d0195b39c4e6bf052268b8f255717dc3073b9c0bc6bb16039ded9300",
+            "lib/projections.js": "eebe16d4ea965511fb82f68b5672f86106b75fb4991be7e945a729ce09b096cc",
+            "lib/recipe-parameters.js": "cc846626606bf947d8d51faf4d13940875fb4a158eab7c9572cb029ed2f0d428",
+            "lib/recipe.js": "6cc16ab945e534073d1dcbb6c69a93b02fffa5a29ec5bebdd21fbbd2d3008b40",
+            "lib/redact.js": "f9f1bc54435bc5daa9eab77d8b44b184dae70ba20f77e3510268ea4a1a41df1a",
+            "lib/reference-images.js": "43ad2a6acc39a0544517149191a8311893c2c7f96afb5be56acfa6d194ce584f",
+            "lib/render-job.js": "5d52da61c41fc30bc1255924131901710e65cac0ec3db02a8c6e2d844e8e0a15",
+            "lib/runtime-types.d.ts": "69453a2ac41fe22ba5d90e9383d7dd1a00a5e8534be2f429d42aa439321c10e9",
+            "lib/scene-patch.js": "478dd793bd819a2fddb347f0a38817bd76311e5198d43aafb3cb2360e7b2533f",
+            "lib/scene-spec.js": "9f9e99ce58de3c8de85228bf367582b0622c47b11b7a42ea073b2ddb6df6fa92",
+            "lib/schema-types.d.ts": "4db1f04515873d7da9a0ca79cd60d2c777b1a01ae54ef0a762190fef9ee4c0f1",
+            "lib/schemas/job-result.schema.json": "0afa1dc549850d539aa01d56615a71333c3f7f293baa5daf6df72789b6374dc2",
+            "lib/schemas/recipe.schema.json": "9406af739a53068ed013fb29dc399d9794cb452d84c37a7d0402a2520649b4ac",
+            "lib/schemas/scene-patch.schema.json": "65d39eeb5a9825ac1b846063db6159b45164a0223e9a613b223b0757e3583f82",
+            "lib/schemas/scene-spec.schema.json": "26178d840f13b9f4d65f071e8edea665635aed11a0a8b52c136d0e34827340f7",
+            "lib/sdk.d.ts": "0576159e87763aa4eb94bb7c716ee869170dccf5cfb774c717fcc0b0f1128612",
+            "lib/sdk.js": "446cb7f762593f008afb6e300c8088e7c2bdc7075a6829e25da6005de58a65e4",
+            "lib/shot-render-selection.js": "2700549603ac85bc94bce64eb9d3818ac92d26f4134f63092d260cdc20a4e107",
+            "lib/speaker-assembly.js": "64438b0d99b6c6c01edc6647af88c45849f0ef940daf35cdb5ce5256cba64e03",
+            "lib/spec-change-audit.js": "9f2c72c58646fd05cba9239f2b84130ee6663d6ba15c8758538b48d60ddd719c",
+            "lib/surface-placement.js": "ec4546db43dd671273d47261bb33e819781ca0577fb3bc1f6b49b26f0eb33a23",
+            "lib/ui-api.js": "a6603d93088f354b51cd19b34706f53b12549c92004f8519202c513ca4ff63c7",
+            "lib/visual-composition.js": "39e4adcfa83fb9b57589ce14f8ab2f61102e823f7f36be4cef84d4203b4b981b",
+            "lib/visual-issue.js": "4b550e5f1bbb6feea7c0e8ca0a1377764335d15a3e775b693f6f6af54cacd8a3",
+            "lib/visual-loop.js": "0b5fcba5053238dd216d5c82133d0042f2778bce382ed3ccc76a504de98a4f41",
+            "package.json": "a43f7cb5cacbf6ce0d3dc1d9ddb6956eca74e98f6c2c98f7f7744545cbf5b31f"
+          }
+        },
+        {
+          "name": "@deepblend/dsh-blender-host",
+          "version": "0.27.0",
+          "files": 67,
+          "fileSha256": {
+            "lib/artifact-writer.js": "89dd619e6b714a6231e7f10e974b592535a7727a07ba1593e7dd66a90f2064fc",
+            "lib/assembly-changes.js": "9c97e494f39c6923fbf623389a851420def6ccdd1d5ab8a37dd1dbc583aa2c73",
+            "lib/assembly-surface-placement.js": "e24c7a4a1149c14be4a750ec86334f59dddc81fe945eb859544957455e281666",
+            "lib/asset-bundle.js": "8d18d4d71e30a53dedea94770a19daa560d20ec9c0da7e50c29f847be4b12c32",
+            "lib/asset-io.js": "2c610672771c375d5b0313aed48ccad23d4883d0c7496ed6310fabfae29dd1e1",
+            "lib/asset-library.js": "2612b9113089bb413fdbcd4832b7ac3a1f35282ba7344dd408b481590dab234a",
+            "lib/asset-metadata-identity.js": "04db4102644eb8e5440033e9cf3386731ac05c7d440cef4af7ac376c5cbd0a9b",
+            "lib/asset-preview.js": "29ccaa8ed8ad1d40251d2b260734fb33b086c2774cf0943f45d840824d41fdff",
+            "lib/asset-uploads.js": "aca2bbbc46e7d557783086df0e5d09ef936936bd29ea93790946e7e8852e3fbd",
+            "lib/camera-fit.js": "eb4e098d0238acdd34bc0a4f6e07f8e70e05660c066b91d458dc4bad5f6acaaa",
+            "lib/camera-push-plan.js": "0ea4408bdece6a4c78046b5ff1f7095646368c7d8c8b6702c0135544e501d1ec",
+            "lib/creation-request.js": "52c443db4fe181d2a121498beee98f8853d03bd6f09eb36d6f6e1a141a44218e",
+            "lib/cup-hero-framing.js": "abdc702be47374c0cc10118baf98544bdae346a4322bbcb57d71aa7fef4bbe13",
+            "lib/delivery-manifest.js": "4cdf22211b9a3669c7be7aa7ec4ce73b2d1887a4dee6a1e064179f731071b433",
+            "lib/diagnostic-preview.js": "da91856abde78960c6fab3fdef62f9946f0d174c27e2750901a26b6a8091b72f",
+            "lib/editable-snapshot-archive.js": "88db01dd4b8e7c504a6e2ad3641f802bd6e93ab0dab890e520e0e8f337eed393",
+            "lib/editable-snapshot-assets-worker.js": "1258446cf73c36d374e8c133b17cdafda79576950a420a5b2c928cf94ef2a2ed",
+            "lib/editable-snapshot-assets.js": "f46eb6af641e3c21b77445f64f9c59632ac4849cc628da1fa2cc5accafc1b1dc",
+            "lib/editable-snapshot-plan.js": "c92d08571094614c921f50db47ddf002e6b049ef33a2e9cc4aa6d61b44bfd259",
+            "lib/editable-snapshots.js": "266b596a45afd5ad56d630ed37d034d6b0a3dcae7edd7a5203ae304ca289ab02",
+            "lib/frame-ledger.js": "9784ba808198654c6e19db254c3ca16bc8d1e8fddce3672942b5d0b7bdeaf5e1",
+            "lib/frame-provenance.js": "5c175b82af31c46cb0f36dfe44b26dca284ece08d63e3e1cc6734e71c57a8339",
+            "lib/geometry-inspection.js": "b5c9c930160d9fb0fc8d0a350082687f7a7baf54e98e18c809f59ce9129c957f",
+            "lib/half-lap-preview.js": "1966e2a5b365834e79b7ac165ad0bed5694fc99450585df690345ba3e7fe590d",
+            "lib/index.js": "3b0306080877f73b1ad7783a461c4dba6a9a6df7fce71dee46e83417265f8a27",
+            "lib/motion-frame-inspection.js": "14993d4cb1261b915622f48d407c7ab9836af69275e0319a9b93957b8664ebf7",
+            "lib/motion-preview.js": "187b20ae51379d25b6a20fc456334d7705071e0a6f7c0e6b50415fa9d6ecad71",
+            "lib/obj-resources.js": "fc169f3d5a7e58f4a3ace5d084df589c8d3d13c8e24681068fe76ce8561e9d46",
+            "lib/paths.js": "9d0a171e68b8dec53f5ad90712544fac8e938f1e73ab2b0c9e0096a2b7843f89",
+            "lib/photography-reuse.js": "51e511e766c0eb318e63bd167c6cd72cc1cf1919db66fa5f83e89e9120a10dc7",
+            "lib/project-store.js": "8d933d306ad30027a9f48ad783d26c8e7b8b62d42dadcf4961335402efa89d80",
+            "lib/project-writer.js": "6da02fd15ea5972b61e7710a1d3a66028051016d83e32f4d6c59654bd28d5e10",
+            "lib/recipe-catalog.js": "c3fd8bb5614c4587a197700048fe3fa0f179d0a86924a69e5ca6b31ff2f968ea",
+            "lib/recipe-native-source.js": "503aabc8fc082b3ebcf6201d609420829b8475920775435689b11a1e7c57cab8",
+            "lib/recipe-state.js": "5425dde5b334f726000564b5db09b9381da6c22ca112e332d322044361ac7a3b",
+            "lib/reference-image.js": "9e888726bdf73e416f10017ae7da1ca29b027b2267b6fa3298f7be169da521fc",
+            "lib/render-job-store.js": "c76e860efc9536b40962e4881fd5ce934c7881c2af22d96bf2a74f65f774ab32",
+            "lib/render-journal.js": "f43ea39e45aa611add24b4ced25da720118b45c0de71469bffb79ce8a248d36f",
+            "lib/render-reconciler.js": "35ef686fc45faa2f350dfbe117dd4f67283344681fc92c20f00c6ab3afd5f095",
+            "lib/revision-transaction.js": "410efb311a2dd95b77d031af2c30536db56ebf496fe7fd3582dc825fcd24f77f",
+            "lib/runtime-scene-features.js": "e8797969ee017dcc0dc6a43f41d3081ae4b101a8ef8d584f904fb81a7a433355",
+            "lib/selected-review-views.js": "772d97c277e9efaad2ce01e0d93ad490464b9627d64b36326595830683eed538",
+            "lib/storage-readiness.js": "ae1aa738bfbfee8d70cc28d1f56d9990014d6dc513edaacb76a52f0e5aab2044",
+            "lib/surface-placement.js": "b5247e78e2cf9d2342f63769cc32f0480179461384ed8b2a0a329cdc881c003d",
+            "lib/video-encoder.js": "c60a65ec44e53dddedd07665e665ef5a8c01b42bf5795afe301b0c780bf33b48",
+            "lib/vision-readiness.js": "ee92af545aedf458704f7ce6fa46c325c0eaee934a8216b25598ba44d42eadbd",
+            "package.json": "f1285a1ed41d6775f888cec4b192889bd78478419fb452bb02c0ec4cdaa6f5eb",
+            "recipes/glass-ceramic/LICENSE": "27005f63af1e4441891a91e8bba63ed7a5d364b21247b53e6d12aeeb11f3c231",
+            "recipes/glass-ceramic/preview.png": "fecf9682091b4878fdbe72632d7d2600f9f7fba8d718849195e8094f36093c8b",
+            "recipes/glass-ceramic/recipe.json": "588da312c0e330c28c45f9c9a37850c674fedfa633c2cd4c6d177512f2e064ab",
+            "recipes/glass-ceramic/scene-spec.json": "c9c6d7b6aaecfef62db28d862d632df4b591448f05dcad6b58b39cc66b97fac9",
+            "recipes/glazed-cup/LICENSE": "27005f63af1e4441891a91e8bba63ed7a5d364b21247b53e6d12aeeb11f3c231",
+            "recipes/glazed-cup/preview.png": "b8f7b70e26032ef9f6deae577856a71342c450a0e71e47c804876227d1086807",
+            "recipes/glazed-cup/recipe.json": "d34c93f040b2f8a9d62a6b658acba9941fa036a6bd50bb2e20f62773e999d364",
+            "recipes/glazed-cup/scene-spec.json": "ad9ae3509dc1cb9ebd01acc153f5d6724a7d2e7318d90858dedb55d2ca3cb09c",
+            "recipes/metal-lamp/LICENSE": "27005f63af1e4441891a91e8bba63ed7a5d364b21247b53e6d12aeeb11f3c231",
+            "recipes/metal-lamp/preview.png": "a4c39a0679b5c829fa7183b55a5b637d3fcc0f6dfaf89e7dc0f2f319c9ed9572",
+            "recipes/metal-lamp/recipe.json": "bec9e7f73177ba3624e7c7d426c061484a903cf0694519cb390cd3ffd4519c21",
+            "recipes/metal-lamp/scene-spec.json": "9170d39ad1d3b14e1e9332c10d0f0daf922c259407ea6ab545ef53e4b02f64f0",
+            "recipes/modular-speaker/LICENSE": "27005f63af1e4441891a91e8bba63ed7a5d364b21247b53e6d12aeeb11f3c231",
+            "recipes/modular-speaker/preview.png": "d3d8ae075c70300099861a1637cd3182d966f05b3b410f0887b26cc692e0d41d",
+            "recipes/modular-speaker/recipe.json": "0ca01d2c6eac22e0df288c8c36f0be2b0e30c7c0152ad16c0c472683728e5c8c",
+            "recipes/modular-speaker/scene-spec.json": "241048fbca62e7407c4c785b31cbbeeb0a6d4d69442162a5eab191ac8b3f77b3",
+            "recipes/walnut-trivet/LICENSE": "27005f63af1e4441891a91e8bba63ed7a5d364b21247b53e6d12aeeb11f3c231",
+            "recipes/walnut-trivet/preview.png": "a949ddff4499e1156c35143b27cb055024ef1a11f58939fb035d2f0138ffba22",
+            "recipes/walnut-trivet/recipe.json": "93e9f9f658789d0e5d5195e4a1fb328e7a2ea45ffb8e199fa9ecbe3815e39a1c",
+            "recipes/walnut-trivet/scene-spec.json": "005f2e6a19a535730b022ab1338de1034e60c0cfb1d13bb846602673f4033a61"
+          }
+        },
+        {
+          "name": "@deepblend/dsh-blender-preset",
+          "version": "0.27.0",
+          "files": 9,
+          "fileSha256": {
+            "lib/deploy.js": "53a124fc10279ca9dd1a8e743cfd4ec54908665bba1e366492293d364689ed97",
+            "lib/index.js": "96d8a7249ed6bad9427fa90aebb9f585afe4e894afe3b45f0050daf55f628e13",
+            "package.json": "68d810a8dead27aff0af0eb3466fcd9b9401ce4332f46fa97d83596f1c70851b",
+            "presets/deepblend-dev/agent.cordis.yml": "540fcf88e53a1b3eb4f4cd13b8d3f59571254d68badb68fef571e7b4cc1de61c",
+            "presets/deepblend-dev/preset.yml": "d4bb76cec0cd675eece1a0cb66ce635234f33f71459d3fe9eb64038b1f2f2d63",
+            "presets/deepblend/agent.cordis.yml": "1724cc314b4c762cf83517c7ba31e46779d8fd24f513354bb2c9b893f9ea2fd7",
+            "presets/deepblend/preset.yml": "129c5065009536c05f2683e0afbc4ec64d165d533b36f316ca90e71d52306216",
+            "presets/deepblend/skills/deepblend-studio/references/reference-images.md": "ad13933273e8354034294e1db61bcdcd1f9dbb149efd850c7c8473aae883f67e",
+            "presets/deepblend/skills/deepblend-studio/SKILL.md": "b553dd8a7f50fa6ec9343a941686096c40af3ba9032c364e3ae36c17935c8bfe"
+          }
+        },
+        {
+          "name": "@deepblend/dsh-blender-provider-local",
+          "version": "0.27.0",
+          "files": 43,
+          "fileSha256": {
+            "lib/geometry-inspection.js": "a535fda9f517a415e3cb67f5cd16df8eeed7d8ee251e20f55e740c4f9f8659a3",
+            "lib/index.js": "7c1fbe3ab480350714f1707f9cea0d82fad8299d97b1f8fcb319fa508a1f2c79",
+            "package.json": "8a23aa11891a987d0cce3e0a3d66d2384dd78723ecef1be45df2255f20308dc8",
+            "python/bootstrap.py": "96930ebe7a942765b737664da7cdc873e9c7abf94081e17fc96be904e444e787",
+            "python/deepblend_anisotropy.py": "05a6a38d4d007debab239738edde57680689d43c55d2b45229811e3efad507a5",
+            "python/deepblend_assembly_placement.py": "87ceebed99648e6a2ab4eaf055b02b55f2554fe6cc8ec6bfdb32fb59d1ef802f",
+            "python/deepblend_asset_bundle.py": "0f503a34256406e0fa7b32ea2f62dbc3ace4a1df988dd2bd748c584f4c778efd",
+            "python/deepblend_avif_headers.py": "72fef7d2f7fda6040a689a1c27bc664e22ac28f4193d15de16c9a4eaa7c17c7b",
+            "python/deepblend_bridge.py": "129824ff5c5896c3e2a4424d14104d346360de3d5770ca5e025a97daf6b8d18a",
+            "python/deepblend_camera_framing.py": "7054cbf7e5b5f1959b1311b6d5ef86fd072a9e21561a6a14b1359823bdd173b1",
+            "python/deepblend_capabilities.py": "083a57b7ad8c5e2669554abf104e93acd32bfd4297e6e28ecf0580f3e946dbf8",
+            "python/deepblend_features.py": "b9db353e8cc6e42ee5cd4d67e3a3caa47e6fe0cca400a0241f815babce9a7830",
+            "python/deepblend_frames.py": "2ed6a927b1e7f33a91b32a9755ee9b606d2fb4c384ff53d8b464d9f7082ae821",
+            "python/deepblend_geometry_framing.py": "859ada44cea8244801371d66f39cf98d755daa79d67581d0a3cf064fd82f77a5",
+            "python/deepblend_geometry.py": "d1a6d87d198c659bc2497bae4f11837177f111355162935a74dffa293ff25ef8",
+            "python/deepblend_gltf_images.py": "d2821db2695018b9a49d92089aa78afe57ca218f4b296a6e2b4f0ebda0b259ab",
+            "python/deepblend_gltf_import.py": "b2370fa4dac7e61699b4dc19a542eddaae3553efe0c1cc975a8cb5dfdbbb4f20",
+            "python/deepblend_gltf_roles.py": "660e5c4d6cf126a02ecd99597fecab47be72a889b697a7c21539f8fd1d338365",
+            "python/deepblend_half_lap.py": "0fa99748f14ff02cb44a74584e1ab3444ed1f339b41cc0c420187518826b102f",
+            "python/deepblend_image_headers.py": "7c89f44436628fbc556bc252bf915e210dea30635d85ac0513dd4bd98ccd26cf",
+            "python/deepblend_image_roles.py": "f11afcf2e60f1893c2005de98a3eafeac3bad96bc921cf52ef328a4817396232",
+            "python/deepblend_images.py": "1e456249732951bbaa62801e1a52ed40755f9ee074f4ed75af2a512cd0f7822d",
+            "python/deepblend_imported_image_headers.py": "5b40daa1e077bf81c4f38b9bb3594723407476752fc6cec338da5935a0629926",
+            "python/deepblend_inspect_geometry.py": "4a3edd8615dc5a071914b605a35eee8bb6329c44fbd114764c6ea6f496b5f9e2",
+            "python/deepblend_inspect_surface.py": "34d233e2894d6e96aab39d36c4c3505710f97e98c1e663fa204568d05ec356c1",
+            "python/deepblend_mesh_checks.py": "3142c6925ce20ed86708fbbd1f1f79f69713e7261568e7dfdfc8d0c13adb1c15",
+            "python/deepblend_mesh.py": "3f29ce09283f8c9d662dd3d09e1c5cd056a9c5aa01349146e74d0df960ccebf8",
+            "python/deepblend_motion_frame_audit.py": "ea8e83c1c3fd1463042bbc5433d0125271e6a160df0e7f8e601f68363fecc9e3",
+            "python/deepblend_obj_images.py": "1565702c42d06841ec9e1c4c76ca36854541ec387a40ad6b881b0d5a8a1d1623",
+            "python/deepblend_obj_import.py": "e06d3aeac917e11753dbb9082da7c84b58cf39b9e3e0cae871062c1897ee6b6f",
+            "python/deepblend_obj_resources.py": "a9592160276e606ba616ea0391ccb8f355d62f374f45853473394db8de3ceac5",
+            "python/deepblend_parts.py": "0656d335fd4cbbfe2a76c49a1be3dd89dc7bcdabe3724c1a0d58cb651be7c2df",
+            "python/deepblend_product_framing.py": "905057a3c07c6f8486ba7f5887ce831ebe4ef40cf26a9d4167e73386e10ebbed",
+            "python/deepblend_render.py": "caddca3abd9cbe565a3815f61e256f20ced6b7d0fd6058d90977fd07489ccfde",
+            "python/deepblend_scatter.py": "6d88e289dbae52ff05f363e09b9e601595050ba0c34855d45ba078ce2934498c",
+            "python/deepblend_scene.py": "e0f14467c1a6d9d1ef2d666055beff01006b1638841328ef1a200e8e7367739f",
+            "python/deepblend_surface_placement.py": "cc68bb9089b37a1004138151bcf5e00d4421a22e76f7db9cc0b188c485e6dc7b",
+            "python/deepblend_util.py": "076327f0eea521ba762b099a8d4b8b76aa429435869ec3cb92ad77612256e267",
+            "python/deepblend_validate.py": "5cfe0276bfc67823fc4a68636d062bf2dc8691d6e3dd95ae2f44dafb2e67007f",
+            "python/deepblend_vessel_math.py": "8dc1222b6a1a4d9ae627ac4996f0845fa9ff018c875106e5d1e7c55c9cee1699",
+            "python/deepblend_vessel_parameters.py": "1b8fb41e94c92aedcda917bf4dfa698e4ccf54d52a4f8b186845550d31d8ca03",
+            "python/deepblend_vessel.py": "c52cc5954ad408eeaf944c5fbcf411df9290727ae103878ba8ed2859ed660bb3",
+            "python/deepblend_views.py": "c0c8b7cda016b6f359e1706e0ac0941e3779680d33d6b9ecb11105a5d15bbbbd"
+          }
+        },
+        {
+          "name": "@deepblend/dsh-blender-tool",
+          "version": "0.27.0",
+          "files": 14,
+          "fileSha256": {
+            "lib/assembly-origins.js": "70449901fbf5473312ab52640360c6a3c564c749468c9b253096efa6e2994424",
+            "lib/attachment-image.js": "ceef08ab3378bbaec13453c325577ad960bab9133a1716304d9d015962a4f273",
+            "lib/committed-preview.js": "923d410becbf80c77c374772d53593f81d7d9681cfba6bfba4a7b554eee4b0c9",
+            "lib/entity-copies.js": "7aec94a3096d1c906d3c40c8775b061e31709ffc19cea22d401e519b55bab74b",
+            "lib/geometry-comparison.js": "3554474ef7a0cc2f488e3859ff8e7979d0bd186219195bfe73cc924795fec45e",
+            "lib/image-delivery.js": "72f1774288953173f092a7c92629734950c855bbfeec35eb7aa0e195009124ed",
+            "lib/index.js": "24891206a541d499a94aa6465f27b6781c0ac4a4ee5bf2f83e9cfaa20b7cb355",
+            "lib/inspection.js": "8202ef9c6665e3114b0dbad36d421948aa94d737878a76db92960922a7d3d04f",
+            "lib/render-tools.js": "e577df81fd17086829d661db5ac337aed734e333d73d2dd30ac0445b15aeac7c",
+            "lib/scene-source.js": "78ae9cdaad8351456a6ea83d59aa2250dc837b1f205ea7df4b1ce336d55b293a",
+            "lib/shared.js": "e1b24d71be81a9b150a823bdf438f68f9e284c6d072f043cc9017cf164d73207",
+            "lib/tools.js": "3eb6d04dd65cbc7ff06b3696f030cd1bb898a3b17a21eb0f00054e26045e8a4c",
+            "lib/visual-tools.js": "5d54b30faff6172030838a4e00c34962e9d0bf069c7fe215f8bf8ab735373f95",
+            "package.json": "c1f72d8f80da0ddadfd8ef801e51ed16758bc6cff7926134b138613db15c20c0"
+          }
+        },
+        {
+          "name": "@deepblend/dsh-blender-ui",
+          "version": "0.27.0",
+          "files": 3,
+          "fileSha256": {
+            "lib/client.js": "d2a8faed8ded57a444410f464cf24a5501e5a014e08bcfcb5458633fd56d48c6",
+            "lib/index.js": "b5b341308d1c00445b2f97ff4a19cd1495b9aefcf13fe5102d100e954b7a5e9b",
+            "package.json": "92fa57a1a70d7c149948c71add613e729a0adb7ea9d1212af312e9214d2b550d"
+          }
+        },
+        {
+          "name": "@deepblend/dsh-blender-bundle",
+          "version": "0.27.0",
+          "files": 27,
+          "fileSha256": {
+            "README.md": "b8bd0170ab45fa215acedfd6d48c5727444340f37ef7c09adb4495447af0aeba",
+            "README.zh.md": "447c5fcb158e160a887e79a3a21b7f7386c56c9c3e44f72c94164fbefa2bb76c",
+            "assets/banner.png": "8396457867b925ea08d58ce6db42c00981240798cd5d4556e6ce9b2c4054de98",
+            "assets/banner.svg": "283f1287882aab99591d5f1c15d4c299132a03fb9d4184956b84a9ae2999363d",
+            "assets/logo.png": "9153f6a0bace3df66d6119301b61ae9c69c67e4d193687c19316c1780b2bb7f3",
+            "assets/logo.svg": "fe63307c9dab564329ddc39ac6f087a3cfddbc48a05fb15dea53058bddbbd73d",
+            "assets/manifest.json": "23fa8b1d45f9751562d67aedb0bfbbed454362bc0a4d21756499b22003e954c6",
+            "assets/social-card.png": "da684a6072c26566964db2536ed4b419603b4066e6d47833006903c6dc2a0756",
+            "assets/social-card.svg": "ef6a9b901f17e9b5258f7f2eef91d27e24d061afdda325521d12d4e74e3d1555",
+            "cordis.patch.yml": "c07e3663486f04e28ab64c7b3241a8a0418d1239ac0de20095b71267d9492f0d",
+            "examples/charge-study/agent-prompt.zh.txt": "ab477b67da49b36be0277ca07b1ba29ceb47b6c8aa6f8b55e5cfee6362c13523",
+            "examples/charge-study/ATTRIBUTION.txt": "a7114ab64b8ffd680cca89c4d8d101d0f3625c7342eb8036fb46ce26feda4875",
+            "examples/charge-study/industrial-stage.json": "87f5c058b398e52005af9edde787f2304a31dbc53e3ee5038728b0de7de746e0",
+            "examples/charge-study/README.md": "249dd0e46eddd178ac94883967b4ecd0beb1e2e3bcfff601fc65139a1dbaab32",
+            "examples/charge-study/replay-dsh-case.mjs": "1d512791b2d782893d3aafe8ec3b96980ea94a89bc0e18ecd960cae2020c7ac1",
+            "lib/client.js": "018a34ac820df551b71eb01d20f2b949ae6de3e3dfa3a49ce93b16b7c991a22e",
+            "lib/doctor-cli.js": "c8584b4563990554318402bb6987f138f03093a2283d494d62119aecdecf7212",
+            "lib/doctor-requirements.json": "3f78f9ecb063410755b77bc25c1c35b8ed00ab761e95c3aa79aa04c057c69226",
+            "lib/doctor.js": "4fba6ed4ec4e9f351eff2d93f9b6c41351e124f9da3680cfdaa2af4cd111aa13",
+            "lib/functional-probe.js": "28a3c365922cd30129061378182185c4665a577b3c5ed7d05cdc8ab16cf7d69e",
+            "lib/index.js": "41a3e4e69e4fa5f873104a74d4b7d209c5b392f9387d7d08a1ad0028f9de8cd8",
+            "lib/planes/host.js": "ac38b0fbd3beb788454a4e2566e1f88682f67fa6eaacf046f96b1f1269282eb1",
+            "lib/planes/preset.js": "625b7592c5657860cbef1cdf8c33899e4e49d44de9df4c7b0ee80ad3b411d9c0",
+            "lib/planes/provider-local.js": "a82fc04f58148f42505615d6fce57f868f0acec699362254ae6a01a129f28d05",
+            "lib/planes/tool.js": "218028abb7cad564a5bb53e697003e469ccc8cf70ed0d9741af96f7f9b09899a",
+            "package.json": "6dd5521b0246ac5d413529d6a5b70d706062ca453d6f0f9e422cb2e92b3db908",
+            "screenshots.json": "91d1e200f2af27b727080f0b315784bed19351c2f5b0cb085dd5e583003e5241"
+          }
+        }
+      ],
+      "ownedFilesByteAndModeVerified": 209,
+      "lockSha256": "00cf19839e30c6764993abe98e6ddba1d5b38ff23817926bbef751e24e207212",
+      "allSevenLockResolutionsMatchSource": true
+    },
+    "npm": {
+      "route": "npm",
+      "source": "49e8b6e4cfb82f2d92b4f447c8b581991ae87d16",
+      "observedAt": "2026-11-21T13:47:59.325648+00:00",
+      "homeSha256": "a2b6c1940ac99e522ec921327eb554e1fb90987c520998e816725d3f2f4ba0ca",
+      "allSevenComponentsInsideProfile": true,
+      "components": [
+        {
+          "name": "@deepblend/dsh-blender-contracts",
+          "version": "0.27.0",
+          "files": 46,
+          "fileSha256": {
+            "lib/artistic-review.js": "2fc31925886b7a14e16a4635f623b4f9ffc96ebfe5c3558beb10aaa822dba028",
+            "lib/assembly-placement.js": "0145c6c064cafc05b5a44f8d417fb839f95b31b376dad383af27e6efebd1fbd7",
+            "lib/asset-content.js": "903267b6596a8db5e74137032ef8416daf82c5c86517e76b11bfab29d4c4f5f9",
+            "lib/bitmap-font.js": "090807d6e5d76f493ea1b1d2a2a269592a5c475b536c95027c1f74ffce13fd70",
+            "lib/camera-fit.js": "463427940d159dfc37efc320bb9dba8a208e3700dcb03ffb1ee628cc413ac0a4",
+            "lib/canonical.js": "5ea4ed8409f2bcfc15415903917df21f42cfb8d70ee01d1b7a29550b3330aed7",
+            "lib/config-surface.js": "b781c8af9e7537e48e9d112b3741a855f640a03952df8171c5cf04a0e818a451",
+            "lib/contact-sheet.js": "037e0a199ebaeff725444422bb9af6764c3979149e411facb0582d5dec72ca7f",
+            "lib/cup-placement.js": "237e73183b6d0973732054780376117f58114419e21c9505a94bc63a3aacc300",
+            "lib/deployment-paths.js": "58ac1e2dd248db3e989b78a348da82071ff36bc27e65efaa37aad70a18a1c40b",
+            "lib/geometry-inspection.js": "362d43c5ae2ac0255f91a0b4eb16add3debfa50f10c726e1e07eafb76cd8ece3",
+            "lib/handled-cup.js": "b4f5a9dafb1cb3a4916d3ba29d390a6793be97946c0693cdabbdfd8ad1e20950",
+            "lib/index.js": "923e8b0ddb43840e1607b6c9a15b83dc9f0a110412a8fd3b2792ee4c736c76a2",
+            "lib/json-schema.js": "47579f4ecef28684c33b012798a6a9581272e43d7ad1f4595a43809c292f0a79",
+            "lib/lamp-assembly-repair.js": "14f9dcbd0cdb9974e964ac73cd396a0f00ee4b9bebe30f47f6e542ab637f215b",
+            "lib/lamp-placement.js": "fca1f11583011825f5678856826851ed6d48025b42a2310a4a4313c873adf501",
+            "lib/lathe-shell.js": "93f57674caf5f6374c86faec08d655137e7ecd056b0279c76a4b600c3fbc95d0",
+            "lib/mesh-geometry.js": "ef3b988f4fad7f53a0f8e92635433452705a579bfc5a4271953ed2a62e864048",
+            "lib/mesh-uv.js": "749511994a50c9789ea55f9090702ea640275c8546cd33591b80aa4ca3105da3",
+            "lib/photography-snapshot.js": "563f0e503383b24978c40c95688968775ea99081ce4301e64843b629e6384d35",
+            "lib/png.js": "076fe8f8d0195b39c4e6bf052268b8f255717dc3073b9c0bc6bb16039ded9300",
+            "lib/projections.js": "eebe16d4ea965511fb82f68b5672f86106b75fb4991be7e945a729ce09b096cc",
+            "lib/recipe-parameters.js": "cc846626606bf947d8d51faf4d13940875fb4a158eab7c9572cb029ed2f0d428",
+            "lib/recipe.js": "6cc16ab945e534073d1dcbb6c69a93b02fffa5a29ec5bebdd21fbbd2d3008b40",
+            "lib/redact.js": "f9f1bc54435bc5daa9eab77d8b44b184dae70ba20f77e3510268ea4a1a41df1a",
+            "lib/reference-images.js": "43ad2a6acc39a0544517149191a8311893c2c7f96afb5be56acfa6d194ce584f",
+            "lib/render-job.js": "5d52da61c41fc30bc1255924131901710e65cac0ec3db02a8c6e2d844e8e0a15",
+            "lib/runtime-types.d.ts": "69453a2ac41fe22ba5d90e9383d7dd1a00a5e8534be2f429d42aa439321c10e9",
+            "lib/scene-patch.js": "478dd793bd819a2fddb347f0a38817bd76311e5198d43aafb3cb2360e7b2533f",
+            "lib/scene-spec.js": "9f9e99ce58de3c8de85228bf367582b0622c47b11b7a42ea073b2ddb6df6fa92",
+            "lib/schema-types.d.ts": "4db1f04515873d7da9a0ca79cd60d2c777b1a01ae54ef0a762190fef9ee4c0f1",
+            "lib/schemas/job-result.schema.json": "0afa1dc549850d539aa01d56615a71333c3f7f293baa5daf6df72789b6374dc2",
+            "lib/schemas/recipe.schema.json": "9406af739a53068ed013fb29dc399d9794cb452d84c37a7d0402a2520649b4ac",
+            "lib/schemas/scene-patch.schema.json": "65d39eeb5a9825ac1b846063db6159b45164a0223e9a613b223b0757e3583f82",
+            "lib/schemas/scene-spec.schema.json": "26178d840f13b9f4d65f071e8edea665635aed11a0a8b52c136d0e34827340f7",
+            "lib/sdk.d.ts": "0576159e87763aa4eb94bb7c716ee869170dccf5cfb774c717fcc0b0f1128612",
+            "lib/sdk.js": "446cb7f762593f008afb6e300c8088e7c2bdc7075a6829e25da6005de58a65e4",
+            "lib/shot-render-selection.js": "2700549603ac85bc94bce64eb9d3818ac92d26f4134f63092d260cdc20a4e107",
+            "lib/speaker-assembly.js": "64438b0d99b6c6c01edc6647af88c45849f0ef940daf35cdb5ce5256cba64e03",
+            "lib/spec-change-audit.js": "9f2c72c58646fd05cba9239f2b84130ee6663d6ba15c8758538b48d60ddd719c",
+            "lib/surface-placement.js": "ec4546db43dd671273d47261bb33e819781ca0577fb3bc1f6b49b26f0eb33a23",
+            "lib/ui-api.js": "a6603d93088f354b51cd19b34706f53b12549c92004f8519202c513ca4ff63c7",
+            "lib/visual-composition.js": "39e4adcfa83fb9b57589ce14f8ab2f61102e823f7f36be4cef84d4203b4b981b",
+            "lib/visual-issue.js": "4b550e5f1bbb6feea7c0e8ca0a1377764335d15a3e775b693f6f6af54cacd8a3",
+            "lib/visual-loop.js": "0b5fcba5053238dd216d5c82133d0042f2778bce382ed3ccc76a504de98a4f41",
+            "package.json": "82f4474333367d0843e0b82a907041d08f3cef66064304c6c1d9c3ccfc854e6c"
+          }
+        },
+        {
+          "name": "@deepblend/dsh-blender-host",
+          "version": "0.27.0",
+          "files": 67,
+          "fileSha256": {
+            "lib/artifact-writer.js": "89dd619e6b714a6231e7f10e974b592535a7727a07ba1593e7dd66a90f2064fc",
+            "lib/assembly-changes.js": "9c97e494f39c6923fbf623389a851420def6ccdd1d5ab8a37dd1dbc583aa2c73",
+            "lib/assembly-surface-placement.js": "e24c7a4a1149c14be4a750ec86334f59dddc81fe945eb859544957455e281666",
+            "lib/asset-bundle.js": "8d18d4d71e30a53dedea94770a19daa560d20ec9c0da7e50c29f847be4b12c32",
+            "lib/asset-io.js": "2c610672771c375d5b0313aed48ccad23d4883d0c7496ed6310fabfae29dd1e1",
+            "lib/asset-library.js": "2612b9113089bb413fdbcd4832b7ac3a1f35282ba7344dd408b481590dab234a",
+            "lib/asset-metadata-identity.js": "04db4102644eb8e5440033e9cf3386731ac05c7d440cef4af7ac376c5cbd0a9b",
+            "lib/asset-preview.js": "29ccaa8ed8ad1d40251d2b260734fb33b086c2774cf0943f45d840824d41fdff",
+            "lib/asset-uploads.js": "aca2bbbc46e7d557783086df0e5d09ef936936bd29ea93790946e7e8852e3fbd",
+            "lib/camera-fit.js": "eb4e098d0238acdd34bc0a4f6e07f8e70e05660c066b91d458dc4bad5f6acaaa",
+            "lib/camera-push-plan.js": "0ea4408bdece6a4c78046b5ff1f7095646368c7d8c8b6702c0135544e501d1ec",
+            "lib/creation-request.js": "52c443db4fe181d2a121498beee98f8853d03bd6f09eb36d6f6e1a141a44218e",
+            "lib/cup-hero-framing.js": "abdc702be47374c0cc10118baf98544bdae346a4322bbcb57d71aa7fef4bbe13",
+            "lib/delivery-manifest.js": "4cdf22211b9a3669c7be7aa7ec4ce73b2d1887a4dee6a1e064179f731071b433",
+            "lib/diagnostic-preview.js": "da91856abde78960c6fab3fdef62f9946f0d174c27e2750901a26b6a8091b72f",
+            "lib/editable-snapshot-archive.js": "88db01dd4b8e7c504a6e2ad3641f802bd6e93ab0dab890e520e0e8f337eed393",
+            "lib/editable-snapshot-assets-worker.js": "1258446cf73c36d374e8c133b17cdafda79576950a420a5b2c928cf94ef2a2ed",
+            "lib/editable-snapshot-assets.js": "f46eb6af641e3c21b77445f64f9c59632ac4849cc628da1fa2cc5accafc1b1dc",
+            "lib/editable-snapshot-plan.js": "c92d08571094614c921f50db47ddf002e6b049ef33a2e9cc4aa6d61b44bfd259",
+            "lib/editable-snapshots.js": "266b596a45afd5ad56d630ed37d034d6b0a3dcae7edd7a5203ae304ca289ab02",
+            "lib/frame-ledger.js": "9784ba808198654c6e19db254c3ca16bc8d1e8fddce3672942b5d0b7bdeaf5e1",
+            "lib/frame-provenance.js": "5c175b82af31c46cb0f36dfe44b26dca284ece08d63e3e1cc6734e71c57a8339",
+            "lib/geometry-inspection.js": "b5c9c930160d9fb0fc8d0a350082687f7a7baf54e98e18c809f59ce9129c957f",
+            "lib/half-lap-preview.js": "1966e2a5b365834e79b7ac165ad0bed5694fc99450585df690345ba3e7fe590d",
+            "lib/index.js": "3b0306080877f73b1ad7783a461c4dba6a9a6df7fce71dee46e83417265f8a27",
+            "lib/motion-frame-inspection.js": "14993d4cb1261b915622f48d407c7ab9836af69275e0319a9b93957b8664ebf7",
+            "lib/motion-preview.js": "187b20ae51379d25b6a20fc456334d7705071e0a6f7c0e6b50415fa9d6ecad71",
+            "lib/obj-resources.js": "fc169f3d5a7e58f4a3ace5d084df589c8d3d13c8e24681068fe76ce8561e9d46",
+            "lib/paths.js": "9d0a171e68b8dec53f5ad90712544fac8e938f1e73ab2b0c9e0096a2b7843f89",
+            "lib/photography-reuse.js": "51e511e766c0eb318e63bd167c6cd72cc1cf1919db66fa5f83e89e9120a10dc7",
+            "lib/project-store.js": "8d933d306ad30027a9f48ad783d26c8e7b8b62d42dadcf4961335402efa89d80",
+            "lib/project-writer.js": "6da02fd15ea5972b61e7710a1d3a66028051016d83e32f4d6c59654bd28d5e10",
+            "lib/recipe-catalog.js": "c3fd8bb5614c4587a197700048fe3fa0f179d0a86924a69e5ca6b31ff2f968ea",
+            "lib/recipe-native-source.js": "503aabc8fc082b3ebcf6201d609420829b8475920775435689b11a1e7c57cab8",
+            "lib/recipe-state.js": "5425dde5b334f726000564b5db09b9381da6c22ca112e332d322044361ac7a3b",
+            "lib/reference-image.js": "9e888726bdf73e416f10017ae7da1ca29b027b2267b6fa3298f7be169da521fc",
+            "lib/render-job-store.js": "c76e860efc9536b40962e4881fd5ce934c7881c2af22d96bf2a74f65f774ab32",
+            "lib/render-journal.js": "f43ea39e45aa611add24b4ced25da720118b45c0de71469bffb79ce8a248d36f",
+            "lib/render-reconciler.js": "35ef686fc45faa2f350dfbe117dd4f67283344681fc92c20f00c6ab3afd5f095",
+            "lib/revision-transaction.js": "410efb311a2dd95b77d031af2c30536db56ebf496fe7fd3582dc825fcd24f77f",
+            "lib/runtime-scene-features.js": "e8797969ee017dcc0dc6a43f41d3081ae4b101a8ef8d584f904fb81a7a433355",
+            "lib/selected-review-views.js": "772d97c277e9efaad2ce01e0d93ad490464b9627d64b36326595830683eed538",
+            "lib/storage-readiness.js": "ae1aa738bfbfee8d70cc28d1f56d9990014d6dc513edaacb76a52f0e5aab2044",
+            "lib/surface-placement.js": "b5247e78e2cf9d2342f63769cc32f0480179461384ed8b2a0a329cdc881c003d",
+            "lib/video-encoder.js": "c60a65ec44e53dddedd07665e665ef5a8c01b42bf5795afe301b0c780bf33b48",
+            "lib/vision-readiness.js": "ee92af545aedf458704f7ce6fa46c325c0eaee934a8216b25598ba44d42eadbd",
+            "package.json": "d60a820064df4959432b300c9cdfe95219c8e88da5dd832f14f7462adb9f9c41",
+            "recipes/glass-ceramic/LICENSE": "27005f63af1e4441891a91e8bba63ed7a5d364b21247b53e6d12aeeb11f3c231",
+            "recipes/glass-ceramic/preview.png": "fecf9682091b4878fdbe72632d7d2600f9f7fba8d718849195e8094f36093c8b",
+            "recipes/glass-ceramic/recipe.json": "588da312c0e330c28c45f9c9a37850c674fedfa633c2cd4c6d177512f2e064ab",
+            "recipes/glass-ceramic/scene-spec.json": "c9c6d7b6aaecfef62db28d862d632df4b591448f05dcad6b58b39cc66b97fac9",
+            "recipes/glazed-cup/LICENSE": "27005f63af1e4441891a91e8bba63ed7a5d364b21247b53e6d12aeeb11f3c231",
+            "recipes/glazed-cup/preview.png": "b8f7b70e26032ef9f6deae577856a71342c450a0e71e47c804876227d1086807",
+            "recipes/glazed-cup/recipe.json": "d34c93f040b2f8a9d62a6b658acba9941fa036a6bd50bb2e20f62773e999d364",
+            "recipes/glazed-cup/scene-spec.json": "ad9ae3509dc1cb9ebd01acc153f5d6724a7d2e7318d90858dedb55d2ca3cb09c",
+            "recipes/metal-lamp/LICENSE": "27005f63af1e4441891a91e8bba63ed7a5d364b21247b53e6d12aeeb11f3c231",
+            "recipes/metal-lamp/preview.png": "a4c39a0679b5c829fa7183b55a5b637d3fcc0f6dfaf89e7dc0f2f319c9ed9572",
+            "recipes/metal-lamp/recipe.json": "bec9e7f73177ba3624e7c7d426c061484a903cf0694519cb390cd3ffd4519c21",
+            "recipes/metal-lamp/scene-spec.json": "9170d39ad1d3b14e1e9332c10d0f0daf922c259407ea6ab545ef53e4b02f64f0",
+            "recipes/modular-speaker/LICENSE": "27005f63af1e4441891a91e8bba63ed7a5d364b21247b53e6d12aeeb11f3c231",
+            "recipes/modular-speaker/preview.png": "d3d8ae075c70300099861a1637cd3182d966f05b3b410f0887b26cc692e0d41d",
+            "recipes/modular-speaker/recipe.json": "0ca01d2c6eac22e0df288c8c36f0be2b0e30c7c0152ad16c0c472683728e5c8c",
+            "recipes/modular-speaker/scene-spec.json": "241048fbca62e7407c4c785b31cbbeeb0a6d4d69442162a5eab191ac8b3f77b3",
+            "recipes/walnut-trivet/LICENSE": "27005f63af1e4441891a91e8bba63ed7a5d364b21247b53e6d12aeeb11f3c231",
+            "recipes/walnut-trivet/preview.png": "a949ddff4499e1156c35143b27cb055024ef1a11f58939fb035d2f0138ffba22",
+            "recipes/walnut-trivet/recipe.json": "93e9f9f658789d0e5d5195e4a1fb328e7a2ea45ffb8e199fa9ecbe3815e39a1c",
+            "recipes/walnut-trivet/scene-spec.json": "005f2e6a19a535730b022ab1338de1034e60c0cfb1d13bb846602673f4033a61"
+          }
+        },
+        {
+          "name": "@deepblend/dsh-blender-preset",
+          "version": "0.27.0",
+          "files": 9,
+          "fileSha256": {
+            "lib/deploy.js": "53a124fc10279ca9dd1a8e743cfd4ec54908665bba1e366492293d364689ed97",
+            "lib/index.js": "96d8a7249ed6bad9427fa90aebb9f585afe4e894afe3b45f0050daf55f628e13",
+            "package.json": "68d810a8dead27aff0af0eb3466fcd9b9401ce4332f46fa97d83596f1c70851b",
+            "presets/deepblend-dev/agent.cordis.yml": "540fcf88e53a1b3eb4f4cd13b8d3f59571254d68badb68fef571e7b4cc1de61c",
+            "presets/deepblend-dev/preset.yml": "d4bb76cec0cd675eece1a0cb66ce635234f33f71459d3fe9eb64038b1f2f2d63",
+            "presets/deepblend/agent.cordis.yml": "1724cc314b4c762cf83517c7ba31e46779d8fd24f513354bb2c9b893f9ea2fd7",
+            "presets/deepblend/preset.yml": "129c5065009536c05f2683e0afbc4ec64d165d533b36f316ca90e71d52306216",
+            "presets/deepblend/skills/deepblend-studio/references/reference-images.md": "ad13933273e8354034294e1db61bcdcd1f9dbb149efd850c7c8473aae883f67e",
+            "presets/deepblend/skills/deepblend-studio/SKILL.md": "b553dd8a7f50fa6ec9343a941686096c40af3ba9032c364e3ae36c17935c8bfe"
+          }
+        },
+        {
+          "name": "@deepblend/dsh-blender-provider-local",
+          "version": "0.27.0",
+          "files": 43,
+          "fileSha256": {
+            "lib/geometry-inspection.js": "a535fda9f517a415e3cb67f5cd16df8eeed7d8ee251e20f55e740c4f9f8659a3",
+            "lib/index.js": "7c1fbe3ab480350714f1707f9cea0d82fad8299d97b1f8fcb319fa508a1f2c79",
+            "package.json": "04523399ccc44255693f3d96e7a151eebd23b39152f77f321c5c6d6dddbceee2",
+            "python/bootstrap.py": "96930ebe7a942765b737664da7cdc873e9c7abf94081e17fc96be904e444e787",
+            "python/deepblend_anisotropy.py": "05a6a38d4d007debab239738edde57680689d43c55d2b45229811e3efad507a5",
+            "python/deepblend_assembly_placement.py": "87ceebed99648e6a2ab4eaf055b02b55f2554fe6cc8ec6bfdb32fb59d1ef802f",
+            "python/deepblend_asset_bundle.py": "0f503a34256406e0fa7b32ea2f62dbc3ace4a1df988dd2bd748c584f4c778efd",
+            "python/deepblend_avif_headers.py": "72fef7d2f7fda6040a689a1c27bc664e22ac28f4193d15de16c9a4eaa7c17c7b",
+            "python/deepblend_bridge.py": "129824ff5c5896c3e2a4424d14104d346360de3d5770ca5e025a97daf6b8d18a",
+            "python/deepblend_camera_framing.py": "7054cbf7e5b5f1959b1311b6d5ef86fd072a9e21561a6a14b1359823bdd173b1",
+            "python/deepblend_capabilities.py": "083a57b7ad8c5e2669554abf104e93acd32bfd4297e6e28ecf0580f3e946dbf8",
+            "python/deepblend_features.py": "b9db353e8cc6e42ee5cd4d67e3a3caa47e6fe0cca400a0241f815babce9a7830",
+            "python/deepblend_frames.py": "2ed6a927b1e7f33a91b32a9755ee9b606d2fb4c384ff53d8b464d9f7082ae821",
+            "python/deepblend_geometry_framing.py": "859ada44cea8244801371d66f39cf98d755daa79d67581d0a3cf064fd82f77a5",
+            "python/deepblend_geometry.py": "d1a6d87d198c659bc2497bae4f11837177f111355162935a74dffa293ff25ef8",
+            "python/deepblend_gltf_images.py": "d2821db2695018b9a49d92089aa78afe57ca218f4b296a6e2b4f0ebda0b259ab",
+            "python/deepblend_gltf_import.py": "b2370fa4dac7e61699b4dc19a542eddaae3553efe0c1cc975a8cb5dfdbbb4f20",
+            "python/deepblend_gltf_roles.py": "660e5c4d6cf126a02ecd99597fecab47be72a889b697a7c21539f8fd1d338365",
+            "python/deepblend_half_lap.py": "0fa99748f14ff02cb44a74584e1ab3444ed1f339b41cc0c420187518826b102f",
+            "python/deepblend_image_headers.py": "7c89f44436628fbc556bc252bf915e210dea30635d85ac0513dd4bd98ccd26cf",
+            "python/deepblend_image_roles.py": "f11afcf2e60f1893c2005de98a3eafeac3bad96bc921cf52ef328a4817396232",
+            "python/deepblend_images.py": "1e456249732951bbaa62801e1a52ed40755f9ee074f4ed75af2a512cd0f7822d",
+            "python/deepblend_imported_image_headers.py": "5b40daa1e077bf81c4f38b9bb3594723407476752fc6cec338da5935a0629926",
+            "python/deepblend_inspect_geometry.py": "4a3edd8615dc5a071914b605a35eee8bb6329c44fbd114764c6ea6f496b5f9e2",
+            "python/deepblend_inspect_surface.py": "34d233e2894d6e96aab39d36c4c3505710f97e98c1e663fa204568d05ec356c1",
+            "python/deepblend_mesh_checks.py": "3142c6925ce20ed86708fbbd1f1f79f69713e7261568e7dfdfc8d0c13adb1c15",
+            "python/deepblend_mesh.py": "3f29ce09283f8c9d662dd3d09e1c5cd056a9c5aa01349146e74d0df960ccebf8",
+            "python/deepblend_motion_frame_audit.py": "ea8e83c1c3fd1463042bbc5433d0125271e6a160df0e7f8e601f68363fecc9e3",
+            "python/deepblend_obj_images.py": "1565702c42d06841ec9e1c4c76ca36854541ec387a40ad6b881b0d5a8a1d1623",
+            "python/deepblend_obj_import.py": "e06d3aeac917e11753dbb9082da7c84b58cf39b9e3e0cae871062c1897ee6b6f",
+            "python/deepblend_obj_resources.py": "a9592160276e606ba616ea0391ccb8f355d62f374f45853473394db8de3ceac5",
+            "python/deepblend_parts.py": "0656d335fd4cbbfe2a76c49a1be3dd89dc7bcdabe3724c1a0d58cb651be7c2df",
+            "python/deepblend_product_framing.py": "905057a3c07c6f8486ba7f5887ce831ebe4ef40cf26a9d4167e73386e10ebbed",
+            "python/deepblend_render.py": "caddca3abd9cbe565a3815f61e256f20ced6b7d0fd6058d90977fd07489ccfde",
+            "python/deepblend_scatter.py": "6d88e289dbae52ff05f363e09b9e601595050ba0c34855d45ba078ce2934498c",
+            "python/deepblend_scene.py": "e0f14467c1a6d9d1ef2d666055beff01006b1638841328ef1a200e8e7367739f",
+            "python/deepblend_surface_placement.py": "cc68bb9089b37a1004138151bcf5e00d4421a22e76f7db9cc0b188c485e6dc7b",
+            "python/deepblend_util.py": "076327f0eea521ba762b099a8d4b8b76aa429435869ec3cb92ad77612256e267",
+            "python/deepblend_validate.py": "5cfe0276bfc67823fc4a68636d062bf2dc8691d6e3dd95ae2f44dafb2e67007f",
+            "python/deepblend_vessel_math.py": "8dc1222b6a1a4d9ae627ac4996f0845fa9ff018c875106e5d1e7c55c9cee1699",
+            "python/deepblend_vessel_parameters.py": "1b8fb41e94c92aedcda917bf4dfa698e4ccf54d52a4f8b186845550d31d8ca03",
+            "python/deepblend_vessel.py": "c52cc5954ad408eeaf944c5fbcf411df9290727ae103878ba8ed2859ed660bb3",
+            "python/deepblend_views.py": "c0c8b7cda016b6f359e1706e0ac0941e3779680d33d6b9ecb11105a5d15bbbbd"
+          }
+        },
+        {
+          "name": "@deepblend/dsh-blender-tool",
+          "version": "0.27.0",
+          "files": 14,
+          "fileSha256": {
+            "lib/assembly-origins.js": "70449901fbf5473312ab52640360c6a3c564c749468c9b253096efa6e2994424",
+            "lib/attachment-image.js": "ceef08ab3378bbaec13453c325577ad960bab9133a1716304d9d015962a4f273",
+            "lib/committed-preview.js": "923d410becbf80c77c374772d53593f81d7d9681cfba6bfba4a7b554eee4b0c9",
+            "lib/entity-copies.js": "7aec94a3096d1c906d3c40c8775b061e31709ffc19cea22d401e519b55bab74b",
+            "lib/geometry-comparison.js": "3554474ef7a0cc2f488e3859ff8e7979d0bd186219195bfe73cc924795fec45e",
+            "lib/image-delivery.js": "72f1774288953173f092a7c92629734950c855bbfeec35eb7aa0e195009124ed",
+            "lib/index.js": "24891206a541d499a94aa6465f27b6781c0ac4a4ee5bf2f83e9cfaa20b7cb355",
+            "lib/inspection.js": "8202ef9c6665e3114b0dbad36d421948aa94d737878a76db92960922a7d3d04f",
+            "lib/render-tools.js": "e577df81fd17086829d661db5ac337aed734e333d73d2dd30ac0445b15aeac7c",
+            "lib/scene-source.js": "78ae9cdaad8351456a6ea83d59aa2250dc837b1f205ea7df4b1ce336d55b293a",
+            "lib/shared.js": "e1b24d71be81a9b150a823bdf438f68f9e284c6d072f043cc9017cf164d73207",
+            "lib/tools.js": "3eb6d04dd65cbc7ff06b3696f030cd1bb898a3b17a21eb0f00054e26045e8a4c",
+            "lib/visual-tools.js": "5d54b30faff6172030838a4e00c34962e9d0bf069c7fe215f8bf8ab735373f95",
+            "package.json": "c2c6a4009e12a3598f3ecf4e9a686e13ecf45ff92ced7059031d3a02d2f33dbf"
+          }
+        },
+        {
+          "name": "@deepblend/dsh-blender-ui",
+          "version": "0.27.0",
+          "files": 3,
+          "fileSha256": {
+            "lib/client.js": "d2a8faed8ded57a444410f464cf24a5501e5a014e08bcfcb5458633fd56d48c6",
+            "lib/index.js": "b5b341308d1c00445b2f97ff4a19cd1495b9aefcf13fe5102d100e954b7a5e9b",
+            "package.json": "6ed292ded530b39c7dd8488840444e949992054cd44bc81c61355eae6c0a2a78"
+          }
+        },
+        {
+          "name": "@deepblend/dsh-blender-bundle",
+          "version": "0.27.0",
+          "files": 27,
+          "fileSha256": {
+            "README.md": "b8bd0170ab45fa215acedfd6d48c5727444340f37ef7c09adb4495447af0aeba",
+            "README.zh.md": "447c5fcb158e160a887e79a3a21b7f7386c56c9c3e44f72c94164fbefa2bb76c",
+            "assets/banner.png": "8396457867b925ea08d58ce6db42c00981240798cd5d4556e6ce9b2c4054de98",
+            "assets/banner.svg": "283f1287882aab99591d5f1c15d4c299132a03fb9d4184956b84a9ae2999363d",
+            "assets/logo.png": "9153f6a0bace3df66d6119301b61ae9c69c67e4d193687c19316c1780b2bb7f3",
+            "assets/logo.svg": "fe63307c9dab564329ddc39ac6f087a3cfddbc48a05fb15dea53058bddbbd73d",
+            "assets/manifest.json": "23fa8b1d45f9751562d67aedb0bfbbed454362bc0a4d21756499b22003e954c6",
+            "assets/social-card.png": "da684a6072c26566964db2536ed4b419603b4066e6d47833006903c6dc2a0756",
+            "assets/social-card.svg": "ef6a9b901f17e9b5258f7f2eef91d27e24d061afdda325521d12d4e74e3d1555",
+            "cordis.patch.yml": "c07e3663486f04e28ab64c7b3241a8a0418d1239ac0de20095b71267d9492f0d",
+            "examples/charge-study/agent-prompt.zh.txt": "ab477b67da49b36be0277ca07b1ba29ceb47b6c8aa6f8b55e5cfee6362c13523",
+            "examples/charge-study/ATTRIBUTION.txt": "a7114ab64b8ffd680cca89c4d8d101d0f3625c7342eb8036fb46ce26feda4875",
+            "examples/charge-study/industrial-stage.json": "87f5c058b398e52005af9edde787f2304a31dbc53e3ee5038728b0de7de746e0",
+            "examples/charge-study/README.md": "249dd0e46eddd178ac94883967b4ecd0beb1e2e3bcfff601fc65139a1dbaab32",
+            "examples/charge-study/replay-dsh-case.mjs": "1d512791b2d782893d3aafe8ec3b96980ea94a89bc0e18ecd960cae2020c7ac1",
+            "lib/client.js": "018a34ac820df551b71eb01d20f2b949ae6de3e3dfa3a49ce93b16b7c991a22e",
+            "lib/doctor-cli.js": "c8584b4563990554318402bb6987f138f03093a2283d494d62119aecdecf7212",
+            "lib/doctor-requirements.json": "3f78f9ecb063410755b77bc25c1c35b8ed00ab761e95c3aa79aa04c057c69226",
+            "lib/doctor.js": "4fba6ed4ec4e9f351eff2d93f9b6c41351e124f9da3680cfdaa2af4cd111aa13",
+            "lib/functional-probe.js": "28a3c365922cd30129061378182185c4665a577b3c5ed7d05cdc8ab16cf7d69e",
+            "lib/index.js": "41a3e4e69e4fa5f873104a74d4b7d209c5b392f9387d7d08a1ad0028f9de8cd8",
+            "lib/planes/host.js": "ac38b0fbd3beb788454a4e2566e1f88682f67fa6eaacf046f96b1f1269282eb1",
+            "lib/planes/preset.js": "625b7592c5657860cbef1cdf8c33899e4e49d44de9df4c7b0ee80ad3b411d9c0",
+            "lib/planes/provider-local.js": "a82fc04f58148f42505615d6fce57f868f0acec699362254ae6a01a129f28d05",
+            "lib/planes/tool.js": "218028abb7cad564a5bb53e697003e469ccc8cf70ed0d9741af96f7f9b09899a",
+            "package.json": "728d0971a8cd727736e3c58b484893de6c2233bdbe82332e666881af1a9a3d29",
+            "screenshots.json": "91d1e200f2af27b727080f0b315784bed19351c2f5b0cb085dd5e583003e5241"
+          }
+        }
+      ],
+      "ownedFilesByteAndModeVerified": 209
+    },
+    "tarball": {
+      "route": "tarball",
+      "source": "49e8b6e4cfb82f2d92b4f447c8b581991ae87d16",
+      "observedAt": "2026-11-21T13:45:41.359445+00:00",
+      "homeSha256": "2e81fa097094a7eacf2320b7180d168dae88166e01ea0ad0ffd1602e1fed3742",
+      "allSevenComponentsInsideProfile": true,
+      "components": [
+        {
+          "name": "@deepblend/dsh-blender-contracts",
+          "version": "0.27.0",
+          "files": 0,
+          "fileSha256": {}
+        },
+        {
+          "name": "@deepblend/dsh-blender-host",
+          "version": "0.27.0",
+          "files": 0,
+          "fileSha256": {}
+        },
+        {
+          "name": "@deepblend/dsh-blender-preset",
+          "version": "0.27.0",
+          "files": 0,
+          "fileSha256": {}
+        },
+        {
+          "name": "@deepblend/dsh-blender-provider-local",
+          "version": "0.27.0",
+          "files": 0,
+          "fileSha256": {}
+        },
+        {
+          "name": "@deepblend/dsh-blender-tool",
+          "version": "0.27.0",
+          "files": 0,
+          "fileSha256": {}
+        },
+        {
+          "name": "@deepblend/dsh-blender-ui",
+          "version": "0.27.0",
+          "files": 0,
+          "fileSha256": {}
+        },
+        {
+          "name": "@deepblend/dsh-blender-bundle",
+          "version": "0.27.0",
+          "files": 0,
+          "fileSha256": {}
+        }
+      ],
+      "fullArchiveByteAudit": {
+        "archiveSha256": "ce4d873b91c8e3c04539f87615fe52bdda14b05fdfa294811d8a1adcbb9081a5",
+        "version": "0.27.0",
+        "source": "49e8b6e4cfb82f2d92b4f447c8b581991ae87d16",
+        "packedFilesByteVerified": 471,
+        "executableFiles": 3,
+        "allExecutableModesMatchArchive": true,
+        "allResolvedFilesStayInsideInstalledBundle": true,
+        "rootSourceReferencesVerified": 6
+      }
+    }
+  },
+  "community": {
+    "pullRequest": "https://github.com/awesome-dsh-plugin/awesome-dsh-plugin/pull/17521",
+    "head": "b4a2b01c14445b2807e7df99265a845196e0572a",
+    "stateAtReadback": "OPEN",
+    "checksAtReadback": [
+      {
+        "__typename": "CheckRun",
+        "completedAt": "0001-01-01T00:00:00Z",
+        "conclusion": "",
+        "detailsUrl": "https://github.com/awesome-dsh-plugin/awesome-dsh-plugin/actions/runs/44910752927/job/136865847119",
+        "name": "check",
+        "startedAt": "2026-11-21T13:49:13Z",
+        "status": "IN_PROGRESS",
+        "workflowName": "PR check"
+      }
+    ],
+    "changedFiles": 1,
+    "descriptionLinesChanged": 2,
+    "canonicalEntrySha256": "2447c1c0705008748efca1665f97382c53d1b01d984523b1ea8df09272d376ad",
+    "contributingGuideSha256": "5f50938d8619e03f2069d3f3db43e7567a2c0f9c4493945b3e89460792de0e21",
+    "catalogs": [
+      {
+        "url": "https://awesome-dsh-plugin.com/index.json",
+        "at": "2026-11-21T13:49:37.197637+00:00",
+        "httpStatus": 200,
+        "bytes": 5289104,
+        "sha256": "7dbffe65b231352be6f43f545d0385d8f20ed20ab283abe4f57b68dbc15e10b5",
+        "name": "@deepblend/dsh-blender-bundle",
+        "version": null,
+        "versions": [
+          {
+            "version": "0.25.0",
+            "publishTimestamp": 1794401736,
+            "source": {
+              "type": "npm"
+            },
+            "engines": {
+              "dsh": "0.1.5-rc.2 || 0.2.1-rc.1"
+            }
+          }
+        ],
+        "query": "",
+        "cacheBypassRequested": false
+      },
+      {
+        "url": "https://awesome-dsh-plugin.com/plugins.json",
+        "at": "2026-11-21T13:49:46.414926+00:00",
+        "httpStatus": 200,
+        "bytes": 17528439,
+        "sha256": "80703d94789745709692d3027b8563679d27df94e8e3b3205efe9120860d3cb7",
+        "name": "deep-blend#bundle",
+        "version": "0.25.0",
+        "versions": null,
+        "query": "",
+        "cacheBypassRequested": false
+      }
+    ],
+    "upstreamMergeAndCatalogPropagationVerifiedFor027": false
+  },
+  "retainedAttempts": {
+    "initialAcceptance": {
+      "result": {
+        "commit": "bccf5f46934aabf4fef3400ebd32a6600bdff318",
+        "startedAt": "2026-11-21T11:44:59.964899+00:00",
+        "completedAt": "2026-11-21T11:52:26.840559+00:00",
+        "kernelExitCode": -15,
+        "allTrackedSourceUnchanged": true,
+        "trackedFiles": 1100,
+        "expectedSuites": 58,
+        "observedSuites": 2,
+        "verdicts": [
+          {
+            "label": "unit + contract (no Blender required)",
+            "passed": false
+          },
+          {
+            "label": "Blender capability probe (M0)",
+            "passed": true
+          }
+        ],
+        "logBytes": 560842,
+        "logSha256": "38c721a25726bdbdb67f3fea1a8b65c1c277d0f83d96223a6ce89ef0488e993c",
+        "passed": false
+      },
+      "reason": "The first run inherited personal DSH presets with different bytes and was intentionally stopped. A dedicated home was prepared with matching presets, and the complete acceptance was restarted from the beginning on the same unchanged commit. Personal configuration was not changed."
+    },
+    "development": [
+      {
+        "log": "recipe-tests.log",
+        "sha256": "b2eceb6947b2985761f27f78f99ab75b5424e2b4f50e3b603614f1ee3d19ffa5",
+        "result": "133/137 passed; initial test fixtures tried bevels on half-lap members and passed unfiltered catalog metadata as parameters. Test fixtures corrected; existing half-lap restrictions retained."
+      },
+      {
+        "log": "distribution-checks.log",
+        "sha256": "6fdaf3583f2df371168fe47952173fc735999b482feb2a5f2cc3ed2bf4baf068",
+        "result": "31/32 passed; CI coverage guide initially omitted the newly added browser step. Added the matching documentation row."
+      },
+      {
+        "log": "browser-first/report.json",
+        "sha256": "5fcd8d13e98a5367001d9ce6ce51e0f089e44b54123cf9773c17c559a341c3b8",
+        "result": "Failed after 11 checks: the test selected only the first comparison image, which was the old revision. The committed new checkpoint and right-hand preview existed. The corrected selector checks all preview images; the full browser run then passed."
+      }
+    ],
+    "installer": {
+      "logSha256": "3d302f70baa7548ba0b05c9b4dca332b4dea2db1302e81f6fa8af69f682588a7",
+      "result": "The first candidate install used builder pnpm 9.15.0 and stopped with ERR_PNPM_ADDING_TO_ROOT. The documented installer pnpm 10.28.2 was provisioned locally; the same profile then installed successfully, followed by final-archive installation in a fresh home. No global package-manager configuration was changed."
+    },
+    "sharedStoreProbe": {
+      "logSha256": "5a8dc71e2fdff3a20baccde002e6fa2beb3fc24b3c4bf07b302f82ba9a3a2bae",
+      "exitCode": 0,
+      "countedInCanonicalComparison": false,
+      "reason": "The first source probe used the shared pnpm store. It passed but was excluded; subsequent canonical route runs used separate empty stores."
+    },
+    "functionalRouteProbes": {
+      "countedInCanonicalComparison": false,
+      "reason": "Initial fresh source and tarball probes passed. Final complete runs also compared actual installed component bytes, modes and source lock resolutions before profile cleanup."
+    },
+    "documentationCountFirstAttempt": {
+      "at": "2026-11-21",
+      "sharedHomePresetComparison": "17/21",
+      "selfCountedPassed": 2145,
+      "readmeSelfCounted": 2134,
+      "nodeTestCount": 2267,
+      "readmeNodeTest": 2222,
+      "accepted": false,
+      "reason": "First local documentation count inherited the personal DSH preset mismatch. It also revealed stale README snapshots. The aggregate shell returned zero after its later git diff check, so it is not treated as count-check success."
+    },
+    "documentationCountVerified": {
+      "verifiedAt": "2026-11-21T13:56:22.398550+00:00",
+      "exitCode": 0,
+      "selfCounted": 2149,
+      "selfCountedFiles": 34,
+      "nodeTestCases": 2267,
+      "nodeTestFiles": 125,
+      "allSelfCountedFilesPassedInIsolatedHome": true,
+      "counterLogSha256": "e20ca6d9cb36060442b379207d706ada6d3c5b353a05d80ae3305f93f1941d6f",
+      "snapshotDate": "2026-11-21"
+    },
+    "lateObserver": "An external source-file observer ran after its profile had been cleaned up and asserted failure. No byte audit was claimed from that attempt; the complete audited source route supersedes it."
+  },
+  "limits": [
+    "Spacing is center-to-center and bounded to 52–92 mm.",
+    "Native reopening verifies seven closed solids, twelve crossings and 126 interior sample cells per checkpoint; this is not manufacturing qualification.",
+    "This release preserves old 1.0.0 source locks without adding the new spacing parameter to them.",
+    "Four native platform payloads are included and byte-verified; this record does not claim Windows execution."
+  ],
+  "independentCreatorAcceptance": "Maintainer validation only; no new external participant recorded.",
+  "scope": "Dated publication record; original candidate snapshots and failures remain unchanged. No release artifact or npm version was republished."
+}
