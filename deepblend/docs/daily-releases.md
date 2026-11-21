@@ -1028,3 +1028,12 @@ npm 首包写入后即时读回为 404。确认首包的公开版本和归档后
 北京时间 20:49:35 从主线 `d87eb61` 公开。工作台支持先检查交叉两侧槽口，再将草稿保存为可编辑版本。佛塔檐口的 100 个闭合部件在搭接和可编辑 ZIP 导出后均通过独立 Blender 核对，采样交叠格为零。[发布说明](releases/0.25.0.md)
 
 九件 GitHub 附件、七个 npm 包的 205 个文件已从公开渠道读回。三条安装路线均为 0.25.0，工作台和两项预设一致。英文指南与半搭接说明已在同一份社区投稿更新，两份公开目录在 20:58 仍为 0.23.0。[GitHub Release](https://github.com/pearjelly/deep-blend/releases/tag/v0.25.0) · [社区 PR #14273](https://github.com/awesome-dsh-plugin/awesome-dsh-plugin/pull/14273) · [发布证据](validation/release-0.25.0.json)
+
+
+### 2026-11-21 · 0.26.0 胡桃木格栅垫首作入口
+
+北京时间 19:14:41 从主线 `2bfee05c` 公开 0.26.0。内置胡桃木格栅垫配方提供已完成的 12 处半搭接，支持统一设置木色与粗糙度，再编辑横条间距并导出可编辑副本。正式安装包实测十一项通过，Blender 重开确认七个闭合部件与零采样重叠。[发布说明](releases/0.26.0.md)
+
+候选与合并提交各五项 CI 通过。九件 GitHub 附件、七个 npm 包的 209 个文件均已公开读回，三条安装路线一致。主包经临时 GitHub 任务重建，SHA-256 与本机验过的归档一致后上传；两次本机上传中断及临时构建任务的失败记录均已保留。npm 每个版本写入一次，等待公开归档可读后才发 bundle。[GitHub Release](https://github.com/pearjelly/deep-blend/releases/tag/v0.26.0) · [发布证据](validation/release-0.26.0.json)
+
+新社区条目已提交 [PR #17521](https://github.com/awesome-dsh-plugin/awesome-dsh-plugin/pull/17521)。上一份社区 PR #14273 已合并，发新版前的普通 index/plugins 地址均读回 0.25.0。持续发布在本聊天暂停后于本日恢复，今日完成一个公开稳定版本。
