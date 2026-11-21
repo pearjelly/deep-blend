@@ -2,7 +2,7 @@
   "schemaVersion": "deepblend.timber-edge-candidate/v1",
   "recordedAt": "2026-11-21T16:11:11.803167+00:00",
   "pluginVersion": "0.28.0",
-  "status": "implemented; scoped development checks passed before version bump; complete frozen-source acceptance, exact-source CI and publication pending",
+  "status": "implemented; focused runtime and editor checks passed; first frozen run recorded environment failures; corrected complete acceptance and exact-source CI still required",
   "baseSource": "0dc8c4112c81a19daa577057a5ee47e05000e333",
   "recipe": {
     "id": "deepblend.walnut-trivet",
@@ -78,6 +78,10 @@
     "deepblend/tests/blender-integration/timber-edge-finish-checks.py": {
       "sha256": "ce4efd52e4a42d42e790b67a34566ef50c0dae7ac402f6a65c840ff763930d03",
       "bytes": 10262
+    },
+    "deepblend/tests/e2e/ui.e2e.mjs": {
+      "sha256": "489f908d0c39696ad13163cdc99d02acf7f30e1b87a822f34a9f4e937fdfe05b",
+      "bytes": 45090
     }
   },
   "scopedChecks": {
@@ -566,6 +570,35 @@
         }
       ],
       "scope": "Actual component traversal, UV and oriented normals are required; at 5 mm the compiler may produce a healthy limited result or refuse atomically. The current run refused."
+    },
+    "m4ExplicitRuntime": {
+      "checksPassed": 72,
+      "checksTotal": 72,
+      "logSha256": "8e813223cc0be831ad72392f11ac848460996ec02aba7b3a3e12582cbcb88e93",
+      "realChromeDshAndBlender": true,
+      "checkoutManagedInstallAbsentDuringRun": true,
+      "selectedBlenderVersion": "5.2.1 LTS",
+      "scope": "The same existing explicit Blender path is now assigned to the test Host runtime. Assertions, time limits, interactions and creation guards are unchanged. The full test passes without a checkout-local managed Blender."
+    },
+    "runtimeEnvironmentProbe": {
+      "source": "489b27b2af0629f1e9a076e66b03e812ced4db0b",
+      "results": [
+        {
+          "label": "automatic-path",
+          "http": 500,
+          "error": "BLENDER_NOT_FOUND",
+          "creationRequestProtocol": "deepblend.creation-request/v1",
+          "nativeCheckpointExists": false
+        },
+        {
+          "label": "explicit-path",
+          "http": 200,
+          "error": null,
+          "creationRequestProtocol": "deepblend.creation-request/v1",
+          "nativeCheckpointExists": true
+        }
+      ],
+      "scope": "Real independent Host compositions, unchanged requests and actual saved .blend after passing the explicit executable; no delayed response or simulated runtime."
     }
   },
   "review": {
@@ -607,6 +640,31 @@
     "documentation": [
       "recipe12-third-party.log: stale client-bound documentation captures; recaptured with original pixels and source metadata",
       "unit-diagnostic-first.log: two outdated documentation expectations, retained as failures"
+    ],
+    "frozenAcceptance": {
+      "source": "489b27b2af0629f1e9a076e66b03e812ced4db0b",
+      "startedAt": "2026-11-21T16:18:05.725405+00:00",
+      "verdict": "not accepted; two failures already observed in the still-continuing original run",
+      "failures": [
+        {
+          "suite": "Host composition activation",
+          "passed": 15,
+          "total": 18,
+          "reason": "The dedicated checkout lacks the managed Blender installation required by the unchanged auto-discovery assertions."
+        },
+        {
+          "suite": "Workbench UI in a real browser (M4)",
+          "passed": 6,
+          "total": 7,
+          "reason": "The test checked the explicit DEEPBLEND_BLENDER_PATH, but did not pass it to its own Host. The Host returned BLENDER_NOT_FOUND, preserved the typed inputs and showed the environment guidance. This was not a readiness-click failure."
+        }
+      ],
+      "originalLog": "acceptance-489b27b/full.log",
+      "preservedScreenshotSha256": "2dd795f57a6cd1dca284cfe93d573f76e584ae21a9b8a97ddfe93bee73ca4ed6",
+      "correction": "Pass the checked path to the M4 Host. Provision the existing exact Blender build at the isolated checkout managed-install entry for default-discovery coverage; keep the activation assertions verbatim. Run a new complete 58-suite acceptance after freezing the corrected source."
+    },
+    "diagnosticVerifier": [
+      "environment-proof.log: the first helper guessed different error names; the real response was BLENDER_NOT_FOUND. The corrected helper checks that actual code, then proves successful creation with the explicit path. Product behavior was not changed."
     ]
   },
   "limits": [

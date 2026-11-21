@@ -49,5 +49,42 @@
     "No model calls.",
     "The failed main run is retained and is not counted as a passing run.",
     "The patch is a test-only readiness correction; CI for this change is checked separately."
-  ]
+  ],
+  "postMergeCI": {
+    "runId": 44921800757,
+    "url": "https://github.com/pearjelly/deep-blend/actions/runs/44921800757",
+    "source": "0dc8c4112c81a19daa577057a5ee47e05000e333",
+    "status": "completed",
+    "conclusion": "success",
+    "observedWorkflowUpdatedAt": "2026-11-21T16:43:28Z",
+    "jobs": [
+      {
+        "name": "Unit + contract (no Blender)",
+        "status": "completed",
+        "conclusion": "success"
+      },
+      {
+        "name": "DSH 0.2.1-rc.1 preset and native delivery compatibility",
+        "status": "completed",
+        "conclusion": "success"
+      },
+      {
+        "name": "Linux delivery + editing + resource bundle upload",
+        "status": "completed",
+        "conclusion": "success"
+      },
+      {
+        "name": "Linux cup parameter boundaries",
+        "status": "completed",
+        "conclusion": "success"
+      },
+      {
+        "name": "Linux Blender + Agent + browser inspections",
+        "status": "completed",
+        "conclusion": "success"
+      }
+    ],
+    "packagesTree": "92c7999860058163c531219a3c7e9f5a4bdd7c0f",
+    "published027RuntimeTreeUnchanged": true
+  }
 }
