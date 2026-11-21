@@ -38,6 +38,8 @@ async function saved(id, revision, spacing) {
   return manifest
 }
 async function controls(revision) {
+  // The shell loads before its selected project; a visible tab may still be disabled.
+  await page.waitFor(`document.querySelector('[data-view-tab="scene"]')?.disabled === false`, 30000)
   await click('[data-view-tab="scene"]')
   await page.waitFor(`document.querySelector('[data-assembly-base-revision="${revision}"]') !== null`, 30000)
 }

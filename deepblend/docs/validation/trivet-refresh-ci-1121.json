@@ -1,0 +1,53 @@
+{
+  "schemaVersion": "deepblend.validation/v1",
+  "recordedAt": "2026-11-21T15:05:28.237362+00:00",
+  "scope": "Test readiness after a browser refresh; product runtime and published 0.27.0 artifacts unchanged.",
+  "failedMain": {
+    "commit": "4cb884bbc83593f3e1244193a88d55135cd960eb",
+    "run": "https://github.com/pearjelly/deep-blend/actions/runs/44914116013",
+    "jobId": 136875950879,
+    "conclusion": "failure",
+    "jobConclusions": {
+      "Linux cup parameter boundaries": "success",
+      "Linux Blender + Agent + browser inspections": "success",
+      "DSH 0.2.1-rc.1 preset and native delivery compatibility": "success",
+      "Unit + contract (no Blender)": "success",
+      "Linux delivery + editing + resource bundle upload": "failure"
+    },
+    "failure": "Error: waitFor timed out after 30000ms: document.querySelector('[data-assembly-base-revision=\"r0004\"]') !== null (last: false)\n    at BrowserPage.waitFor (file:///home/runner/work/deep-blend/deep-blend/deepblend/tools/browser-driver.mjs:294:40)\n    at async controls (file:///home/runner/work/deep-blend/deep-blend/deepblend/tests/e2e/trivet-spacing-ui.e2e.mjs:42:3)\n    at async file:///home/runner/work/deep-blend/deep-blend/deepblend/tests/e2e/trivet-spacing-ui.e2e.mjs:94:24",
+    "checksCompletedBeforeFailure": 18,
+    "archive": {
+      "id": 14712115420,
+      "url": "https://github.com/pearjelly/deep-blend/actions/runs/44914116013/artifacts/14712115420",
+      "bytes": 66428185,
+      "sha256": "52fa102a533c1436142cbcdd411a4232598d81ea57c53a052df47c6cbabb455f",
+      "providerSha256Matched": true,
+      "zipCrcPassed": true
+    },
+    "observation": "All six committed models and returning spacing to 64 mm passed. After refresh the scene tab was visible while project selection still loaded. The test clicked without waiting for the disabled state to clear; the later screenshot showed the correct r0004 project in the initial requirements view. No refreshed assembly, mobile or ZIP/native checks completed in this failed test."
+  },
+  "change": "Wait for the real scene tab to become enabled before the existing pointer click. The revision-specific wait, timeout, native readback and immutable-history assertions remain.",
+  "localAcceptance": {
+    "status": "passed",
+    "checks": 23,
+    "nativeReopens": 7,
+    "reportSha256": "61f022245adfb4d4577856772e3cb413ef8b4dc14c93d1442e6b340d50a8d870",
+    "archive": {
+      "revision": "r0004",
+      "filesVerified": 10,
+      "archiveSha256": "7dc5e9419860712cba296d9a35068fe8ef972f2ff13a53b1b5d768a7c6503ca0"
+    },
+    "shutdown": {
+      "via": "sigterm",
+      "ms": 569
+    },
+    "allOriginalFilesUnchanged": true,
+    "crossingsPerCheckpoint": 12,
+    "sampledOverlapCellsPerCheckpoint": 0
+  },
+  "limits": [
+    "No model calls.",
+    "The failed main run is retained and is not counted as a passing run.",
+    "The patch is a test-only readiness correction; CI for this change is checked separately."
+  ]
+}
