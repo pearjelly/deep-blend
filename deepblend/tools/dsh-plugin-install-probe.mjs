@@ -436,7 +436,7 @@ try {
     // -----------------------------------------------------------------------
     let projectsRoot = 'not reported'
     try {
-      const response = await fetch(`http://127.0.0.1:${port}/deepblend/state`)
+      const response = await fetchFromWebServer(`http://127.0.0.1:${port}/deepblend/state`)
       if (response.ok) projectsRoot = (await response.json()).projectsRoot
     } catch {
       // the route answered capabilities, so this is diagnostic only
