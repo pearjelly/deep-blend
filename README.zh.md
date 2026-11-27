@@ -373,7 +373,7 @@ packages/deepblend/
 ```
 $ node deepblend/tests/run.mjs
 Error [ERR_MODULE_NOT_FOUND]: Cannot find package '@deepblend/dsh-blender-contracts'
-DeepBlend tests: 31/160 file(s) passed
+DeepBlend tests: 32/162 file(s) passed
 ```
 
 （这两个数字**由检查钉住** ✓：`contract/readme-fresh-clone.test.mjs` 会造一份没有 `node_modules` 的树、
