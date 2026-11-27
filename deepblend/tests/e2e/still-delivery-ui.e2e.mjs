@@ -81,10 +81,17 @@ try {
   await page.waitFor('window.__renders[2]?.response!==undefined', 60000)
   const resumedRequest = await page.evaluate('window.__renders[2]'), resumed = await terminal(stillId)
   check('recovery republishes the existing exact image without another render or encoder', resumedRequest.body.resumeJobId === stillId && resumed.status === 'completed' && resumed.delivery?.kind === 'still' && resumed.attempt === still.attempt && hash(imagePath) === frameHash && hash(file('output', 'final.mp4')) === previousOutput, resumed.delivery)
-  await page.click('[data-view-tab="revisions"]')
+  const copy = `[data-action="snapshot-include-delivery:${stillId}"]`
+  await page.waitFor(`document.querySelector(${JSON.stringify(copy)})!==null`, 60000)
+  check('a completed image opens its editable copy by a real pointer', (await clickWorkbenchControl(page, copy)).via === 'pointer')
   const imageCheckbox = `[data-field="snapshot-image"][data-job-id="${stillId}"]`
-  await page.waitFor(`document.querySelector(${JSON.stringify(imageCheckbox)})!==null`, 60000)
-  check('the same-version image is selected for the editable copy by a real pointer', (await clickWorkbenchControl(page, imageCheckbox)).via === 'pointer')
+  await page.waitFor(`document.querySelector(${JSON.stringify(imageCheckbox)})!==null
+    && document.querySelector('[data-editable-snapshot]')?.contains(document.activeElement)`, 60000)
+  check('the editable copy preselects that exact image and its saved revision',
+    await page.evaluate(`document.querySelector(${JSON.stringify(imageCheckbox)}).checked
+      && document.querySelector('[data-field="snapshot-revision"]').value === 'r0001'
+      && document.querySelector('[data-editable-snapshot]').contains(document.activeElement)
+      && document.querySelector('[data-editable-snapshot]').dataset.editableSnapshot === 'idle'`))
   check('the combined editable copy is prepared by a real pointer', (await clickWorkbenchControl(page, '[data-action="snapshot-prepare"]')).via === 'pointer')
   await page.waitFor(`document.querySelector('[data-action="snapshot-download"]')!==null||document.querySelector('[data-editable-snapshot="failed"]')!==null`, 180000)
   const copyError = await page.evaluate(`document.querySelector('[data-editable-snapshot="failed"]')?.innerText||null`); if (copyError) throw Error(copyError)

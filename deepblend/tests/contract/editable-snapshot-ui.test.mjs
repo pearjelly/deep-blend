@@ -84,6 +84,51 @@ test('image selection is revision-scoped and cannot expose a stale ready archive
   assert.equal(action(store, 'snapshot-download'), undefined, 'switching revision cannot offer the prior archive')
 })
 
+test('verified delivery actions select the exact revision and output without creating an archive', async t => {
+  const image = (jobId, revisionId, verified = true) => ({ jobId, revisionId, status: 'completed',
+    delivery: { kind: 'still', verified, image: { frame: 1, width: 2560, height: 1440, sha256: 'c'.repeat(64) } } })
+  const images = Array.from({ length: 16 }, (_, index) => image(`image-${index}`, 'r0002'))
+  const f = fixture({ images: [...images, image('other-image', 'r0002'), image('old-image', 'r0001'), image('unchecked-image', 'r0001', false)] })
+  for (const job of f.jobs) {
+    Object.assign(job, { type: 'final-render', frameStart: 1, frameEnd: 1, progress: { percent: 100, missing: 0, corrupt: 0 } })
+    if (job.delivery?.videoPath) Object.assign(job.delivery, { verified: true, sha256: 'd'.repeat(64) })
+  }
+  const store = await f.start(); t.after(() => store.stop())
+  const copyFrom = id => {
+    store.actions.setView('jobs')
+    return nodes(core.renderView({ state: store.getState(), actions: store.actions }))
+      .find(node => node.props?.['data-action'] === `snapshot-include-delivery:${id}`)
+  }
+  assert.equal(copyFrom('unchecked-image'), undefined)
+  assert.equal(copyFrom('running-movie'), undefined)
+  store.actions.setSnapshotVideo('current-movie')
+  store.actions.setSnapshotImage('image-0', true)
+  copyFrom('image-1').props.onClick()
+  assert.equal(store.getState().view, 'revisions')
+  assert.equal(selectedEntry(store).videoJobId, 'current-movie')
+  assert.deepEqual(json(selectedEntry(store).imageJobIds), ['image-0', 'image-1'])
+  for (const job of images) store.actions.setSnapshotImage(job.jobId, true)
+  const full = copyFrom('other-image')
+  assert.equal(full.props.disabled, true)
+  full.props.onClick()
+  assert.equal(store.getState().view, 'jobs')
+  assert.equal(selectedEntry(store).imageJobIds.length, 16)
+  copyFrom('old-movie').props.onClick()
+  assert.equal(selectedEntry(store).revision, 'r0001')
+  assert.equal(selectedEntry(store).videoJobId, 'old-movie')
+  assert.deepEqual(json(selectedEntry(store).imageJobIds), [])
+  copyFrom('old-image').props.onClick()
+  assert.deepEqual(json(selectedEntry(store).imageJobIds), ['old-image'])
+  assert.equal(snapshotCalls(f).length, 0)
+  const previous = copyFrom('old-image')
+  f.switchRoot(); store.actions.reload()
+  await until(() => store.getState().storeIdentity === identityB && selectedEntry(store))
+  previous.props.onClick()
+  assert.equal(store.getState().view, 'jobs')
+  assert.equal(selectedEntry(store).revision, 'r0002')
+  assert.deepEqual(json(selectedEntry(store).imageJobIds), [])
+})
+
 test('selected image identities survive a context change and mismatched replies are rejected', async t => {
   const image = { jobId: 'still-a', revisionId: 'r0002', status: 'completed', cameraId: 'hero', delivery: { kind: 'still', verified: true, image: { frame: 7, width: 2560, height: 1440, sha256: 'c'.repeat(64) } } }
   const f = fixture({ images: [image] }), store = await f.start(); t.after(() => store.stop())

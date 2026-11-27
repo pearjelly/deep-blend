@@ -1,0 +1,27 @@
+{
+  "schemaVersion": "deepblend.delivery-job-editable-copy/v1",
+  "testedAt": "2026-11-27T18:40:17.640934+00:00",
+  "candidateVersion": "0.32.0",
+  "clientSha256": "fb03815f4c012fd0265ed4acd77fb1a9954716fb6e2897c8941c2fd0e029c1e7",
+  "protectedSavedRevision": "r0001",
+  "actualBrowserChecks": 24,
+  "stillDeliveryChecks": 18,
+  "viewports": [
+    [
+      1440,
+      1013
+    ],
+    [
+      390,
+      844
+    ]
+  ],
+  "archiveSha256": "0b638214c22c9ca9956c9b83440a342647cb7bfc80dddcaa35c6ae701670ac5e",
+  "archiveBytes": 3756057,
+  "files": {
+    "blenderScene": "114f5794b903cbf6fa5ffebf752420de08463547f923fa152d76a58351cf9992",
+    "png": "ff69da8a61587b8c33c7cbbed96468c0a427fb08df02eb2fef2f734c375268e6",
+    "mp4": "55be7852542c2d7f8ab8cc3464d985ac60f42ae35ad3fe1a90e66a646d917ef1"
+  },
+  "scope": "Maintainer replay using actual Chrome, Blender and FFmpeg on saved project fixtures. It verifies file identity during editable delivery."
+}

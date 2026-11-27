@@ -90,6 +90,8 @@ Use the save-PNG control above a rendered image. It downloads that existing imag
 
 Open the workbench **on the computer running the Host**, select the project, and open **Save an editable copy** in Revisions.
 
+From a completed PNG or MP4 in **Export**, choose **Include in editable copy** to open the form with that job and its saved revision selected. Add any other deliverables from the same revision, then choose **Prepare download**.
+
 1. Choose a saved version. Unsaved edits are excluded.
 2. Optionally select a completed video and up to 16 completed single-frame image jobs from that same version. The Host checks their provenance; preparing the ZIP does not rerender them.
 3. Prepare the download, wait for verification to complete, then download the ZIP. Confirm completion in your browser's download list.

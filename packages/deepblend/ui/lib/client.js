@@ -942,6 +942,7 @@ window.__ModuleLoader__.load({
       'revisions.sourceUnknown': '暂无法确认工程内容变化',
       'revisions.restore': '恢复',
       "snapshot.title": "保存可编辑副本",
+      "snapshot.includeJob": "加入可编辑副本",
       "snapshot.scope": "包含 Blender 工程、源文件与相关外部素材。",
       "snapshot.details": "副本范围",
       "snapshot.detailText": "仅包含选定的已保存版本。仅用于观察的外部参考图不另行附带；工程内嵌内容未另行检查。可附带同版本的已完成影片和图片。未保存的编辑不会进入副本。",
@@ -1876,6 +1877,7 @@ window.__ModuleLoader__.load({
       'revisions.sourceUnknown': 'Project content change could not be confirmed',
       'revisions.restore': 'restore',
       "snapshot.title": "Save an editable copy",
+      "snapshot.includeJob": "Include in editable copy",
       "snapshot.scope": "Includes the Blender project, source files and relevant external assets.",
       "snapshot.details": "What the copy includes",
       "snapshot.detailText": "Includes only the selected saved version. External images used only as visual references are omitted; embedded content is not separately inspected. You can include completed videos and stills from the same version. Unsaved edits are not included.",
@@ -3891,13 +3893,36 @@ window.__ModuleLoader__.load({
     const snapshotContextKey = state => state.projectsRoot && state.storeIdentity && state.activeProjectId
       ? JSON.stringify([state.projectsRoot, state.storeIdentity, state.activeProjectId]) : null
     const snapshotEntry = state => state.editableSnapshots?.[snapshotContextKey(state)] || null
-    const snapshotVideos = (state, revision) => (state.jobs || []).filter(job => job.status === 'completed'
-      && job.revisionId === revision && typeof job.delivery?.videoPath === 'string' && job.delivery.videoPath.length > 0)
-    const snapshotImages = (state, revision) => (state.jobs || []).filter(job => job.status === 'completed' && job.revisionId === revision
+    const snapshotVideoJob = job => job.status === 'completed'
+      && typeof job.delivery?.videoPath === 'string' && job.delivery.videoPath.length > 0
+    const snapshotImageJob = job => job.status === 'completed'
       && job.delivery?.kind === 'still' && job.delivery.verified === true && Number.isSafeInteger(job.delivery.image?.frame)
-      && /^[a-f0-9]{64}$/.test(job.delivery.image?.sha256 || '') && /^[a-zA-Z0-9][a-zA-Z0-9_-]{0,95}$/.test(job.jobId || ''))
+      && /^[a-f0-9]{64}$/.test(job.delivery.image?.sha256 || '') && /^[a-zA-Z0-9][a-zA-Z0-9_-]{0,95}$/.test(job.jobId || '')
+    const snapshotVideos = (state, revision) => (state.jobs || []).filter(job => job.revisionId === revision && snapshotVideoJob(job))
+    const snapshotImages = (state, revision) => (state.jobs || []).filter(job => job.revisionId === revision && snapshotImageJob(job))
     const snapshotSupported = state => state.editableSnapshotProtocol === 1 && /^[a-f0-9]{64}$/.test(state.storeIdentity || '')
       && state.editableSnapshotAvailability?.available === true
+    const snapshotWorking = entry => entry?.result?.state === 'preparing' || Object.values(entry?.busy || {}).some(Boolean)
+    function snapshotJobSelection(state, job) {
+      const entry = snapshotEntry(state)
+      if (!entry || !snapshotSupported(state) || job?.delivery?.verified !== true
+        || !/^[a-zA-Z0-9][a-zA-Z0-9_-]{0,95}$/.test(job.jobId || '')
+        || !state.selected?.revisions?.some(item => item.revision === job.revisionId)) return null
+      const image = job.delivery.kind === 'still'
+      if (image ? !state.snapshotImagesSupported || !snapshotImageJob(job)
+        : !snapshotVideoJob(job) || !/^[a-f0-9]{64}$/.test(job.delivery.sha256 || '')) return null
+      const sameRevision = entry.revision === job.revisionId
+      const imageJobIds = sameRevision ? entry.imageJobIds || [] : []
+      const full = image && imageJobIds.length >= 16 && !imageJobIds.includes(job.jobId)
+      return {
+        disabled: snapshotWorking(entry) || full,
+        selection: {
+          revision: job.revisionId,
+          videoJobId: image ? (sameRevision ? entry.videoJobId || null : null) : job.jobId,
+          imageJobIds: image && !full ? [...new Set([...imageJobIds, job.jobId])].sort() : imageJobIds,
+        },
+      }
+    }
     const snapshotSameSelection = entry => entry?.handle && entry.revision === entry.handle.revision && entry.videoJobId === entry.handle.videoJobId
       && JSON.stringify(entry.imageJobIds || []) === JSON.stringify(entry.handle.imageJobIds || [])
     const snapshotBytes = value => value >= 1048576 ? `${(value / 1048576).toFixed(1)} MiB` : value >= 1024 ? `${(value / 1024).toFixed(1)} KiB` : `${value} B`
@@ -4559,14 +4584,14 @@ window.__ModuleLoader__.load({
       }
       function setSnapshotSelection(field, value) {
         const key = snapshotContextKey(data), entry = data.editableSnapshots[key]
-        if (!entry || entry.result?.state === 'preparing' || Object.values(entry.busy || {}).some(Boolean)) return
+        if (!entry || snapshotWorking(entry)) return
         if (field === 'revision' && !(data.selected?.revisions || []).some(item => item.revision === value)) return
         if (field === 'videoJobId' && value && !snapshotVideos(data, entry.revision).some(job => job.jobId === value)) return
         changeSnapshot(key, { [field]: value || null, ...(field === 'revision' ? { videoJobId: null, imageJobIds: [] } : {}) })
       }
       function setSnapshotImage(id, selected) {
         const key = snapshotContextKey(data), entry = data.editableSnapshots[key]
-        if (!entry || !data.snapshotImagesSupported || entry.result?.state === 'preparing' || Object.values(entry.busy || {}).some(Boolean)) return
+        if (!entry || !data.snapshotImagesSupported || snapshotWorking(entry)) return
         const ids = new Set(entry.imageJobIds || [])
         if (selected && !snapshotImages(data, entry.revision).some(job => job.jobId === id) || !selected && !ids.has(id)) return
         if (selected && ids.size >= 16 && !ids.has(id)) return
@@ -4949,6 +4974,15 @@ window.__ModuleLoader__.load({
         setSnapshotRevision: value => setSnapshotSelection('revision', value),
         setSnapshotVideo: value => setSnapshotSelection('videoJobId', value),
         setSnapshotImage,
+        includeDeliveryInSnapshot: (jobId, revision, context) => {
+          if (!context || context !== snapshotContextKey(data)) return
+          const job = data.jobs.find(item => item.jobId === jobId && item.revisionId === revision)
+          const copy = snapshotJobSelection(data, job)
+          if (!copy || copy.disabled) return
+          changeSnapshot(context, copy.selection)
+          actions.setView('revisions')
+          return true
+        },
         prepareEditableSnapshot: () => snapshotRequest('prepare'),
         checkEditableSnapshot: () => snapshotRequest('check'),
         cancelEditableSnapshot: () => snapshotRequest('cancel'),
@@ -7851,6 +7885,30 @@ window.__ModuleLoader__.load({
               Button({ action: 'save-wide-frame', tone: 'primary', disabled: pending || Object.values(state.busy).some(Boolean), onClick: actions.saveWideFrame, children: t('aspect.apply') })))
     }
 
+    function JobDeliveryActions(state, actions, job) {
+      const frame = renderSingleFrameLink(state, job)
+      const copy = snapshotJobSelection(state, job)
+      const video = state.renderVideoDownloadSupported && state.editableSnapshotAvailability?.available === true
+        && /^[a-f0-9]{64}$/.test(state.storeIdentity || '') && job.status === 'completed' && job.delivery?.verified === true
+        && /^r[0-9]{4,}$/.test(job.revisionId || '') && /^[a-zA-Z0-9][a-zA-Z0-9_-]{0,95}$/.test(job.jobId || '')
+        && /^[a-f0-9]{64}$/.test(job.delivery.sha256 || '')
+        ? el('a', { className: 'db-btn', 'data-action': `download-video:${job.jobId}`,
+          href: projectRoute(state.activeProjectId, `/jobs/${encodeURIComponent(job.jobId)}/video?revision=${encodeURIComponent(job.revisionId)}&sha256=${job.delivery.sha256}&storeIdentity=${state.storeIdentity}`),
+          download: true }, t('jobs.downloadVideo', { revision: job.revisionId })) : null
+      const path = !video && typeof job.delivery?.videoPath === 'string' && job.delivery.videoPath
+      if (!frame && !video && !copy && !path) return null
+      return el('div', { className: 'db-inline' }, frame, video,
+        copy ? Button({ action: `snapshot-include-delivery:${job.jobId}`, disabled: copy.disabled,
+          onClick: event => {
+            const mount = event?.currentTarget?.closest('.db-root')?.parentElement
+            if (actions.includeDeliveryInSnapshot(job.jobId, job.revisionId, snapshotContextKey(state))) {
+              mount?.ownerDocument.defaultView?.requestAnimationFrame(() => mount.querySelector('[data-editable-snapshot]')?.focus())
+            }
+          },
+          children: t('snapshot.includeJob') }) : null,
+        path ? el('div', { className: 'db-muted db-mono' }, `video ${path}`) : null)
+    }
+
     /** 任务: live progress, cancel, resume, and the approval threshold. */
     function JobsView(ctx) {
       const state = ctx.state
@@ -7893,15 +7951,7 @@ window.__ModuleLoader__.load({
               el('div', { className: 'db-muted', 'data-job-detail': job.jobId }, `${job.detail} · ${job.progress.percent}% · 缺失 ${job.progress.missing} · 损坏 ${job.progress.corrupt}`),
               el('div', { className: 'db-muted', 'data-job-provenance': job.jobId }, jobProvenanceText(job)),
               job.errorCode ? el('div', { className: 'db-error', style: { marginTop: '4px' } }, `${job.errorCode}: ${job.message || ''}`) : null,
-              renderSingleFrameLink(state, job),
-              state.renderVideoDownloadSupported && state.editableSnapshotAvailability?.available === true
-                && /^[a-f0-9]{64}$/.test(state.storeIdentity || '') && job.status === 'completed' && job.delivery?.verified === true
-                && /^r[0-9]{4,}$/.test(job.revisionId || '') && /^[a-zA-Z0-9][a-zA-Z0-9_-]{0,95}$/.test(job.jobId || '')
-                && /^[a-f0-9]{64}$/.test(job.delivery.sha256 || '')
-                ? el('a', { className: 'db-btn', 'data-action': `download-video:${job.jobId}`,
-                  href: projectRoute(state.activeProjectId, `/jobs/${encodeURIComponent(job.jobId)}/video?revision=${encodeURIComponent(job.revisionId)}&sha256=${job.delivery.sha256}&storeIdentity=${state.storeIdentity}`),
-                  download: true }, t('jobs.downloadVideo', { revision: job.revisionId }))
-                : job.delivery ? el('div', { className: 'db-muted db-mono' }, `video ${job.delivery.videoPath || ''}`) : null,
+              JobDeliveryActions(state, actions, job),
             ))),
         ),
 
@@ -8057,7 +8107,7 @@ window.__ModuleLoader__.load({
       const phases = { writing: t('snapshot.copying'), verifying: t('snapshot.verifying'), publishing: t('snapshot.publishing') }
       const done = result?.phase === 'verifying' ? result.verifiedBytes : result?.writtenBytes
       const measured = result?.phase === 'writing' && Number.isSafeInteger(done) && done >= 0 && Number.isSafeInteger(result?.totalBytes) && result.totalBytes > 0
-      return el('section', { className: 'db-card', 'data-editable-snapshot': result?.state || 'idle', 'aria-label': t('snapshot.title') },
+      return el('section', { className: 'db-card', 'data-editable-snapshot': result?.state || 'idle', 'aria-label': t('snapshot.title'), tabIndex: -1 },
         el('h4', null, t('snapshot.title')),
         el('p', { className: 'db-muted' }, t('snapshot.scope')),
         Disclosure({ state, actions }, 'snapshot-scope', t('snapshot.details'), {}, el('p', { className: 'db-muted', style: { maxWidth: '72ch' } }, t('snapshot.detailText'))),
