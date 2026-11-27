@@ -48,6 +48,8 @@ Procedural textures offer noise, wave and Voronoi patterns, density/stretch, bum
 
 For a saved timber half lap, select an inspected image in the asset panel, choose one group and the **Base color** channel, and include its named partner. Both groups use the same image, UV layer, tiling and offset. Each keeps its own roughness value and other image maps. Confirming replacement removes the procedural texture’s color, bump and roughness variation. **Save both timber groups and preview** records the two bindings in one revision.
 
+To repair stretched or collapsed grain while applying the image, enable **Rebuild both UV maps**. Leave the UV layer blank or select `UVMap`. Set the texture direction and repetitions, then use **Preview texture** to see the result from a saved camera. Other image maps that use the same UV layer follow the rebuilt coordinates. **Save both timber groups and preview** records the image and both UV updates in one revision.
+
 For a mesh generator with planar faces, select the option to rebuild per-face UVs on save. Set quarter turns and repeat scale, save, then inspect the actual material. This preserves geometry and materials, supports overlapping UV islands for repeating textures, and rejects non-planar faces. It does not pack an atlas or repair overlapping geometry. See [modeling](modeling.en.md#repeating-texture-uvs).
 
 The handled cup's advanced root spread (`rootTension`) is dimensionless, from 1 to 2.5. Larger values spread the connection surface; the control is not in millimeters. Compare roots with fixed photography rather than assuming a larger value looks better.

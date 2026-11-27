@@ -32,6 +32,24 @@ const HERE = import.meta.dirname
 const PROJECT_ROOT = resolve(HERE, '..', '..', '..')
 const PATCH_FILE = join(PROJECT_ROOT, 'packages', 'deepblend', 'bundle', 'cordis.patch.yml')
 
+function ownedBlenderProcesses() {
+  const list = spawnSync('ps', ['-axo', 'pid=,ppid=,comm='], { encoding: 'utf8' })
+  if (list.error || list.status !== 0) throw new Error('Could not read process ancestry', { cause: list.error })
+  const processes = new Map()
+  for (const line of list.stdout.split('\n')) {
+    const row = /^\s*(\d+)\s+(\d+)\s+(.+)$/.exec(line)
+    if (row) processes.set(Number(row[1]), { parent: Number(row[2]), executable: row[3].trim() })
+  }
+  const owned = []
+  for (const [pid, entry] of processes) {
+    if (!/(?:^|\/)blender(?:\.exe)?$/i.test(entry.executable)) continue
+    let parent = entry.parent
+    while (parent > 1 && parent !== process.pid) parent = processes.get(parent)?.parent ?? 0
+    if (parent === process.pid) owned.push(pid)
+  }
+  return owned.sort((a, b) => a - b)
+}
+
 const results = []
 function check(name, ok, detail) {
   results.push({ name, ok, detail })
@@ -124,10 +142,7 @@ try {
   // Every row's `name` is resolved the way the loader resolves it: a bare
   // import of the package name. If any package were missing from the
   // composition's resolution roots, this is where the mount would fail.
-  const blenderCountBeforeMount = (() => {
-    const found = spawnSync('pgrep', ['-f', 'Blender'], { encoding: 'utf8' })
-    return (found.stdout ?? '').split('\n').filter(line => line.trim() !== '').length
-  })()
+  const blenderBeforeMount = ownedBlenderProcesses()
 
   for (const row of rows) {
     const loaded = await import(row.name)
@@ -154,15 +169,11 @@ try {
   // surprise the checklist asks about: an operator starting their harness would pay for a renderer they did not
   // ask for, on a machine that may not have one.
   //
-  // MEASURED with `pgrep`: the count before the mount and after it are compared, so the assertion is about what
-  // the MOUNT did rather than about what happens to be running on the machine.
-  const blenderProcesses = () => {
-    const found = spawnSync('pgrep', ['-f', 'Blender'], { encoding: 'utf8' })
-    return (found.stdout ?? '').split('\n').filter(line => line.trim() !== '').length
-  }
+  // Use this test process's descendants so separate Blender sessions do not affect the check.
+  const blenderAfterMount = ownedBlenderProcesses()
   check('mounting the bundle starts no Blender process at all',
-    blenderProcesses() === blenderCountBeforeMount,
-    { before: blenderCountBeforeMount, after: blenderProcesses() })
+    blenderAfterMount.every(pid => blenderBeforeMount.includes(pid)),
+    { before: blenderBeforeMount, after: blenderAfterMount })
 
   // --- the plane rule: the tool must NOT come from the host bundle ---------
   const hostTools = root.get('tools')

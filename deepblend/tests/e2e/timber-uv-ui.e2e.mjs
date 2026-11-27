@@ -65,8 +65,23 @@ try {
     }
   }
   const png = await sharp(pixels, { raw: { width: edge, height: edge, channels: 3 } }).png().toBuffer()
+  const roughnessPixels = Buffer.alloc(edge * edge)
+  for (let index = 0; index < roughnessPixels.length; index++) roughnessPixels[index] = pixels[index * 3] === colors[0][0] ? 64 : 192
+  const roughnessPng = await sharp(roughnessPixels, { raw: { width: edge, height: edge, channels: 1 } }).png().toBuffer()
+  const seededAsset = await fetch(endpoint + '/assets?name=shared-uv-roughness.png', {
+    method: 'POST', headers: { 'content-type': 'image/png' }, body: roughnessPng, signal: AbortSignal.timeout(30_000),
+  })
+  const roughnessAsset = await seededAsset.json()
+  assert.equal(seededAsset.status, 200, JSON.stringify(roughnessAsset.error))
+  assert.equal(roughnessAsset.asset.sha256, sha(roughnessPng))
+  const roughnessBinding = { assetId: roughnessAsset.asset.id, uvMap: 'UVMap', channel: 'r' }
   const differentiated = await post(endpoint + '/patch', { patch: { baseRevision: 'r0001', saveCheckpoint: true,
-    renderPreview: true, operations: [{ op: 'material.parameter.update', materialId: 'walnut-crosswise', parameter: 'roughness', value: .57 }] } })
+    renderPreview: true, operations: [
+      { op: 'asset.add', asset: roughnessAsset.asset },
+      { op: 'material.parameter.update', materialId: 'walnut-crosswise', parameter: 'roughness', value: .57 },
+      { op: 'material.texture.set', materialId: 'walnut-crosswise', texture: null },
+      { op: 'material.images.set', materialId: 'walnut-crosswise', images: { roughness: roughnessBinding } },
+    ] } })
   assert.equal(differentiated.status, 200, JSON.stringify(differentiated.data.error))
   browser = await Browser.launch({ args: ['--window-size=1440,1100', '--accept-lang=en-US,en'] })
   page = await browser.newPage()
@@ -167,6 +182,7 @@ try {
     const next = appliedSpec.materials.find(material => material.id === materialId)
     assert.deepEqual(next.parameters, old.parameters)
     assert.equal(next.images.baseColor.assetId, asset.id)
+    assert.deepEqual(next.images.roughness, old.images?.roughness)
     assert(!Object.hasOwn(next, 'texture'))
   }
   const byId = values => Object.fromEntries(values.map(value => [value.id, value]))
@@ -325,6 +341,96 @@ try {
   assert.equal(stale.data.error.code, 'REVISION_CONFLICT')
   assert.equal(read('project.json').currentRevision, 'r0004')
   pass('a preview from an older base is refused after saving')
+
+  const restored = await post(endpoint + '/restore', { revision: 'r0002', expectedCurrentRevision: 'r0004' })
+  assert.equal(restored.status, 200, JSON.stringify(restored.data.error))
+  assert.equal(read('project.json').currentRevision, 'r0002')
+  await page.goto(base + '/deepblend/workbench')
+  await page.waitFor(`${element('[data-lighttable-revision="r0002"]')} !== null`, 45_000)
+  await pointer('[data-view-tab="scene"]')
+  await pointer(byAction('assets-open'))
+  await page.waitFor(`${element(card + ' [data-asset-preview]')}?.naturalWidth > 0`, 30_000)
+  const restoredFiles = snapshot()
+  await pointer(`${card} ${byAction('asset-use:' + asset.id)}`)
+  await choose(assetField('target-entity'), members[0])
+  await pointer(includePartner)
+  await pointer(replaceTexture)
+  const rebuild = assetField('rebuild-timber-uvs'), repeat = assetField('uv-repeats')
+  assert.equal(await page.evaluate(`${element(rebuild)}.checked`), false)
+  await pointer(rebuild)
+  assert.match(await page.text('[data-asset-base-revision="r0002"]'), /Other images on the same UV layer will follow the new coordinates/)
+  await page.fill(repeat, '0')
+  const combinedAction = byAction('asset-timber-uv-preview'), combinedCancel = byAction('asset-timber-uv-preview-cancel')
+  assert.equal(await page.evaluate(`${element(assetSave)}.disabled && ${element(combinedAction)}.disabled`), true)
+  await page.fill(repeat, '2')
+  await choose(assetField('uv-camera'), cameraId)
+  await pointer(combinedAction)
+  await page.waitFor(`${element(combinedCancel)} !== null`, 20_000)
+  await waitForScratch(true)
+  assert.equal(await page.evaluate(`${element(assetSave)}.disabled`), true)
+  await pointer(combinedCancel)
+  assert.equal(await page.evaluate('window.uvRequests.at(-1).aborted'), true)
+  await waitForScratch(false)
+  assert.deepEqual(snapshot(), restoredFiles)
+  pass('the combined preview requires valid settings and cancels without changing the restored project')
+
+  await pointer(combinedAction)
+  await page.waitFor(`${element('[data-asset-timber-uv-preview="ready"] img')}?.naturalWidth > 0
+    || ${element('[data-asset-timber-uv-preview="error"]')} !== null`, 70_000)
+  const combined = await page.evaluate('window.uvRequests.at(-1)')
+  assert.equal(combined.status, 200, JSON.stringify(combined.reply?.error))
+  const combinedPreview = combined.reply.preview
+  assert.equal(combinedPreview.baseRevision, 'r0002')
+  assert.equal(combinedPreview.cameraId, cameraId)
+  assert.equal(combinedPreview.frame, frame)
+  assert.deepEqual(combinedPreview.entities, members)
+  assert.deepEqual(settings(combinedPreview.image), settings(preview.image))
+  const combinedImage = Buffer.from(combinedPreview.image.pngBase64, 'base64')
+  assert.equal(sha(combinedImage), combinedPreview.image.sha256)
+  assert.deepEqual(decodePng(combinedImage).data, savedImage.data)
+  const missingTarget = structuredClone(combined.body.patch)
+  missingTarget.operations.find(operation => operation.op === 'entity.material.set').entityId = 'missing-timber'
+  const missing = await post(endpoint + '/patch', { patch: missingTarget })
+  assert.equal(missing.status, 422, JSON.stringify(missing.data.error))
+  assert.equal(missing.data.error.code, 'PATCH_TARGET_MISSING')
+  assert.deepEqual(snapshot(), restoredFiles)
+  pass('the combined draft matches the two-save render and a missing target leaves the project unchanged')
+
+  await pointer(assetSave)
+  await page.waitFor(`${element('[data-lighttable-revision="r0005"]')} !== null`, 70_000)
+  const [compoundWrite, ...extraWrites] = await page.evaluate('window.uvRequests.filter(item => item.url.endsWith("/patch"))')
+  assert.equal(extraWrites.length, 0)
+  assert.equal(compoundWrite.status, 200, JSON.stringify(compoundWrite.reply?.error))
+  assert.deepEqual(compoundWrite.body.patch, combined.body.patch)
+  assert.equal(compoundWrite.body.expectedSpecHash, combinedPreview.candidateSpecHash)
+  assert.equal(compoundWrite.body.expectedStoreIdentity, combinedPreview.storeIdentity)
+  assert.deepEqual(compoundWrite.body.patch.operations.map(operation => operation.op),
+    ['asset.add', 'material.add', 'entity.material.set', 'material.add', 'entity.material.set', 'entity.uv.project', 'entity.uv.project'])
+  const compoundSpec = read('revisions', 'r0005', 'scene-spec.json')
+  assert.equal(specHash(compoundSpec), combinedPreview.candidateSpecHash)
+  function normalizeCopies(spec) {
+    const normalized = structuredClone(spec)
+    members.forEach((id, index) => {
+      const entity = normalized.entities.find(item => item.id === id)
+      const material = normalized.materials.find(item => item.id === entity.materialId)
+      entity.materialId = material.id = `timber-copy-${index}`
+    })
+    return normalized
+  }
+  assert.deepEqual(normalizeCopies(compoundSpec), normalizeCopies(saved))
+  const crossSlatsMaterialId = compoundSpec.entities.find(entity => entity.id === members[1]).materialId
+  const crossSlatsMaterial = compoundSpec.materials.find(material => material.id === crossSlatsMaterialId)
+  assert.deepEqual(crossSlatsMaterial.images.roughness, roughnessBinding)
+  for (const [path, digest] of Object.entries(restoredFiles)) {
+    if (path !== 'project.json') assert.equal(sha(readFileSync(join(project, path))), digest, path)
+  }
+  const compoundView = await fixedView('r0005')
+  assert.deepEqual(settings(compoundView.artifact), settings(after.artifact))
+  assert.deepEqual(decodePng(compoundView.png).data, savedImage.data)
+  writeFileSync(join(output, 'combined-saved.png'), compoundView.png)
+  measurements.combined = { baseRevision: 'r0002', savedRevision: 'r0005', saves: 1, separateSaves: 2, matchingPixels: true,
+    sharedLayerRoughnessPreserved: true }
+  pass('one asset-panel save reproduces the scene and fixed-camera pixels of the separate edits')
 } catch (error) {
   failure = { message: error.message, stack: error.stack }
   await page?.screenshot(join(output, 'failure.png')).catch(() => {})
