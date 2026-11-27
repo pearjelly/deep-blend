@@ -466,6 +466,8 @@ export class Browser {
       return browser
     } catch (error) {
       child.kill('SIGKILL')
+      child.stdout?.destroy()
+      child.stderr?.destroy()
       await sleep(200)
       rmSync(userDataDir, { recursive: true, force: true })
       throw error
@@ -493,6 +495,10 @@ export class Browser {
   async close() {
     await Promise.allSettled(this.pages.map(page => page.close()))
     this.child.kill('SIGKILL')
+    // Crash handlers can outlive Chrome with inherited pipes. Release our
+    // readers so their lifetime cannot keep the test worker alive.
+    this.child.stdout?.destroy()
+    this.child.stderr?.destroy()
     await sleep(200)
     try {
       rmSync(this.userDataDir, { recursive: true, force: true })
