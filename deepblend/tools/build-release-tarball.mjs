@@ -593,6 +593,9 @@ function build(allowDirty) {
   const install = run('pnpm', [
     'install',
     '--config.node-linker=hoisted',
+    // Duplicate store files can share an inode on Linux. npm pack then writes
+    // archive hardlinks, which cannot satisfy the regular-file payload check.
+    '--config.package-import-method=copy',
     '--config.auto-install-peers=false',
     '--ignore-scripts',
     '--reporter=silent',
