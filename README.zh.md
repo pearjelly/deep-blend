@@ -21,7 +21,7 @@
 
 [安装并开始](#安装并开始) · [看看工作台](#看看工作台) · [文档导航](deepblend/docs/README.md) · [最新版本](https://github.com/pearjelly/deep-blend/releases/latest) · [参与贡献](CONTRIBUTING.md)
 
-**0.29.0 已在 GitHub 和 npm 发布。** 两组木条可共同预览 UV，并一次保存为新版本。在浏览器打开 DSH 输出的启动链接即可登录工作台。详见[发布记录](deepblend/docs/releases/0.29.0.md)。
+**0.30.0 已在 GitHub 和 npm 发布。** 两组半搭接木条可共用一张照片，一次保存。发布版附可编辑的 Blender 格栅垫示例。在浏览器打开 DSH 输出的启动链接即可登录。详见[发布记录](deepblend/docs/releases/0.30.0.md)。
 
 [独立创作候选](deepblend/docs/first-product-creation.md)新增运动预览、直接图片／影片交付及指定机位评审；这些候选改动尚未公开发布，也不代表已经通过独立用户或美术验收。
 
