@@ -21,7 +21,7 @@
 
 [安装并开始](#安装并开始) · [看看工作台](#看看工作台) · [文档导航](deepblend/docs/README.md) · [最新版本](https://github.com/pearjelly/deep-blend/releases/latest) · [参与贡献](CONTRIBUTING.md)
 
-**0.28.1 已在 GitHub 和 npm 发布。** 本维护版修复 Linux 安装包构建。创建或修改胡桃木格栅垫时，可设置横条间距和木条倒角。在浏览器打开 DSH 输出的启动链接即可登录工作台。详见[发布记录](deepblend/docs/releases/0.28.1.md)。
+**0.29.0 已在 GitHub 和 npm 发布。** 两组木条可共同预览 UV，并一次保存为新版本。在浏览器打开 DSH 输出的启动链接即可登录工作台。详见[发布记录](deepblend/docs/releases/0.29.0.md)。
 
 [独立创作候选](deepblend/docs/first-product-creation.md)新增运动预览、直接图片／影片交付及指定机位评审；这些候选改动尚未公开发布，也不代表已经通过独立用户或美术验收。
 
@@ -432,7 +432,7 @@ Linux 专用安装器 `deepblend/tools/install-ci-runtimes.mjs` 提供 `npm run 
 范围与证据保留见[CI 说明](deepblend/docs/ci.md)；它不替代完整本地验收或在线美术评审。
 
 预期：**60 个套件、221 个文件**全部通过。其中契约层（`run.mjs`，不需要 Blender）的当前文件结构与实际断言快照分别记录为
-**162 个文件 = 2149 项自计断言（34 个文件打印计数）+ 2466 个 `node:test` 用例（128 个文件）**。
+**162 个文件 = 2149 项自计断言（34 个文件打印计数）+ 2469 个 `node:test` 用例（128 个文件）**。
 需要 Blender 的那几层把总断言数推到 **1400 项以上**（M4 那一次完整 run 记为 1400；
 M5 之后重测过一次，逐套件数字见 `deepblend/docs/milestone-status.md` §14）。
 

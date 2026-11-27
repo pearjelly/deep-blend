@@ -1066,3 +1066,9 @@ npm 首包写入后即时读回为 404。确认首包的公开版本和归档后
 北京时间 22:52:52 从主线 `050bb1c0` 发布。独立安装包使用普通文件打包 Sharp 原生库。候选和主线各通过五项 CI，本机连续 59 套验收通过。[版本说明](releases/0.28.1.md)
 
 九件 GitHub 附件、七个 npm 包和三条公开安装入口均已核验。DeepSeek Harness 社区条目更新已提交审核。北京时间 23:12，两份公开目录均返回 0.27.0。[发布证据](validation/release-0.28.1.json) · [社区条目更新](https://github.com/awesome-dsh-plugin/awesome-dsh-plugin/pull/19386)
+
+### 2026-11-28 · 0.29.0 配对木条 UV 编辑
+
+北京时间 01:36:57 从主线 `521a800c` 发布。两组木条可一次设置 UV，在原相机预览后一起保存。64 mm 格栅垫实测从两次保存减为一次，真实木纹示例的退化 UV 三角形从 496 个降为零。[版本说明](releases/0.29.0.md)
+
+本机连续 60 套验收、候选和主线各五项 CI、十件 GitHub 附件、七个 npm 包及三种公开安装路线均已核验。DeepSeek Harness 社区条目更新已提交审核，公开目录抽查见发布证据。 [发布证据](validation/release-0.29.0.json) · [社区条目更新](https://github.com/awesome-dsh-plugin/awesome-dsh-plugin/pull/19441)
