@@ -348,6 +348,7 @@ export default class BlenderUiHost extends Service {
     try {
       if (matched.route.id.startsWith('project.editableSnapshots.') || matched.route.id.startsWith('project.motionPreview.') || matched.route.id === 'project.job.video' || matched.route.id === 'project.job.frame' || matched.route.id === 'readiness.imageInput') assertSnapshotHttpRequest(request)
       if (matched.route.id === 'project.halfLap.preview') assertSnapshotHttpRequest(request, 'Slot previews')
+      if (matched.route.id === 'project.timberUv.preview') assertSnapshotHttpRequest(request, 'Timber UV previews')
       if (matched.route.id === 'project.editableSnapshots.download' || matched.route.id === 'project.job.video' || matched.route.id === 'project.job.frame' || matched.route.id === 'project.motionPreview.video') {
         if (request.headers?.range && matched.route.id !== 'project.motionPreview.video') {
           response.setHeader('accept-ranges', 'none')
@@ -393,7 +394,7 @@ export default class BlenderUiHost extends Service {
         return
       }
       const cancellable = ['project.assets.upload', 'project.assets.preview', 'project.preview',
-        'project.assetUploads.create', 'project.assetUploads.file', 'project.assetUploads.complete', 'project.motionPreview.create', 'project.halfLap.preview', 'readiness.imageInput'].includes(matched.route.id)
+        'project.assetUploads.create', 'project.assetUploads.file', 'project.assetUploads.complete', 'project.motionPreview.create', 'project.halfLap.preview', 'project.timberUv.preview', 'readiness.imageInput'].includes(matched.route.id)
       let signal
       if (cancellable) {
         const controller = new AbortController()
@@ -822,6 +823,8 @@ export function createHandlers(ctx) {
         cameraFitSupported: studio().cameraFitSupported === true && typeof studio().fitCamera === 'function',
         halfLapPreviewSupported: editableSnapshotAvailability.available && studio().halfLapPreviewSupported === true
           && typeof studio().previewHalfLap === 'function',
+        timberUvPreviewSupported: editableSnapshotAvailability.available && studio().timberUvPreviewSupported === true
+          && typeof studio().previewTimberUv === 'function',
         selected: projectId === null || creationPending
           ? null
           : await buildProjectState(studio(), projectId, query.revision ?? undefined, approvalThreshold()),
@@ -1060,6 +1063,13 @@ export function createHandlers(ctx) {
       preview: await snapshotStudio('previewHalfLap').previewHalfLap({
         patch: { ...body.patch, projectId: params.projectId }, expectedDigest: body.expectedDigest,
         expectedStoreIdentity: body.expectedStoreIdentity, signal,
+      }),
+    }),
+
+    'project.timberUv.preview': async ({ params, body, signal }) => ({
+      preview: await snapshotStudio('previewTimberUv').previewTimberUv({
+        patch: { ...body.patch, projectId: params.projectId }, cameraId: body.cameraId,
+        expectedDigest: body.expectedDigest, expectedStoreIdentity: body.expectedStoreIdentity, signal,
       }),
     }),
 

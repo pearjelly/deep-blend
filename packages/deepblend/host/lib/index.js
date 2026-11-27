@@ -113,6 +113,7 @@ import { AssetUploadSessions, ASSET_UPLOAD_LIMITS } from './asset-uploads.js'
 import { EditableSnapshots } from './editable-snapshots.js'
 import { MotionPreviews } from './motion-preview.js'
 import { previewHalfLap } from './half-lap-preview.js'
+import { previewTimberUv } from './timber-uv-preview.js'
 import { VisionReadiness } from './vision-readiness.js'
 import { prepareModelBundle, assetPreviewVersion, stageAssetBundle, verifyUnbundledGltfAsset, verifyUnbundledObjAsset } from './asset-bundle.js'
 import { ASSET_LIBRARY_LIMITS, uploadAssetType, checkAssetUpload, hashAssetFile, previewRasterAsset } from './asset-library.js'
@@ -826,6 +827,12 @@ export default class BlenderStudio extends Service {
   }
 
   async previewHalfLap(request) { return previewHalfLap(this, request) }
+
+  get timberUvPreviewSupported() {
+    return ['compileScene', 'resolveEngineKey', 'renderPreview'].every(name => typeof this.runtime?.[name] === 'function')
+  }
+
+  async previewTimberUv(request) { return previewTimberUv(this, request) }
 
   async getRecipeParameters(projectId, options = {}) {
     const record = this.store.readRecord(projectId)

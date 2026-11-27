@@ -194,6 +194,9 @@ run_suite "Material surface editor: UV drafts, native refusals, saved graph and 
 run_suite "Mesh UV projection: real editor save, native area and revision protection" \
   node deepblend/tests/e2e/mesh-uv-ui.e2e.mjs
 
+run_suite "Paired timber UVs: draft render, one revision and reopened native geometry" \
+  node deepblend/tests/e2e/timber-uv-ui.e2e.mjs
+
 run_suite "Timber half laps: unsaved preview, bound confirmation and independent native readback" \
   node deepblend/tests/e2e/half-lap-ui.e2e.mjs
 
