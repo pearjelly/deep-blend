@@ -1060,3 +1060,9 @@ npm 首包写入后即时读回为 404。确认首包的公开版本和归档后
 北京时间 20:04:41 从主线 `bfbbfe05` 发布。胡桃木格栅垫配方 1.2.0 可设置 0–1 mm 倒角，默认 0.5 mm。历史项目沿用原配方锁。工作台 HTTP 路由使用 DSH 所有者会话。[版本说明](releases/0.28.0.md)
 
 连续 59 套本机验收通过，候选与主线各通过五项 CI，两版 DSH 的实装检查各通过 36 项。已匿名核验九件 GitHub 附件和七个 npm 包。三条公开路线均完成新安装，工作台与两份预设一致。[发布证据](validation/release-0.28.0.json) · [社区条目更新](https://github.com/awesome-dsh-plugin/awesome-dsh-plugin/pull/19386)
+
+### 2026-11-27 · 0.28.1 Linux 发布归档修复
+
+北京时间 22:52:52 从主线 `050bb1c0` 发布。独立安装包使用普通文件打包 Sharp 原生库。候选和主线各通过五项 CI，本机连续 59 套验收通过。[版本说明](releases/0.28.1.md)
+
+九件 GitHub 附件、七个 npm 包和三条公开安装入口均已核验。DeepSeek Harness 社区条目更新已提交审核。北京时间 23:12，两份公开目录均返回 0.27.0。[发布证据](validation/release-0.28.1.json) · [社区条目更新](https://github.com/awesome-dsh-plugin/awesome-dsh-plugin/pull/19386)
