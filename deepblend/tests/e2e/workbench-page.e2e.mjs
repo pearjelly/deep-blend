@@ -392,11 +392,13 @@ try {
     await page.attributes('[data-view-tab]', 'data-view-tab'))
   await page.waitFor('document.querySelector(\'[data-view="projects"]\') !== null', 20000)
   await page.waitFor('document.querySelector(\'[data-action="create-project"]\') !== null', 20000)
+  // The low-storage notice shares the error styling but is a nonblocking status.
+  const unexpectedErrors = await page.count('[data-deepblend-panel] .db-error:not([data-project-storage="low"][role="status"])')
   check('a fresh store is shown as a fresh store, not as an error',
     await page.count('.db-project-create') === 1
       && await page.count('[data-recipe]') > 0
       && await page.count('.db-project-list') === 0
-      && await page.count('[data-deepblend-panel] .db-error') === 0,
+      && unexpectedErrors === 0,
     ((await page.text('[data-view="projects"]')) ?? '').replace(/\s+/g, ' ').slice(0, 120))
 
   // -------------------------------------------------------------------------

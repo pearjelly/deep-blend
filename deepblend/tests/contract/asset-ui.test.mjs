@@ -111,8 +111,10 @@ test('a disconnected preview aborts Host work and removes request listeners', as
   assert.equal(signal.aborted, true); assert.equal(response.listenerCount('close'), 0); assert.equal(request.listenerCount('aborted'), 0)
 })
 
-test('asset failures have actionable status codes', () => {
-  for (const [code, status] of Object.entries({ ASSET_TOO_LARGE: 413, ASSET_CONTENT_MISMATCH: 415, ASSET_FORMAT_UNAVAILABLE: 415, ASSET_HASH_MISMATCH: 409, SCENE_VALIDATION_FAILED: 422 })) assert.equal(statusForError(new BlenderError(code, 'Controlled error')), status)
+test('asset and patch reference failures have actionable status codes', () => {
+  const statuses = { ASSET_TOO_LARGE: 413, ASSET_CONTENT_MISMATCH: 415, ASSET_FORMAT_UNAVAILABLE: 415,
+    ASSET_HASH_MISMATCH: 409, SCENE_VALIDATION_FAILED: 422, PATCH_TARGET_MISSING: 422 }
+  for (const [code, status] of Object.entries(statuses)) assert.equal(statusForError(new BlenderError(code, 'Controlled error')), status, code)
 })
 
 test('GLB placement preserves original materials and camera, with one atomic checkpoint/preview transaction', () => {
@@ -175,6 +177,36 @@ test('procedural texture replacement requires an explicit choice and retains unr
   const { value } = draft('png', spec); assert.throws(() => assets.buildPatch(value), /explicitly replaced/)
   value.replaceTexture = true; value.scope = 'shared'; const { patch, spec: next } = apply(spec, value)
   assert.deepEqual(patch.operations.map(op => op.op), ['asset.add', 'material.texture.set', 'material.images.set']); assert.equal(next.materials.find(item => item.id === material.id).texture, undefined)
+})
+
+test('paired timber image attachment rebuilds the default UVs only by explicit choice', () => {
+  const fixture = new URL('../fixtures/walnut-trivet-v1.1/scene-spec.json', import.meta.url)
+  const { spec } = compileSceneSpec(JSON.parse(readFileSync(fixture)))
+  const [first, second] = ['longitudinal-slats', 'cross-slats']
+  spec.assets.push(entry('jpeg').asset)
+  const material = spec.materials.find(item => item.id === 'walnut-lengthwise')
+  delete material.texture
+  const normal = { assetId: 'uploaded-jpeg', strength: .4 }
+  material.images = { normal }
+  const before = clone(spec), photo = entry()
+  const value = assets.createDraft(scene(spec), 'one', photo, inspected(photo), first)
+  value.includeTimberPartner = true
+  value.replaceTexture = true
+  const bound = apply(spec, value)
+  assert.equal(bound.patch.operations.length, 5)
+  value.uvProjection = { quarterTurns: 1, scale: 2 }
+  const combined = apply(spec, value)
+  assert.deepEqual(combined.patch.operations, [...bound.patch.operations,
+    ...[first, second].map(entityId => ({ op: 'entity.uv.project', entityId, quarterTurns: 1, scale: 2 }))])
+  const attached = combined.spec.materials.find(item => item.id === value.newMaterialId)
+  assert.deepEqual(attached.images.normal, normal)
+  assert.deepEqual(spec, before)
+  value.binding.uvMap = 'Custom'
+  assert.throws(() => assets.buildPatch(value), /UVMap/)
+  value.binding.uvMap = 'UVMap'
+  assert.doesNotThrow(() => assets.buildPatch(value))
+  value.includeTimberPartner = false
+  assert.throws(() => assets.buildPatch(value))
 })
 
 function imported() {
