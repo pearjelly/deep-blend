@@ -21,9 +21,7 @@
 
 [安装并开始](#安装并开始) · [看看工作台](#看看工作台) · [文档导航](deepblend/docs/README.md) · [最新版本](https://github.com/pearjelly/deep-blend/releases/latest) · [参与贡献](CONTRIBUTING.md)
 
-**0.27.0 已在 GitHub 和 npm 发布**，创建或继续改稿时可将格栅垫横条间距设为 52–92 mm 并保持居中。完整验收、全新安装和公开三路安装均已核验。详见[发布记录](deepblend/docs/releases/0.27.0.md)；社区审核与目录传播另行跟进。
-
-[0.28.0 候选](deepblend/docs/releases/0.28.0.md)新增木条边缘倒角，保留旧配方锁；完整发布验收尚未完成，当前未公开发布。
+**0.28.0 已在 GitHub 和 npm 发布。** 创建或修改胡桃木格栅垫时，可设置横条间距和木条倒角。在浏览器打开 DSH 输出的启动链接即可登录工作台。详见[发布记录](deepblend/docs/releases/0.28.0.md)。
 
 [独立创作候选](deepblend/docs/first-product-creation.md)新增运动预览、直接图片／影片交付及指定机位评审；这些候选改动尚未公开发布，也不代表已经通过独立用户或美术验收。
 

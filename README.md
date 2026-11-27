@@ -21,9 +21,7 @@ Start with a product recipe or your own model. Shape the scene. Compare real ren
 
 [Quick start](#quick-start) · [See the workbench](#see-the-workbench) · [Documentation](deepblend/docs/README.md) · [Latest release](https://github.com/pearjelly/deep-blend/releases/latest) · [Contribute](CONTRIBUTING.md)
 
-**0.27.0 is published on GitHub and npm.** Set or change the walnut trivet's 52–92 mm cross-slat spacing while keeping it centered. Full acceptance, fresh installation and all three public installation routes have been verified. See the [release record](deepblend/docs/releases/0.27.0.md); community review and catalog propagation are tracked separately.
-
-The [0.28.0 candidate](deepblend/docs/releases/0.28.0.md) adds adjustable timber edge finishing and preserves historical recipe locks. It is awaiting complete release acceptance and is not yet published.
+**0.28.0 is published on GitHub and npm.** Set walnut trivet slat spacing and timber edge width during creation or edit them in a saved version. Open the link printed by DSH to sign in to the workbench. See the [release record](deepblend/docs/releases/0.28.0.md).
 
 The [independent-creation candidate](deepblend/docs/first-product-creation.md) adds motion preview, direct image/video delivery and explicit review inputs. Those candidate changes are not a public release or a claim of independent artistic acceptance.
 

@@ -1,0 +1,780 @@
+{
+  "schemaVersion": 1,
+  "status": "published",
+  "releaseLabel": "v0.28.0",
+  "releaseUrl": "https://github.com/pearjelly/deep-blend/releases/tag/v0.28.0",
+  "publishedAt": "2026-11-27T12:04:41Z",
+  "acceptedSourceCommit": "0bc1ced62f03a95c6821317e3146a8db153b1fb2",
+  "mergedSourceCommit": "bfbbfe055dd33e1dd817fda2d269aa894b5c23b5",
+  "sourcePullRequest": "https://github.com/pearjelly/deep-blend/pull/90",
+  "acceptance": {
+    "commit": "0bc1ced62f03a95c6821317e3146a8db153b1fb2",
+    "startedAt": "2026-11-27T10:22:08.706270+00:00",
+    "completedAt": "2026-11-27T11:24:54.090874+00:00",
+    "kernelExitCode": 0,
+    "allTrackedSourceUnchanged": true,
+    "headUnchanged": true,
+    "worktreeClean": true,
+    "actualModesAndGitBlobsValidated": true,
+    "trackedFiles": 1120,
+    "expectedSuites": 59,
+    "observedSuites": 59,
+    "verdicts": [
+      {
+        "label": "unit + contract (no Blender required)",
+        "passed": true
+      },
+      {
+        "label": "Blender capability probe (M0)",
+        "passed": true
+      },
+      {
+        "label": "Blender batch SceneSpec + revision loop (M1)",
+        "passed": true
+      },
+      {
+        "label": "Public runtime conformance: packed checker, native evidence, cancellation and partial resume",
+        "passed": true
+      },
+      {
+        "label": "Saved native local surface rays: analytic dimensions, overlap, occlusion and explicit refusals",
+        "passed": true
+      },
+      {
+        "label": "Surface placement: saved mesh contact, rigid imported hierarchies and same-frame previews",
+        "passed": true
+      },
+      {
+        "label": "Handled cup: public generator, closed mesh, dimensional edits and immutable inspections",
+        "passed": true
+      },
+      {
+        "label": "Model resource bundles: glTF/GLB/OBJ textures, locked files and old revision rebuild",
+        "passed": true
+      },
+      {
+        "label": "Asset library: real uploads, isolated previews and source fidelity",
+        "passed": true
+      },
+      {
+        "label": "Fixed-view inspections: isolated beauty/clay, measured cameras and source protection",
+        "passed": true
+      },
+      {
+        "label": "Blender live session: one process, many operations (M6 Live Bridge, transport)",
+        "passed": true
+      },
+      {
+        "label": "Host composition activation",
+        "passed": true
+      },
+      {
+        "label": "Agent preset tool plane + degradation path (M0)",
+        "passed": true
+      },
+      {
+        "label": "Agent preset M1 tool plane (all seven tools)",
+        "passed": true
+      },
+      {
+        "label": "Blender visual loop: multi-view, scoring, repair, handover (M2)",
+        "passed": true
+      },
+      {
+        "label": "Agent preset M2 tool plane (all ten tools, image return)",
+        "passed": true
+      },
+      {
+        "label": "Blender persistent render job: restart, resume, cancel, delivery (M3)",
+        "passed": true
+      },
+      {
+        "label": "Saved-shot delivery: native camera cuts, per-frame evidence and frozen selection on resume",
+        "passed": true
+      },
+      {
+        "label": "Completed frames: native encoding, process cancellation and prior delivery protection (no Blender)",
+        "passed": true
+      },
+      {
+        "label": "Agent preset M3 tool plane (all nineteen tools, real delivery)",
+        "passed": true
+      },
+      {
+        "label": "M5 hardening: allowlist, deadline, capture cap, budgets, workspace boundary",
+        "passed": true
+      },
+      {
+        "label": "M5 concurrency: two sessions on one store, and the realms that keep them apart",
+        "passed": true
+      },
+      {
+        "label": "M5 approval: the threshold refuses an unapproved expensive render",
+        "passed": true
+      },
+      {
+        "label": "M5 assets: local automatic, network approved, and the caps in between",
+        "passed": true
+      },
+      {
+        "label": "Workbench UI plane: closed route set, writes through the Host, client seat table (M4)",
+        "passed": true
+      },
+      {
+        "label": "Image readiness: opt-in local check, explicit cost and safe failure",
+        "passed": true
+      },
+      {
+        "label": "Workbench UI in a real browser: manage a project, refresh, cancel, no browser Blender (M4)",
+        "passed": true
+      },
+      {
+        "label": "Standalone fullscreen workbench: its own route, the console's own bundle, refresh (M6)",
+        "passed": true
+      },
+      {
+        "label": "HTTP owner access: real DSH login, cross-origin refusal and protected native history",
+        "passed": true
+      },
+      {
+        "label": "Render selection: native profile, submitted revision, frame dimensions and encoded delivery",
+        "passed": true
+      },
+      {
+        "label": "Still delivery: real Blender and browser with unavailable video encoders",
+        "passed": true
+      },
+      {
+        "label": "Motion preview: native playback, explicit save and lost-reply recovery",
+        "passed": true
+      },
+      {
+        "label": "Motion frame audit: real intermediate clipping and complete preview evidence",
+        "passed": true
+      },
+      {
+        "label": "Motion save guard: recompiled intermediate clipping and atomic recovery",
+        "passed": true
+      },
+      {
+        "label": "Speaker motion: complete visible selection, hidden construction tools and native save",
+        "passed": true
+      },
+      {
+        "label": "Imported model motion: fitted camera, saved framing and preserved source bundle",
+        "passed": true
+      },
+      {
+        "label": "Preview PNG saving: native browser files, exact source, refusal, retry and narrow layout",
+        "passed": true
+      },
+      {
+        "label": "First creation recovery: actual failures, lost reply, retry and immutable native output",
+        "passed": true
+      },
+      {
+        "label": "Photography editor: native camera and light edits, saved inspections and conditional restore",
+        "passed": true
+      },
+      {
+        "label": "Asset library in a real browser: upload, preview, apply and revision conflicts",
+        "passed": true
+      },
+      {
+        "label": "Resource bundle upload: real files and directories, cancellation recovery, glTF/GLB/OBJ preview and apply",
+        "passed": true
+      },
+      {
+        "label": "Handled cup editor: real dimensions, refusals and revision reload",
+        "passed": true
+      },
+      {
+        "label": "Material surface editor: UV drafts, native refusals, saved graph and real pixels",
+        "passed": true
+      },
+      {
+        "label": "Mesh UV projection: real editor save, native area and revision protection",
+        "passed": true
+      },
+      {
+        "label": "Timber half laps: unsaved preview, bound confirmation and independent native readback",
+        "passed": true
+      },
+      {
+        "label": "Recipe versions: native UV defaults, gallery selection and historical project locks",
+        "passed": true
+      },
+      {
+        "label": "Paired lamp dimensions: native walls, liner gap, neck, history and inspection camera",
+        "passed": true
+      },
+      {
+        "label": "Lamp dimension workbench: native creation, coupled save, conflicts, reload and history",
+        "passed": true
+      },
+      {
+        "label": "Complete lamp placement: native23-member pose, actual support, continuation and atomic fault rejection",
+        "passed": true
+      },
+      {
+        "label": "Complete lamp workbench: one placement,250 to230 continuation, source protection and mobile controls",
+        "passed": true
+      },
+      {
+        "label": "Calibrated complete views: native imported hierarchy, shifted lenses, roll and atomic refusal",
+        "passed": true
+      },
+      {
+        "label": "Complete view workbench: native23-member fit, preserved animation and exact refresh replay",
+        "passed": true
+      },
+      {
+        "label": "Linked speaker dimensions: native assembly creation and historical project protection",
+        "passed": true
+      },
+      {
+        "label": "Existing assembly dimensions: native edits, preserved styles and conditional history restore",
+        "passed": true
+      },
+      {
+        "label": "Centered trivet spacing: native gallery creation, saved edits and relocated editable ZIP",
+        "passed": true
+      },
+      {
+        "label": "Preview history: native attempts, source labels, editor comparison and restore",
+        "passed": true
+      },
+      {
+        "label": "Independent Host processes: native previews, protected indices and sheet rotation",
+        "passed": true
+      },
+      {
+        "label": "Review history: independent native Hosts, immutable image pairs and latest QA",
+        "passed": true
+      },
+      {
+        "label": "Fixed-view inspection workbench: real images, revision history and cancellation",
+        "passed": true
+      }
+    ],
+    "logBytes": 894122,
+    "logSha256": "767fbcbe66b57f47743276c1f679d45053cfeb095a8f5da09ed1e8767e97c2c9",
+    "passed": true
+  },
+  "candidateCi": {
+    "runId": 45981522479,
+    "checksPassed": 5,
+    "archives": [
+      {
+        "id": 15189273626,
+        "name": "harness-021-45981522479-1",
+        "bytes": 3551276,
+        "sha256": "0015a6940e02d0ea4483b65c68c46c04c4b9361484efe5e3e964aa8d2b976dae",
+        "crcVerified": true,
+        "sourceCommit": "bd19f300acf2780cdfb3abed5e9f86e05d91007c",
+        "sourceTree": "4afc946b53d21b760a8e008d758cd5ea1f5b33f7",
+        "sourceTreeMatchesCandidate": true,
+        "reports": {
+          "modern-http-access/report.json": {
+            "checksPassed": 13
+          }
+        }
+      },
+      {
+        "id": 15189023846,
+        "name": "linux-cup-parameters-45981522479-1",
+        "bytes": 10107146,
+        "sha256": "ae7a9a565b75a277294e2ae21acd6a5713d0a750fae579dcda5cb37fe85cef11",
+        "crcVerified": true,
+        "sourceCommit": "bd19f300acf2780cdfb3abed5e9f86e05d91007c",
+        "sourceTree": "4afc946b53d21b760a8e008d758cd5ea1f5b33f7",
+        "sourceTreeMatchesCandidate": true,
+        "reports": {}
+      },
+      {
+        "id": 15191901194,
+        "name": "linux-inspections-45981522479-1",
+        "bytes": 223327679,
+        "sha256": "fd986f9fbec702f2cce38f2e98b6e31ecdaf07aa3444915ecb2c7810bce10a02",
+        "crcVerified": true,
+        "sourceCommit": "bd19f300acf2780cdfb3abed5e9f86e05d91007c",
+        "sourceTree": "4afc946b53d21b760a8e008d758cd5ea1f5b33f7",
+        "sourceTreeMatchesCandidate": true,
+        "reports": {
+          "http-access/report.json": {
+            "checksPassed": 13
+          }
+        }
+      },
+      {
+        "id": 15189734869,
+        "name": "linux-render-photography-45981522479-1",
+        "bytes": 67760865,
+        "sha256": "a632f113a998f73fab212ba5d4b51a3e1da4d560bbec60d1d9db3134d6d984cc",
+        "crcVerified": true,
+        "sourceCommit": "bd19f300acf2780cdfb3abed5e9f86e05d91007c",
+        "sourceTree": "4afc946b53d21b760a8e008d758cd5ea1f5b33f7",
+        "sourceTreeMatchesCandidate": true,
+        "reports": {
+          "trivetSpacing": {
+            "checksPassed": 36,
+            "nativeReopens": 7,
+            "matrixCases": 10
+          }
+        }
+      }
+    ]
+  },
+  "mainCi": {
+    "id": 45990369864,
+    "head_sha": "bfbbfe055dd33e1dd817fda2d269aa894b5c23b5",
+    "status": "completed",
+    "conclusion": "success",
+    "html_url": "https://github.com/pearjelly/deep-blend/actions/runs/45990369864"
+  },
+  "bundleSourceEquivalence": {
+    "recordedAt": "2026-11-27T11:28:00.420792+00:00",
+    "acceptedSource": "0bc1ced62f03a95c6821317e3146a8db153b1fb2",
+    "releaseSource": "bfbbfe055dd33e1dd817fda2d269aa894b5c23b5",
+    "fullSourceTree": "4afc946b53d21b760a8e008d758cd5ea1f5b33f7",
+    "packagesTree": "cc89c68c281ee4ae1d44e98605fdee0bfaf56e5f",
+    "allTrackedSourceBytesAndActualModesMatchMergedHead": true,
+    "trackedFiles": 1120,
+    "completeAcceptance": {
+      "commit": "0bc1ced62f03a95c6821317e3146a8db153b1fb2",
+      "suites": 59,
+      "logSha256": "767fbcbe66b57f47743276c1f679d45053cfeb095a8f5da09ed1e8767e97c2c9",
+      "allTrackedSourceUnchanged": true
+    },
+    "archiveBaselineSource": "520cbdae562626603133ed08954c93b9620fd936",
+    "candidateArchiveSha256": "1ae01d45a8f190264f2272b5685419f67f08bd99f6c5ff341d34791e958cb0b5",
+    "finalArchiveSha256": "48ac0433e20065dc3e30b3c2af7e7e366a922cfc5490fae8006670bbd040c5b6",
+    "finalArchiveBytes": 73194750,
+    "members": 473,
+    "identicalNonRootMembers": 472,
+    "allMemberPathsTypesAndModesIdentical": true,
+    "onlyRootDifference": "Six source pins change from the preserved runtime-archive baseline to the actual merged commit. The full tracked release tree equals the corrected accepted source; its runtime packages and all 472 other archive members equal the preserved archive baseline."
+  },
+  "installedLegacyDSH": {
+    "version": "0.1.5-rc.2",
+    "checksPassed": 36,
+    "filesVerified": 473,
+    "workbenchHttp": 200,
+    "anonymousHttp": 401,
+    "nativeReopens": 7,
+    "nativeMatrixCases": 10
+  },
+  "installedModernDSH": {
+    "version": "0.2.1-rc.1",
+    "source": "bfbbfe055dd33e1dd817fda2d269aa894b5c23b5",
+    "archiveSha256": "48ac0433e20065dc3e30b3c2af7e7e366a922cfc5490fae8006670bbd040c5b6",
+    "browserChecksPassed": 36,
+    "packedFilesVerified": 473,
+    "workbenchHttp": 200,
+    "anonymousHttp": 401,
+    "presets": [
+      "deepblend",
+      "deepblend-dev"
+    ],
+    "independentNativeReopens": 7,
+    "nativeMatrixCases": 10
+  },
+  "copiedHistoryUpgrade": {
+    "status": "passed",
+    "nativeMode": "Legacy geometry, with existing recipe lock and shading policy preserved",
+    "originalFilesVerified": 51,
+    "originalSourceProjectUnchanged": true,
+    "oldPackageVersion": "0.27.0",
+    "newCandidatePackageVersion": "0.28.0",
+    "source": "520cbdae562626603133ed08954c93b9620fd936",
+    "oldRecipeVersion": "1.1.0",
+    "oldRecipeInputSha256": "005f2e6a19a535730b022ab1338de1034e60c0cfb1d13bb846602673f4033a61",
+    "protectedExistingFiles": 50,
+    "oldFilesByteIdentical": true,
+    "refusedUnknownControlWithoutWrites": true,
+    "oldRecipeGainedNoEdgeControl": true,
+    "continuedRevision": "r0005",
+    "native": {
+      "old-027-r4": {
+        "boundsMm": [
+          240,
+          240,
+          20
+        ],
+        "closedComponents": {
+          "longitudinal-slats": 4,
+          "cross-slats": 3
+        },
+        "spacingMm": 64,
+        "lower": "cross-slats",
+        "crossCentersMm": [
+          -64,
+          0,
+          64
+        ],
+        "crossings": 12,
+        "sampledCells": 126,
+        "overlapCells": 0
+      },
+      "continued-028-r5": {
+        "boundsMm": [
+          240,
+          240,
+          20
+        ],
+        "closedComponents": {
+          "longitudinal-slats": 4,
+          "cross-slats": 3
+        },
+        "spacingMm": 92,
+        "lower": "cross-slats",
+        "crossCentersMm": [
+          -92,
+          0,
+          92
+        ],
+        "crossings": 12,
+        "sampledCells": 126,
+        "overlapCells": 0
+      }
+    },
+    "scope": "Upgrade of an isolated copy of actual 0.27 installed-output history; original store untouched. The new-version control is refused, old spacing continues through installed 0.28 candidate and saved old/new meshes independently reopen. No publication.",
+    "legacyUvCounts": {
+      "oldRevision": {
+        "longitudinal-slats": {
+          "triangles": 368,
+          "collapsedUvTriangles": 256
+        },
+        "cross-slats": {
+          "triangles": 348,
+          "collapsedUvTriangles": 240
+        }
+      },
+      "continuedRevision": {
+        "longitudinal-slats": {
+          "triangles": 368,
+          "collapsedUvTriangles": 256
+        },
+        "cross-slats": {
+          "triangles": 348,
+          "collapsedUvTriangles": 240
+        }
+      },
+      "existingUvCountsUnchanged": true
+    },
+    "testedRuntimeSource": "520cbdae562626603133ed08954c93b9620fd936",
+    "identicalRuntimeFilesVerifiedInFinalArchive": true
+  },
+  "github": {
+    "tagName": "v0.28.0",
+    "publishedAt": "2026-11-27T12:04:41Z",
+    "targetCommitish": "bfbbfe055dd33e1dd817fda2d269aa894b5c23b5",
+    "url": "https://github.com/pearjelly/deep-blend/releases/tag/v0.28.0",
+    "checkedAt": "2026-11-27T12:07:01.463895+00:00",
+    "notesVerified": true,
+    "assets": [
+      {
+        "name": "SHA256SUMS",
+        "size": 758,
+        "sha256": "3efa6a31b1f8abfc275105ed735159c1079a133c5fbe65d13504630859f08ef9",
+        "url": "https://github.com/pearjelly/deep-blend/releases/download/v0.28.0/SHA256SUMS",
+        "anonymousDownloadMatches": true
+      },
+      {
+        "name": "deepblend-bundle.tgz",
+        "size": 73194750,
+        "sha256": "48ac0433e20065dc3e30b3c2af7e7e366a922cfc5490fae8006670bbd040c5b6",
+        "url": "https://github.com/pearjelly/deep-blend/releases/download/v0.28.0/deepblend-bundle.tgz",
+        "anonymousDownloadMatches": true
+      },
+      {
+        "name": "native-payload-verification.json",
+        "size": 8003,
+        "sha256": "005c3e139a591c6f40786e2468e9aea753234702cb2b3ffff76d1c52add5f288",
+        "url": "https://github.com/pearjelly/deep-blend/releases/download/v0.28.0/native-payload-verification.json",
+        "anonymousDownloadMatches": true
+      },
+      {
+        "name": "own-package-copy-verification.json",
+        "size": 1199,
+        "sha256": "0b6d880ef65d90e41cd7b6e369758c82eb76e5da50684f8604dabfe7a69361ba",
+        "url": "https://github.com/pearjelly/deep-blend/releases/download/v0.28.0/own-package-copy-verification.json",
+        "anonymousDownloadMatches": true
+      },
+      {
+        "name": "software-acceptance.json",
+        "size": 46077,
+        "sha256": "8897f03bbdc0516a260564c25a0654d7c81d61ecb9de01170918789f174f9f35",
+        "url": "https://github.com/pearjelly/deep-blend/releases/download/v0.28.0/software-acceptance.json",
+        "anonymousDownloadMatches": true
+      },
+      {
+        "name": "source-equivalence.json",
+        "size": 1300,
+        "sha256": "83040ea7dccc6537056949cc3da4cee3441ede82da9d482d279fd30810a0fdbc",
+        "url": "https://github.com/pearjelly/deep-blend/releases/download/v0.28.0/source-equivalence.json",
+        "anonymousDownloadMatches": true
+      },
+      {
+        "name": "walnut-trivet-64mm-editable.zip",
+        "size": 1066183,
+        "sha256": "478d1f577bb1a3a5a627630c3e0cdc61e9b56be5730fb17a05c99416ff6cba38",
+        "url": "https://github.com/pearjelly/deep-blend/releases/download/v0.28.0/walnut-trivet-64mm-editable.zip",
+        "anonymousDownloadMatches": true
+      },
+      {
+        "name": "walnut-trivet-preview.png",
+        "size": 378612,
+        "sha256": "2f9bbb83c9adfdf4285d3867fb38bf251ee9192cac397444e71e13e83b8f871b",
+        "url": "https://github.com/pearjelly/deep-blend/releases/download/v0.28.0/walnut-trivet-preview.png",
+        "anonymousDownloadMatches": true
+      },
+      {
+        "name": "walnut-trivet-workbench-390px.png",
+        "size": 69692,
+        "sha256": "a72979c729d5cc03f3d0fd31ed10a70f0e8d0edeae220700b206dd4676af6db5",
+        "url": "https://github.com/pearjelly/deep-blend/releases/download/v0.28.0/walnut-trivet-workbench-390px.png",
+        "anonymousDownloadMatches": true
+      }
+    ]
+  },
+  "npm": {
+    "packageCount": 7,
+    "fileCount": 211,
+    "publicationLedgerSha256": "eaaec514f165462c6aa3c2316d1d1243593cbe9c3fe1a5c84a703b6c8c84fdf1",
+    "source": "bfbbfe055dd33e1dd817fda2d269aa894b5c23b5",
+    "acceptedCandidate": "0bc1ced62f03a95c6821317e3146a8db153b1fb2",
+    "archiveBaselineSource": "bfbbfe055dd33e1dd817fda2d269aa894b5c23b5",
+    "packageTree": "cc89c68c281ee4ae1d44e98605fdee0bfaf56e5f",
+    "checkedAt": "2026-11-27T12:21:20.353Z",
+    "receipts": [
+      {
+        "name": "@deepblend/dsh-blender-contracts",
+        "version": "0.28.0",
+        "latest": "0.28.0",
+        "tarball": "https://registry.npmjs.org/@deepblend/dsh-blender-contracts/-/dsh-blender-contracts-0.28.0.tgz",
+        "bytes": 193712,
+        "integrity": "sha512-iqwxYwGtqtqQlmz3wFzpDlJs4flJN/2mLpHJhQMZjI6ScJ2c3qpl3eyMohhAVc1v2ouc4XQ6VNdFU9J4/7dzoA==",
+        "files": 47,
+        "allBytesAndModesMatchPreparedSource": true,
+        "allNonManifestBytesAndModesMatchActualReleaseSource": true
+      },
+      {
+        "name": "@deepblend/dsh-blender-host",
+        "version": "0.28.0",
+        "latest": "0.28.0",
+        "tarball": "https://registry.npmjs.org/@deepblend/dsh-blender-host/-/dsh-blender-host-0.28.0.tgz",
+        "bytes": 3417047,
+        "integrity": "sha512-p6/vmkWdt5aGwarqF87ZIeEGaF5IfLmr+gJ7Z2ZCMSOK5cu5vR/8vgt1Em3JknG5DFKcwxvBA6dUCmt59jkyQA==",
+        "files": 67,
+        "allBytesAndModesMatchPreparedSource": true,
+        "allNonManifestBytesAndModesMatchActualReleaseSource": true
+      },
+      {
+        "name": "@deepblend/dsh-blender-preset",
+        "version": "0.28.0",
+        "latest": "0.28.0",
+        "tarball": "https://registry.npmjs.org/@deepblend/dsh-blender-preset/-/dsh-blender-preset-0.28.0.tgz",
+        "bytes": 36698,
+        "integrity": "sha512-5P7+GJlaMGnWZJhsqtbgLU38mzhudIel/JjvO4jrez3GgyVaQwtHWJA3QSQYOfOQ+0u5vnMBdGEZqWRiWbMyWg==",
+        "files": 9,
+        "allBytesAndModesMatchPreparedSource": true,
+        "allNonManifestBytesAndModesMatchActualReleaseSource": true
+      },
+      {
+        "name": "@deepblend/dsh-blender-provider-local",
+        "version": "0.28.0",
+        "latest": "0.28.0",
+        "tarball": "https://registry.npmjs.org/@deepblend/dsh-blender-provider-local/-/dsh-blender-provider-local-0.28.0.tgz",
+        "bytes": 198758,
+        "integrity": "sha512-fT457XJ6N/X+PXFitlNF9eeKgoQiR1GABSUDrlzsgFxUqUH6JexEGC/Ag+k3FJ7PSltfizFdhSCExtvz6szUwA==",
+        "files": 44,
+        "allBytesAndModesMatchPreparedSource": true,
+        "allNonManifestBytesAndModesMatchActualReleaseSource": true
+      },
+      {
+        "name": "@deepblend/dsh-blender-tool",
+        "version": "0.28.0",
+        "latest": "0.28.0",
+        "tarball": "https://registry.npmjs.org/@deepblend/dsh-blender-tool/-/dsh-blender-tool-0.28.0.tgz",
+        "bytes": 63498,
+        "integrity": "sha512-GprLnxiVUruo9mT/RRU0fVFySV17hp4rb2XSHR6G4y6i5S3x58NvRG+S2GCsBLNpKspDKpjcc1Qb2Cf/qkkCaw==",
+        "files": 14,
+        "allBytesAndModesMatchPreparedSource": true,
+        "allNonManifestBytesAndModesMatchActualReleaseSource": true
+      },
+      {
+        "name": "@deepblend/dsh-blender-ui",
+        "version": "0.28.0",
+        "latest": "0.28.0",
+        "tarball": "https://registry.npmjs.org/@deepblend/dsh-blender-ui/-/dsh-blender-ui-0.28.0.tgz",
+        "bytes": 179392,
+        "integrity": "sha512-M9OI1Yexgwji64bR/Ip1vzuQne93BOWGGoaRBXI3W5jjJ0T1uBDSfZLKzbvqytdKoPndQxJCZ/DGAxRVJW7m7Q==",
+        "files": 3,
+        "allBytesAndModesMatchPreparedSource": true,
+        "allNonManifestBytesAndModesMatchActualReleaseSource": true
+      },
+      {
+        "name": "@deepblend/dsh-blender-bundle",
+        "version": "0.28.0",
+        "latest": "0.28.0",
+        "tarball": "https://registry.npmjs.org/@deepblend/dsh-blender-bundle/-/dsh-blender-bundle-0.28.0.tgz",
+        "bytes": 477731,
+        "integrity": "sha512-3mfVWYRSd9DSfntjVOZWathU7DrhTfrnBvQ+COTYFev76VCwGrtPpCMTmKy4WHz9jpIpCMPr8pLPjjJvRFu34Q==",
+        "files": 27,
+        "allBytesAndModesMatchPreparedSource": true,
+        "allNonManifestBytesAndModesMatchActualReleaseSource": true
+      }
+    ],
+    "recoveredUpload": {
+      "package": "@deepblend/dsh-blender-host",
+      "version": "0.28.0",
+      "firstCommand": "registry transport timeout",
+      "versionAbsentBeforeRetry": true,
+      "retryAccepted": true,
+      "publicArchiveMatched": true
+    }
+  },
+  "installationComparison": {
+    "source": "bfbbfe055dd33e1dd817fda2d269aa894b5c23b5",
+    "expected": "0.28.0",
+    "checkedAt": "2026-11-27T12:28:11.015Z",
+    "readings": [
+      {
+        "id": "source",
+        "spec": "github:pearjelly/deep-blend#path:/packages/deepblend/bundle",
+        "startedAt": "2026-11-27T12:07:02.980Z",
+        "anonymousCapabilitiesHttp": 401,
+        "version": "@deepblend/dsh-blender-bundle@0.28.0",
+        "workbench": "HTTP 200, text/html; charset=utf-8, reserves #deepblend-workbench=true, imports its own client bundle=true",
+        "fetched": "19",
+        "presets": "[\"deepblend\",\"deepblend-dev\"]",
+        "verdict": "the spec installs, serves DeepBlend and delivers both presets — github:pearjelly/deep-blend#path:/packages/deepblend/bundle",
+        "logSha256": "8d4703f4f91196093c4959376e9d9403be0716bf36c324c91cba8b832d703600"
+      },
+      {
+        "id": "npm",
+        "spec": "@deepblend/dsh-blender-bundle",
+        "startedAt": "2026-11-27T12:27:50.038Z",
+        "anonymousCapabilitiesHttp": 401,
+        "version": "@deepblend/dsh-blender-bundle@0.28.0",
+        "workbench": "HTTP 200, text/html; charset=utf-8, reserves #deepblend-workbench=true, imports its own client bundle=true",
+        "fetched": "19",
+        "presets": "[\"deepblend\",\"deepblend-dev\"]",
+        "verdict": "the spec installs, serves DeepBlend and delivers both presets — @deepblend/dsh-blender-bundle",
+        "logSha256": "c4c8aa7504980bfc2492ee26c06f912f45af125142af687238503b1274527748"
+      },
+      {
+        "id": "tarball",
+        "spec": "https://github.com/pearjelly/deep-blend/releases/latest/download/deepblend-bundle.tgz",
+        "startedAt": "2026-11-27T12:07:02.980Z",
+        "anonymousCapabilitiesHttp": 401,
+        "version": "@deepblend/dsh-blender-bundle@0.28.0",
+        "workbench": "HTTP 200, text/html; charset=utf-8, reserves #deepblend-workbench=true, imports its own client bundle=true",
+        "fetched": "1",
+        "presets": "[\"deepblend\",\"deepblend-dev\"]",
+        "verdict": "the spec installs, serves DeepBlend and delivers both presets — https://github.com/pearjelly/deep-blend/releases/latest/download/deepblend-bundle.tgz",
+        "logSha256": "f1ff624b918e689f69c55a4125110ccacdf636c4adcb2e22d903a0b58b041572"
+      }
+    ],
+    "comparison": {
+      "lines": [
+        "source installed: @deepblend/dsh-blender-bundle@0.28.0",
+        "npm installed: @deepblend/dsh-blender-bundle@0.28.0",
+        "tarball installed: @deepblend/dsh-blender-bundle@0.28.0",
+        "all three serve: @deepblend/dsh-blender-bundle@0.28.0",
+        "and the repository says: 0.28.0",
+        "source workbench route: HTTP 200",
+        "npm workbench route: HTTP 200",
+        "tarball workbench route: HTTP 200",
+        "all three deployed presets: [\"deepblend\",\"deepblend-dev\"]",
+        "source packages pnpm fetched: 19",
+        "npm packages pnpm fetched: 19",
+        "tarball packages pnpm fetched: 1"
+      ],
+      "problems": []
+    },
+    "exitCode": 0
+  },
+  "community": {
+    "pullRequestUrl": "https://github.com/awesome-dsh-plugin/awesome-dsh-plugin/pull/19386",
+    "number": 19386,
+    "head": "aef4980ead0437625ecffa265fafc308c106025c",
+    "stateAtReadback": "open",
+    "mergedAt": null,
+    "submittedAt": "2026-11-27T12:29:41Z",
+    "checkedAt": "2026-11-27T12:30:10.454993+00:00",
+    "changedKeys": [
+      "description.en",
+      "description.zh"
+    ],
+    "changedFiles": [
+      "data/plugins/pearjelly__deep-blend--packages-deepblend-bundle.yml"
+    ],
+    "updatedSha256": "c5b426c2df537539eed58c27a79912d353012a3f34069ebf7aecdf02863f36e4",
+    "contributingGuideSha256": "5163227c683256c24e06d51c9e69d1268498db095c079314302c22727573a0cd",
+    "ordinaryCatalogReadbackBeforeSubmission": [
+      {
+        "at": "2026-11-27T12:10:03.378811+00:00",
+        "url": "https://awesome-dsh-plugin.com/index.json",
+        "name": "@deepblend/dsh-blender-bundle",
+        "sha256": "8d15b9395de1b4d7b4990d4f1170b34e7356a0454f372a36e97439a0422cbaae",
+        "version": null,
+        "versions": [
+          {
+            "version": "0.27.0",
+            "publishTimestamp": 1795268818,
+            "source": {
+              "type": "npm"
+            },
+            "engines": {
+              "dsh": "0.1.5-rc.2 || 0.2.1-rc.1"
+            }
+          }
+        ],
+        "cacheBypassRequested": false
+      },
+      {
+        "at": "2026-11-27T12:10:07.480879+00:00",
+        "url": "https://awesome-dsh-plugin.com/plugins.json",
+        "name": "deep-blend#bundle",
+        "sha256": "c58407ac86c669b19c294dcea2cc6cca659f425b67e52492d0554d25958c8b7f",
+        "version": "0.27.0",
+        "versions": null,
+        "cacheBypassRequested": false
+      }
+    ],
+    "ordinaryCatalogReadbackAfterSubmission": [
+      {
+        "at": "2026-11-27T12:30:27.456004+00:00",
+        "url": "https://awesome-dsh-plugin.com/index.json",
+        "name": "@deepblend/dsh-blender-bundle",
+        "sha256": "8d15b9395de1b4d7b4990d4f1170b34e7356a0454f372a36e97439a0422cbaae",
+        "version": null,
+        "versions": [
+          {
+            "version": "0.27.0",
+            "publishTimestamp": 1795268818,
+            "source": {
+              "type": "npm"
+            },
+            "engines": {
+              "dsh": "0.1.5-rc.2 || 0.2.1-rc.1"
+            }
+          }
+        ],
+        "cacheBypassRequested": false
+      },
+      {
+        "at": "2026-11-27T12:30:34.854717+00:00",
+        "url": "https://awesome-dsh-plugin.com/plugins.json",
+        "name": "deep-blend#bundle",
+        "sha256": "c58407ac86c669b19c294dcea2cc6cca659f425b67e52492d0554d25958c8b7f",
+        "version": "0.27.0",
+        "versions": null,
+        "cacheBypassRequested": false
+      }
+    ]
+  },
+  "scope": "Maintainer acceptance of the released version and witnessed public install routes."
+}
