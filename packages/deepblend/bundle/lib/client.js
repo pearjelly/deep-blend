@@ -286,6 +286,10 @@ window.__ModuleLoader__.load({
       "assets.applyToTimberPartner": "也将此贴图和 UV 设置应用到 {name}",
       "assets.replaceTimberTexture": "确认替换所选木条现有的程序化纹理",
       "assets.saveTimberPair": "保存两组木条并预览",
+      "assets.rebuildTimberUvs": "同时重建两组 UV",
+      "assets.rebuildTimberUvsHelp": "使用同一 UV 层的其他贴图也会按新坐标渲染。",
+      "assets.rebuildDefaultUv": "重建时请选择 UVMap，或留空使用默认 UV 层。",
+      "assets.rebuildUvUnavailable": "当前宿主无法重建 UV。取消勾选后即可保存贴图。",
       "assets.timberPairUnavailable": "请选择一组具有可编辑材质的已保存半搭接木条，再选择要一起应用的木条。",
       "assets.localAnimated": "来源材质含动画，局部复制会丢失动画。请选择共享修改或明确创建新材质。",
       "assets.animatedChannel": "该通道由动画驱动，不能在此覆盖。",
@@ -1216,6 +1220,10 @@ window.__ModuleLoader__.load({
       "assets.applyToTimberPartner": "Apply these settings to {name} too",
       "assets.replaceTimberTexture": "Replace procedural textures on both groups",
       "assets.saveTimberPair": "Save both timber groups and preview",
+      "assets.rebuildTimberUvs": "Rebuild both UV maps",
+      "assets.rebuildTimberUvsHelp": "Other images on the same UV layer will follow the new coordinates.",
+      "assets.rebuildDefaultUv": "Choose UVMap or leave the layer blank to rebuild the default UVs.",
+      "assets.rebuildUvUnavailable": "This host cannot rebuild UVs. Clear the checkbox to save the image map.",
       "assets.timberPairUnavailable": "Choose a member of a saved timber joint with editable materials, then select its partner.",
       "assets.localAnimated": "A local copy would lose source material animation. Choose shared editing or explicitly create a new material.",
       "assets.animatedChannel": "This channel is animated and cannot be overridden here.",
@@ -3088,18 +3096,23 @@ window.__ModuleLoader__.load({
       return cameras.find(camera => camera.id === requested) ?? cameras[0]
     }
 
-    function timberUvPreviewIntent(state, draft = editorDraftFor(state), patch) {
+    function timberUvPreviewSource(state, draft) {
       const scene = state.selected?.scene
-      if (!state.timberUvPreviewSupported || state.view !== 'scene' || !draft?.uvProjection?.includePartner
+      if (!state.timberUvPreviewSupported || state.view !== 'scene' || !draft
         || !scene || draft.baseRevision !== scene.revision || !/^[a-f0-9]{64}$/.test(scene.digest ?? '')
-        || !/^[a-f0-9]{64}$/.test(state.storeIdentity ?? '')) return null
-      const partner = editorTimberUvPartner(draft)
+        || !/^[a-f0-9]{64}$/.test(state.storeIdentity ?? '') || !Number.isInteger(scene.project.frameStart)) return null
       const camera = timberUvPreviewCamera(scene, draft)
-      if (!partner || !camera || !Number.isInteger(scene.project.frameStart)) return null
+      return camera ? { expectedDigest: scene.digest, expectedStoreIdentity: state.storeIdentity,
+        cameraId: camera.id, frame: scene.project.frameStart } : null
+    }
+
+    function timberUvPreviewIntent(state, draft = editorDraftFor(state), patch) {
+      if (!draft?.uvProjection?.includePartner) return null
+      const source = timberUvPreviewSource(state, draft), partner = editorTimberUvPartner(draft)
+      if (!source || !partner) return null
       try { patch ??= buildEditorPatch(draft) } catch { return null }
-      const key = JSON.stringify([state.storeIdentity, scene.digest, camera.id, patch])
-      return { key, patch, expectedDigest: scene.digest, expectedStoreIdentity: state.storeIdentity,
-        cameraId: camera.id, frame: scene.project.frameStart, entities: [draft.entityId, partner.id] }
+      const key = JSON.stringify(['editor', source, patch])
+      return { ...source, kind: 'editor', key, patch, entities: [draft.entityId, partner.id] }
     }
 
     function verifiedTimberUvPreview(preview, intent) {
@@ -3383,6 +3396,7 @@ window.__ModuleLoader__.load({
       const source = draft.newMaterial ? null : assetEditor(draft)?.material.definition
       draft.binding = editorClone(source?.images?.[draft.channel] || {})
       draft.includeTimberPartner = false
+      draft.uvProjection = null
       draft.replaceTexture = false
     }
     function createAssetDraft(scene, projectId, entry, inspection, entityId) {
@@ -3480,10 +3494,26 @@ window.__ModuleLoader__.load({
         if (partner) appendImageAssetOperations(operations, {
           ...draft, entityId: partner.original.id, newMaterialId: `${draft.newMaterialId}-partner`,
         }, asset, fail, partner)
+        if (draft.uvProjection) {
+          const { quarterTurns, scale } = draft.uvProjection
+          if (!partner || !Number.isInteger(quarterTurns) || quarterTurns < 0 || quarterTurns > 3) fail(t('editor.uv.direction'))
+          if (!Number.isFinite(scale) || scale < 0.0001 || scale > 10000) throw new Error(t('editor.uv.scaleInvalid'))
+          if (draft.binding.uvMap && draft.binding.uvMap !== 'UVMap') throw new Error(t('assets.rebuildDefaultUv'))
+          for (const entityId of [draft.entityId, partner.original.id]) operations.push({ op: 'entity.uv.project', entityId, quarterTurns, scale })
+        }
       }
       return { projectId: draft.projectId, baseRevision: draft.baseRevision, saveCheckpoint: true, renderPreview: true, actor: 'ui', operations }
     }
     function assetDraftError(draft) { try { buildAssetPatch(draft); return null } catch (error) { return error.message } }
+
+    function assetTimberUvPreviewIntent(state, draft = state.assetDrafts?.[state.activeProjectId], patch) {
+      if (!draft?.includeTimberPartner || !draft.uvProjection) return null
+      const source = timberUvPreviewSource(state, draft), partner = pairedAssetEditor(draft)
+      if (!source || !partner) return null
+      try { patch ??= buildAssetPatch(draft) } catch { return null }
+      const key = JSON.stringify(['asset', source, patch])
+      return { ...source, kind: 'asset', key, patch, entities: [draft.entityId, partner.original.id] }
+    }
 
     function inspectionForm(state) {
       const scene = state.selected?.scene
@@ -4148,12 +4178,39 @@ window.__ModuleLoader__.load({
           halfLapPreviewController = undefined
           next.halfLapPreview = null
         }
-        if (next.timberUvPreview && timberUvPreviewIntent(next)?.key !== next.timberUvPreview.key) {
-          timberUvPreviewController?.abort()
-          timberUvPreviewController = undefined
-          next.timberUvPreview = null
+        if (next.timberUvPreview) {
+          const intent = next.timberUvPreview.kind === 'asset' ? assetTimberUvPreviewIntent(next) : timberUvPreviewIntent(next)
+          if (intent?.key !== next.timberUvPreview.key) {
+            timberUvPreviewController?.abort()
+            timberUvPreviewController = undefined
+            next.timberUvPreview = null
+          }
         }
         data = next; notify()
+      }
+
+      async function renderTimberUvPreview(intent) {
+        if (!intent || data.busy.editor || timberUvPreviewController || halfLapPreviewController) return
+        const controller = new AbortController()
+        timberUvPreviewController = controller
+        const { kind, key, patch, expectedDigest, expectedStoreIdentity, cameraId } = intent
+        const active = () => running && timberUvPreviewController === controller && !controller.signal.aborted
+        set({ timberUvPreview: { kind, key, busy: true } })
+        try {
+          const response = await fetchImpl(projectRoute(patch.projectId, '/timber-uv-preview'), {
+            method: 'POST', headers: { 'content-type': 'application/json', accept: 'application/json' }, signal: controller.signal,
+            body: JSON.stringify({ patch, expectedDigest, expectedStoreIdentity, cameraId }),
+          })
+          const payload = await response.json()
+          if (!active()) return
+          if (!response.ok || !payload.ok) throw new Error(payload.error?.message || response.status)
+          if (!verifiedTimberUvPreview(payload.preview, intent)) throw new Error(t('inspection.mismatch'))
+          set({ timberUvPreview: { kind, key, result: payload.preview } })
+        } catch (error) {
+          if (active()) set({ timberUvPreview: { kind, key, error: error.message || String(error) } })
+        } finally {
+          if (timberUvPreviewController === controller) timberUvPreviewController = undefined
+        }
       }
       /** Change one nested table. @param {'forms'|'busy'|'notices'} table @param {string} key @param {any} value */
       const setIn = (table, key, value) => { data = { ...data, [table]: { ...data[table], [key]: value } }; notify() }
@@ -5174,13 +5231,18 @@ window.__ModuleLoader__.load({
         updateAsset: (field, value) => {
           const projectId = data.activeProjectId, current = data.assetDrafts[projectId]
           if (!current || data.assetWork[projectId]?.busy) return
-          const allowed = ['newEntityId', 'location', 'rotationEuler', 'scale', 'hideEntityId', 'makeSubject', 'entityId', 'target', 'partId', 'slotIndex', 'scope', 'newMaterial', 'channel', 'binding', 'replaceTexture', 'includeTimberPartner', 'strength', 'rotation']
+          const allowed = ['newEntityId', 'location', 'rotationEuler', 'scale', 'hideEntityId', 'makeSubject', 'entityId', 'target', 'partId', 'slotIndex', 'scope', 'newMaterial', 'channel', 'binding', 'replaceTexture', 'includeTimberPartner', 'uvProjection', 'strength', 'rotation']
           if (!allowed.includes(field)) return
           if (field === 'includeTimberPartner' && (typeof value !== 'boolean' || !pairedAssetEditor(current))) return
+          if (field === 'uvProjection' && value && (!data.timberUvPreviewSupported || !current.includeTimberPartner || !pairedAssetEditor(current))) return
           const draft = editorClone(current); draft[field] = editorClone(value)
-          if (field === 'includeTimberPartner') draft.replaceTexture = false
+          if (field === 'includeTimberPartner') {
+            draft.replaceTexture = false
+            if (!value) draft.uvProjection = null
+          }
           if (field === 'scope' && draft.includeTimberPartner && !pairedAssetEditor(draft)) {
             draft.includeTimberPartner = false
+            draft.uvProjection = null
             draft.replaceTexture = false
           }
           if (['entityId', 'target'].includes(field)) { draft.partId = ''; draft.slotIndex = '' }
@@ -5196,13 +5258,20 @@ window.__ModuleLoader__.load({
         },
         applyAsset: async () => {
           const projectId = data.activeProjectId, draft = data.assetDrafts[projectId]
+          const texture = data.timberUvPreview
           if (!draft || data.assetWork[projectId]?.busy || data.busy.editor || data.busy.patch || data.busy.restore
+            || (texture?.kind === 'asset' && texture.busy)
             || data.visualRuns[projectId]?.busy || draft.baseRevision !== data.selected?.scene?.revision) return
           let patch
-          try { patch = buildAssetPatch(draft) } catch (error) { assetWork(projectId, { error: error.message }); return }
+          try {
+            if (draft.uvProjection && !data.timberUvPreviewSupported) throw new Error(t('assets.rebuildUvUnavailable'))
+            patch = buildAssetPatch(draft)
+          } catch (error) { assetWork(projectId, { error: error.message }); return }
+          const inspection = texture?.result && assetTimberUvPreviewIntent(data, draft, patch)?.key === texture.key ? texture.result : null
+          const request = inspection ? { patch, expectedSpecHash: inspection.candidateSpecHash, expectedStoreIdentity: inspection.storeIdentity } : { patch }
           const beforePreviews = editorClone(data.previews?.revisions?.find(item => item.revision === draft.baseRevision)?.previews || [])
           assetWork(projectId, { busy: 'saving', error: null, message: null }); setIn('busy', 'editor', true)
-          const outcome = await postJson(fetchImpl, projectRoute(projectId, '/patch'), { patch })
+          const outcome = await postJson(fetchImpl, projectRoute(projectId, '/patch'), request)
           setIn('busy', 'editor', false); assetWork(projectId, { busy: null })
           if (outcome.ok) {
             const revision = outcome.payload.revision.revision, drafts = { ...data.assetDrafts }; delete drafts[projectId]
@@ -5664,30 +5733,8 @@ window.__ModuleLoader__.load({
           timberUvPreviewController = undefined
           set({ timberUvPreview: null })
         },
-        previewTimberUv: async () => {
-          const intent = timberUvPreviewIntent(data)
-          if (!intent || data.busy.editor || timberUvPreviewController || halfLapPreviewController) return
-          const controller = new AbortController()
-          timberUvPreviewController = controller
-          const { key, patch, expectedDigest, expectedStoreIdentity, cameraId } = intent
-          const active = () => running && timberUvPreviewController === controller && !controller.signal.aborted
-          set({ timberUvPreview: { key, busy: true } })
-          try {
-            const response = await fetchImpl(projectRoute(patch.projectId, '/timber-uv-preview'), {
-              method: 'POST', headers: { 'content-type': 'application/json', accept: 'application/json' }, signal: controller.signal,
-              body: JSON.stringify({ patch, expectedDigest, expectedStoreIdentity, cameraId }),
-            })
-            const payload = await response.json()
-            if (!active()) return
-            if (!response.ok || !payload.ok) throw new Error(payload.error?.message || response.status)
-            if (!verifiedTimberUvPreview(payload.preview, intent)) throw new Error(t('inspection.mismatch'))
-            set({ timberUvPreview: { key, result: payload.preview } })
-          } catch (error) {
-            if (active()) set({ timberUvPreview: { key, error: error.message || String(error) } })
-          } finally {
-            if (timberUvPreviewController === controller) timberUvPreviewController = undefined
-          }
-        },
+        previewTimberUv: () => renderTimberUvPreview(timberUvPreviewIntent(data)),
+        previewAssetTimberUv: () => !data.assetWork[data.activeProjectId]?.busy && renderTimberUvPreview(assetTimberUvPreviewIntent(data)),
         updateEditor: (section, path, value) => {
           const current = editorDraftFor(data)
           if (!current || data.busy.editor || !['transform', 'generator', 'modifiers', 'material', 'uvProjection'].includes(section)) return
@@ -6699,7 +6746,8 @@ window.__ModuleLoader__.load({
                       uvScene?.nodes.cameras?.length > 1 ? choose(t('editor.uv.previewCamera'), 'editor-uv-camera',
                         timberUvPreviewCamera(uvScene, draft)?.id, uvScene.nodes.cameras.map(camera => [camera.id, camera.name || camera.id]),
                         value => actions.updateEditor('uvProjection', ['cameraId'], value)) : null,
-                      TimberUvPreview({ work: uvWork, apply, disabled: disabled || !uvIntent || slotWork?.busy === true, actions }),
+                      TimberUvPreview({ work: uvWork, apply, disabled: disabled || !uvIntent || state.halfLapPreview?.busy === true
+                        || (state.timberUvPreview?.kind === 'asset' && state.timberUvPreview.busy), actions }),
                     ] : null,
                   ] : null),
                 halfLapOptions.length ? el('fieldset', { key: 'half-lap', 'data-half-lap-editor': true, disabled, style: { border: 0, padding: 0, margin: '16px 0' } },
@@ -6713,7 +6761,7 @@ window.__ModuleLoader__.load({
                     actions.setEditorHalfLapWidth, { factor: 1000, min: 0, max: 5, step: .05,
                       invalid: halfLapEdgeWidth < 0 || halfLapEdgeWidth > .005, error: t('editor.halfLap.edgeInvalid') }) : null,
                   halfLapPartner ? el('p', { className: 'db-muted', key: 'edge-width-help' }, t('editor.halfLap.edgeHelp')) : null,
-                  slotIntent ? HalfLapPreview({ slotWork, apply: uvResult ? null : apply, disabled: disabled || uvWork?.busy === true, actions }) : null) : null] : null,
+                  slotIntent ? HalfLapPreview({ slotWork, apply: uvResult ? null : apply, disabled: disabled || state.timberUvPreview?.busy === true, actions }) : null) : null] : null,
               el('p', { className: 'db-muted', key: 'local-size' }, t('editor.localDimensions', { scale: (draft.entity.transform.scale || [1, 1, 1]).join(' × ') })),
               geometry.shape === 'rounded_box' ? el('p', { className: 'db-muted', key: 'rounded' }, t('editor.roundedRequired')) : null,
               geometry.shape === 'handled_cup' ? el('p', { className: 'db-muted', key: 'cup-help' }, t('editor.cupHelp')) : null,
@@ -6830,14 +6878,16 @@ window.__ModuleLoader__.load({
             onClick: () => actions.setReviewSubject(draft.entityId), children: t('brief.subjectShortcut') }), restore))
     }
 
-    function TimberUvPreview({ work, apply, disabled, actions }) {
+    function TimberUvPreview({ work, apply, disabled, actions, asset = false }) {
       const result = work?.result
-      return el('div', { key: 'uv-preview', 'data-timber-uv-preview': result ? 'ready' : work?.busy ? 'loading' : work?.error ? 'error' : 'idle',
+      const action = asset ? 'asset-timber-uv-preview' : 'timber-uv-preview'
+      return el('div', { key: 'uv-preview', [`data-${action}`]: result ? 'ready' : work?.busy ? 'loading' : work?.error ? 'error' : 'idle',
         'aria-busy': work?.busy === true },
         el('div', { className: 'db-inline' },
-          Button({ action: 'timber-uv-preview', disabled: disabled || work?.busy === true,
-            children: work?.busy ? t('editor.uv.previewBusy') : t('editor.uv.preview'), onClick: actions.previewTimberUv }),
-          work?.busy ? Button({ action: 'timber-uv-preview-cancel', children: t('geometry.cancel'), onClick: actions.cancelTimberUvPreview }) : null),
+          Button({ action, disabled: disabled || work?.busy === true,
+            children: work?.busy ? t('editor.uv.previewBusy') : t('editor.uv.preview'),
+            onClick: asset ? actions.previewAssetTimberUv : actions.previewTimberUv }),
+          work?.busy ? Button({ action: `${action}-cancel`, children: t('geometry.cancel'), onClick: actions.cancelTimberUvPreview }) : null),
         result ? el('figure', { style: { margin: '12px 0' } },
           el('img', { src: `data:image/png;base64,${result.image.pngBase64}`, alt: t('editor.uv.previewImage'),
             width: result.image.width, height: result.image.height, style: { display: 'block', width: '100%', height: 'auto' } }),
@@ -6894,7 +6944,7 @@ window.__ModuleLoader__.load({
         values[index] === null ? '' : values[index] * factor, value => { const next = [...values]; next[index] = value === null ? null : value / factor; update(field, next) })))
       let editor, material, partner, part, error, affected = []
       if (draft) {
-        error = assetDraftError(draft)
+        error = draft.uvProjection && !state.timberUvPreviewSupported ? t('assets.rebuildUvUnavailable') : assetDraftError(draft)
         if (draft.kind === 'image') {
           editor = assetEditor(draft); material = editor?.material.definition
           partner = pairedAssetEditor(draft, editor)
@@ -6906,6 +6956,13 @@ window.__ModuleLoader__.load({
       }
       const paired = draft?.includeTimberPartner && partner
       const replaceTexture = !draft?.newMaterial && (material?.texture || (paired && partner.material.definition.texture))
+      const canRebuildUvs = paired && state.timberUvPreviewSupported
+      const uv = canRebuildUvs && draft.uvProjection
+      const uvIntent = uv && assetTimberUvPreviewIntent(state, draft)
+      const uvWork = uvIntent && state.timberUvPreview?.key === uvIntent.key ? state.timberUvPreview : null
+      const cameraChoices = state.selected?.scene?.nodes?.cameras || []
+      const sharesUv = uv && [material, partner.material.definition].some(item =>
+        Object.entries(item.images || {}).some(([channel, binding]) => channel !== 'baseColor' && (!binding.uvMap || binding.uvMap === 'UVMap')))
       const mapSetting = (key, value) => { const binding = editorClone(draft.binding); if (value === undefined) delete binding[key]; else binding[key] = value; update('binding', binding) }
       return el('section', { className: 'db-card', 'data-assets-library': projectId, 'data-asset-base-revision': draft?.baseRevision || '', 'data-asset-conflict': String(conflict) },
         el('h4', null, t('assets.title')), el('p', { className: 'db-muted' }, t('assets.help')),
@@ -7004,9 +7061,24 @@ window.__ModuleLoader__.load({
             partner ? check(t('assets.applyToTimberPartner', { name: partner.original.name || partner.original.id }),
               'asset-include-timber-partner', Boolean(paired), value => update('includeTimberPartner', value), true) : null,
             replaceTexture ? check(paired ? t('assets.replaceTimberTexture') : t('assets.replaceTexture'),
-              'asset-replace-texture', draft.replaceTexture, value => update('replaceTexture', value), Boolean(paired)) : null) : null,
-          error ? el('p', { className: 'db-error' }, error) : null,
-          el('div', { className: 'db-inline' }, Button({ action: 'asset-apply', tone: 'primary', disabled: busy || conflict || Boolean(error) || state.busy.editor || state.busy.patch || state.busy.restore || state.visualRuns[projectId]?.busy,
+              'asset-replace-texture', draft.replaceTexture, value => update('replaceTexture', value), Boolean(paired)) : null,
+            canRebuildUvs || draft.uvProjection ? check(t('assets.rebuildTimberUvs'), 'asset-rebuild-timber-uvs', Boolean(draft.uvProjection),
+              value => update('uvProjection', value ? { quarterTurns: 0, scale: 1 } : null), true) : null,
+            uv ? [
+              sharesUv ? el('p', { key: 'uv-help', className: 'db-muted' }, t('assets.rebuildTimberUvsHelp')) : null,
+              choose(t('editor.uv.direction'), 'asset-uv-direction', String(uv.quarterTurns),
+                [0, 1, 2, 3].map(turn => [String(turn), `${turn * 90}°`]), value => update('uvProjection', { ...uv, quarterTurns: Number(value) })),
+              number(t('editor.uv.scale'), 'asset-uv-repeats', uv.scale, value => update('uvProjection', { ...uv, scale: value }),
+                { min: 0.0001, max: 10000, 'aria-invalid': !Number.isFinite(uv.scale) || uv.scale < 0.0001 || uv.scale > 10000 }),
+              cameraChoices.length > 1 ? choose(t('editor.uv.previewCamera'), 'asset-uv-camera',
+                timberUvPreviewCamera(state.selected.scene, draft)?.id, cameraChoices.map(camera => [camera.id, camera.name || camera.id]),
+                value => update('uvProjection', { ...uv, cameraId: value })) : null,
+              TimberUvPreview({ work: uvWork, actions, asset: true,
+                disabled: busy || conflict || !uvIntent || state.busy.editor || state.halfLapPreview?.busy === true
+                  || (state.timberUvPreview?.kind === 'editor' && state.timberUvPreview.busy) }),
+            ] : null) : null,
+          error ? el('p', { className: 'db-error', role: 'alert' }, error) : null,
+          el('div', { className: 'db-inline' }, Button({ action: 'asset-apply', tone: 'primary', disabled: busy || conflict || Boolean(error) || uvWork?.busy === true || state.busy.editor || state.busy.patch || state.busy.restore || state.visualRuns[projectId]?.busy,
             onClick: actions.applyAsset, children: paired ? t('assets.saveTimberPair') : t('assets.apply') }), Button({ action: 'asset-reset', disabled: busy, onClick: actions.discardAsset, children: t('assets.reset') }))) : null)
     }
 
