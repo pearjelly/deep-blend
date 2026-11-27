@@ -21,7 +21,7 @@ Start with a product recipe or your own model. Shape the scene. Compare real ren
 
 [Quick start](#quick-start) · [See the workbench](#see-the-workbench) · [Documentation](deepblend/docs/README.md) · [Latest release](https://github.com/pearjelly/deep-blend/releases/latest) · [Contribute](CONTRIBUTING.md)
 
-**0.28.1 is published on GitHub and npm.** This maintenance release fixes the Linux installer build. Set walnut trivet slat spacing and timber edge width during creation or edit them in a saved version. Open the link printed by DSH to sign in to the workbench. See the [release record](deepblend/docs/releases/0.28.1.md).
+**0.29.0 is published on GitHub and npm.** Preview and save paired timber UVs in one revision. Open the link printed by DSH to sign in to the workbench. See the [release record](deepblend/docs/releases/0.29.0.md).
 
 The [independent-creation candidate](deepblend/docs/first-product-creation.md) adds motion preview, direct image/video delivery and explicit review inputs. Those candidate changes are not a public release or a claim of independent artistic acceptance.
 
