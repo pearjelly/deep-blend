@@ -7003,11 +7003,11 @@ window.__ModuleLoader__.load({
             draft.channel === 'emissionColor' ? el('p', { className: 'db-muted' }, t('assets.emissionHelp')) : null,
             partner ? check(t('assets.applyToTimberPartner', { name: partner.original.name || partner.original.id }),
               'asset-include-timber-partner', Boolean(paired), value => update('includeTimberPartner', value), true) : null,
-            replaceTexture ? check(t(paired ? 'assets.replaceTimberTexture' : 'assets.replaceTexture'),
+            replaceTexture ? check(paired ? t('assets.replaceTimberTexture') : t('assets.replaceTexture'),
               'asset-replace-texture', draft.replaceTexture, value => update('replaceTexture', value), Boolean(paired)) : null) : null,
           error ? el('p', { className: 'db-error' }, error) : null,
           el('div', { className: 'db-inline' }, Button({ action: 'asset-apply', tone: 'primary', disabled: busy || conflict || Boolean(error) || state.busy.editor || state.busy.patch || state.busy.restore || state.visualRuns[projectId]?.busy,
-            onClick: actions.applyAsset, children: t(paired ? 'assets.saveTimberPair' : 'assets.apply') }), Button({ action: 'asset-reset', disabled: busy, onClick: actions.discardAsset, children: t('assets.reset') }))) : null)
+            onClick: actions.applyAsset, children: paired ? t('assets.saveTimberPair') : t('assets.apply') }), Button({ action: 'asset-reset', disabled: busy, onClick: actions.discardAsset, children: t('assets.reset') }))) : null)
     }
 
     function CameraFitEditor(ctx) {
