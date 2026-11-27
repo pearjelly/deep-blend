@@ -1,0 +1,123 @@
+{
+  "schemaVersion": 1,
+  "status": "maintainer-experiment",
+  "experiment": "Compare saving two existing timber UV projections together with saving each group individually.",
+  "configuredPreview": {
+    "width": 720,
+    "height": 540,
+    "samples": 24
+  },
+  "timingsMs": {
+    "together": 5388.0,
+    "individually": 9475.5
+  },
+  "scope": "Two matched backend comparisons on one Apple Silicon Mac. Save timing includes the request, Blender checkpoint and saved preview. Browser input and independent creator outcomes were outside the sample.",
+  "source": "bfbbfe055dd33e1dd817fda2d269aa894b5c23b5",
+  "oldProjectVersion": "0.27.0",
+  "oldRecipeVersion": "1.1.0",
+  "originalFilesUnchanged": 51,
+  "runs": [
+    {
+      "round": 1,
+      "mode": "single",
+      "requests": [
+        {
+          "groups": [
+            "longitudinal-slats",
+            "cross-slats"
+          ],
+          "elapsedMs": 5355,
+          "status": 200,
+          "revision": "r0005"
+        }
+      ],
+      "totalSaveMs": 5355,
+      "finalSceneSpecSha256": "1cb298d710365a8c46c54e1be4064aff5be3d40cf3414ed62c541067b8d2f129",
+      "finalImageRgbaSha256": "4b60d3ca0a398b28dfdc9b631d7599d799a0b09d5bb01540b62bf3c5de8e0793",
+      "finalImageWidth": 720,
+      "finalImageHeight": 540,
+      "previewSamples": 24,
+      "unchangedHistoryFiles": 50
+    },
+    {
+      "round": 1,
+      "mode": "separate",
+      "requests": [
+        {
+          "groups": [
+            "longitudinal-slats"
+          ],
+          "elapsedMs": 5226,
+          "status": 200,
+          "revision": "r0005"
+        },
+        {
+          "groups": [
+            "cross-slats"
+          ],
+          "elapsedMs": 4260,
+          "status": 200,
+          "revision": "r0006"
+        }
+      ],
+      "totalSaveMs": 9486,
+      "finalSceneSpecSha256": "1cb298d710365a8c46c54e1be4064aff5be3d40cf3414ed62c541067b8d2f129",
+      "finalImageRgbaSha256": "4b60d3ca0a398b28dfdc9b631d7599d799a0b09d5bb01540b62bf3c5de8e0793",
+      "finalImageWidth": 720,
+      "finalImageHeight": 540,
+      "previewSamples": 24,
+      "unchangedHistoryFiles": 50
+    },
+    {
+      "round": 2,
+      "mode": "separate",
+      "requests": [
+        {
+          "groups": [
+            "longitudinal-slats"
+          ],
+          "elapsedMs": 5194,
+          "status": 200,
+          "revision": "r0005"
+        },
+        {
+          "groups": [
+            "cross-slats"
+          ],
+          "elapsedMs": 4271,
+          "status": 200,
+          "revision": "r0006"
+        }
+      ],
+      "totalSaveMs": 9465,
+      "finalSceneSpecSha256": "1cb298d710365a8c46c54e1be4064aff5be3d40cf3414ed62c541067b8d2f129",
+      "finalImageRgbaSha256": "4b60d3ca0a398b28dfdc9b631d7599d799a0b09d5bb01540b62bf3c5de8e0793",
+      "finalImageWidth": 720,
+      "finalImageHeight": 540,
+      "previewSamples": 24,
+      "unchangedHistoryFiles": 50
+    },
+    {
+      "round": 2,
+      "mode": "single",
+      "requests": [
+        {
+          "groups": [
+            "longitudinal-slats",
+            "cross-slats"
+          ],
+          "elapsedMs": 5421,
+          "status": 200,
+          "revision": "r0005"
+        }
+      ],
+      "totalSaveMs": 5421,
+      "finalSceneSpecSha256": "1cb298d710365a8c46c54e1be4064aff5be3d40cf3414ed62c541067b8d2f129",
+      "finalImageRgbaSha256": "4b60d3ca0a398b28dfdc9b631d7599d799a0b09d5bb01540b62bf3c5de8e0793",
+      "finalImageWidth": 720,
+      "finalImageHeight": 540,
+      "previewSamples": 24,
+      "unchangedHistoryFiles": 50
+    }
+  ]
+}
