@@ -283,6 +283,10 @@ window.__ModuleLoader__.load({
       "assets.newMaterial": "创建新的基础材质并覆盖所选范围",
       "assets.nativeHelp": "原生节点没有可编辑的公共定义；需明确创建新材质覆盖所选范围。",
       "assets.replaceTexture": "用图片替换此材质的程序化纹理",
+      "assets.applyToTimberPartner": "也将此贴图和 UV 设置应用到 {name}",
+      "assets.replaceTimberTexture": "确认替换所选木条现有的程序化纹理",
+      "assets.saveTimberPair": "保存两组木条并预览",
+      "assets.timberPairUnavailable": "请选择一组具有可编辑材质的已保存半搭接木条，再选择要一起应用的木条。",
       "assets.localAnimated": "来源材质含动画，局部复制会丢失动画。请选择共享修改或明确创建新材质。",
       "assets.animatedChannel": "该通道由动画驱动，不能在此覆盖。",
       "assets.imageHelp": "保留其他通道；缺少 UV 时保存会明确失败。共享修改影响该材质所有使用者。",
@@ -1209,6 +1213,10 @@ window.__ModuleLoader__.load({
       "assets.newMaterial": "Create a new basic material and override this target",
       "assets.nativeHelp": "Native nodes have no editable public definition; explicitly create a replacement material for this target.",
       "assets.replaceTexture": "Replace this material’s procedural texture with image maps",
+      "assets.applyToTimberPartner": "Apply these settings to {name} too",
+      "assets.replaceTimberTexture": "Replace procedural textures on both groups",
+      "assets.saveTimberPair": "Save both timber groups and preview",
+      "assets.timberPairUnavailable": "Choose a member of a saved timber joint with editable materials, then select its partner.",
       "assets.localAnimated": "A local copy would lose source material animation. Choose shared editing or explicitly create a new material.",
       "assets.animatedChannel": "This channel is animated and cannot be overridden here.",
       "assets.imageHelp": "Other maps are preserved. Missing UVs cause an explicit save failure. Shared editing affects all material users.",
@@ -3356,9 +3364,25 @@ window.__ModuleLoader__.load({
       editorSelectMaterial(editor, editorEffectiveMaterialId(editor))
       return editor
     }
+    function pairedAssetEditor(draft, primary = assetEditor(draft)) {
+      if (draft.kind !== 'image' || draft.channel !== 'baseColor'
+        || draft.target !== 'entity' || draft.scope !== 'local' || draft.newMaterial) return null
+      const joint = draft.scene.halfLaps?.find(pair => editorHalfLapPartner(pair, draft.entityId))
+      const entityId = editorHalfLapPartner(joint, draft.entityId)
+      if (!entityId) return null
+      const partner = assetEditor({ ...draft, entityId })
+      return [primary, partner].every(editor => {
+        const entity = editor?.original, material = editor?.material.definition
+        return entity?.kind === 'generator' && entity.generator?.shape === 'mesh' && !entity.locked
+          && ['principled', 'glass'].includes(material?.shader)
+          && !editor.tracks.some(track => track.targetKind === 'material' && track.targetId === material.id)
+      }) ? partner : null
+    }
+
     function resetAssetBinding(draft) {
       const source = draft.newMaterial ? null : assetEditor(draft)?.material.definition
       draft.binding = editorClone(source?.images?.[draft.channel] || {})
+      draft.includeTimberPartner = false
       draft.replaceTexture = false
     }
     function createAssetDraft(scene, projectId, entry, inspection, entityId) {
@@ -3374,6 +3398,47 @@ window.__ModuleLoader__.load({
       resetAssetBinding(draft)
       return draft
     }
+    function appendImageAssetOperations(operations, draft, asset, fail, editor = assetEditor(draft)) {
+      const target = editor?.original
+      if (!editor || target.kind === 'empty' || target.locked) fail('target')
+      if (!['entity', 'part', 'slot'].includes(draft.target) || !['local', 'shared'].includes(draft.scope)) fail('target scope')
+      if (draft.target !== 'entity') {
+        const part = target.assetParts?.find(item => item.partId === draft.partId)
+        const sourceAsset = draft.scene.nodes.assets.find(item => item.id === target.assetId)
+        if (target.kind !== 'asset-instance' || !part || part.selectorVersion !== 1 || !sourceAsset?.sha256 || part.assetSha256 !== sourceAsset.sha256) fail('source part inventory')
+        if (draft.target === 'slot' && (draft.slotIndex === '' || !part.sourceMaterialSlots.some(slot => slot.index === Number(draft.slotIndex)))) fail('source slot')
+      }
+      const original = editor.material.definition
+      if (!draft.newMaterial && (!original || !['principled', 'glass'].includes(original.shader))) throw new Error(t('assets.nativeHelp'))
+      const animated = editor.tracks.filter(track => track.targetKind === 'material' && track.targetId === original?.id)
+      if (!draft.newMaterial && draft.scope === 'local' && animated.length) throw new Error(t('assets.localAnimated'))
+      if (!draft.newMaterial && animated.some(track => track.property === draft.channel || track.property?.startsWith(`${draft.channel}.`))) throw new Error(t('assets.animatedChannel'))
+      if (!ASSET_CHANNELS.includes(draft.channel)) fail('image channel')
+      const binding = { ...editorClone(draft.binding), assetId: asset.id }
+      if (binding.uvMap !== undefined && (typeof binding.uvMap !== 'string' || !binding.uvMap.trim())) fail('UV name')
+      for (const key of ['scale', 'offset']) if (binding[key] !== undefined && (!Array.isArray(binding[key]) || binding[key].length !== 3 || !binding[key].every(Number.isFinite))) fail(key)
+      if (binding.channel !== undefined && (!['roughness', 'metallic', 'alpha'].includes(draft.channel) || !['r', 'g', 'b', 'a'].includes(binding.channel))) fail('image channel')
+      if (binding.strength !== undefined && (draft.channel !== 'normal' || !Number.isFinite(binding.strength) || binding.strength < 0 || binding.strength > 10)) fail('normal strength')
+      const material = draft.newMaterial ? { id: draft.newMaterialId, shader: 'principled', parameters: { baseColor: [0.8, 0.8, 0.8, 1], roughness: 0.5, metallic: 0 } } : editorClone(original)
+      if (material.texture && !draft.replaceTexture) fail('procedural texture must be explicitly replaced')
+      const images = { ...editorClone(material.images || {}), [draft.channel]: binding }
+      let materialId = material.id
+      if (draft.newMaterial || draft.scope === 'local') {
+        materialId = draft.newMaterialId; material.id = materialId; material.images = images; delete material.texture
+        operations.push({ op: 'material.add', material })
+        if (draft.target === 'entity') operations.push({ op: 'entity.material.set', entityId: draft.entityId, materialId })
+        else {
+          const slotIndex = draft.target === 'slot' ? Number(draft.slotIndex) : undefined
+          const bindings = editorClone(target.materialBindings || []).filter(binding => !(binding.partId === draft.partId && binding.slotIndex === slotIndex))
+          bindings.push({ partId: draft.partId, ...(slotIndex === undefined ? {} : { slotIndex }), materialId })
+          operations.push({ op: 'entity.materialBindings.set', entityId: draft.entityId, materialBindings: bindings })
+        }
+      } else {
+        if (material.texture) operations.push({ op: 'material.texture.set', materialId, texture: null })
+        operations.push({ op: 'material.images.set', materialId, images })
+      }
+    }
+
     function buildAssetPatch(draft) {
       if (!draft) throw new Error(t('assets.invalid', { field: 'draft' }))
       const fail = field => { throw new Error(t('assets.invalid', { field })) }
@@ -3409,44 +3474,12 @@ window.__ModuleLoader__.load({
         operations.push({ op: 'world.set', world: { ...editorClone(draft.world), strength: draft.strength,
           environment: { ...editorClone(draft.world.environment || {}), assetId: asset.id, rotation: draft.rotation } } })
       } else {
-        const editor = assetEditor(draft), target = editor?.original
-        if (!editor || target.kind === 'empty' || target.locked) fail('target')
-        if (!['entity', 'part', 'slot'].includes(draft.target) || !['local', 'shared'].includes(draft.scope)) fail('target scope')
-        if (draft.target !== 'entity') {
-          const part = target.assetParts?.find(item => item.partId === draft.partId)
-          const sourceAsset = draft.scene.nodes.assets.find(item => item.id === target.assetId)
-          if (target.kind !== 'asset-instance' || !part || part.selectorVersion !== 1 || !sourceAsset?.sha256 || part.assetSha256 !== sourceAsset.sha256) fail('source part inventory')
-          if (draft.target === 'slot' && (draft.slotIndex === '' || !part.sourceMaterialSlots.some(slot => slot.index === Number(draft.slotIndex)))) fail('source slot')
-        }
-        const original = editor.material.definition
-        if (!draft.newMaterial && (!original || !['principled', 'glass'].includes(original.shader))) throw new Error(t('assets.nativeHelp'))
-        const animated = editor.tracks.filter(track => track.targetKind === 'material' && track.targetId === original?.id)
-        if (!draft.newMaterial && draft.scope === 'local' && animated.length) throw new Error(t('assets.localAnimated'))
-        if (!draft.newMaterial && animated.some(track => track.property === draft.channel || track.property?.startsWith(`${draft.channel}.`))) throw new Error(t('assets.animatedChannel'))
-        if (!ASSET_CHANNELS.includes(draft.channel)) fail('image channel')
-        const binding = { ...editorClone(draft.binding), assetId: asset.id }
-        if (binding.uvMap !== undefined && (typeof binding.uvMap !== 'string' || !binding.uvMap.trim())) fail('UV name')
-        for (const key of ['scale', 'offset']) if (binding[key] !== undefined && (!Array.isArray(binding[key]) || binding[key].length !== 3 || !binding[key].every(Number.isFinite))) fail(key)
-        if (binding.channel !== undefined && (!['roughness', 'metallic', 'alpha'].includes(draft.channel) || !['r', 'g', 'b', 'a'].includes(binding.channel))) fail('image channel')
-        if (binding.strength !== undefined && (draft.channel !== 'normal' || !Number.isFinite(binding.strength) || binding.strength < 0 || binding.strength > 10)) fail('normal strength')
-        const material = draft.newMaterial ? { id: draft.newMaterialId, shader: 'principled', parameters: { baseColor: [0.8, 0.8, 0.8, 1], roughness: 0.5, metallic: 0 } } : editorClone(original)
-        if (material.texture && !draft.replaceTexture) fail('procedural texture must be explicitly replaced')
-        const images = { ...editorClone(material.images || {}), [draft.channel]: binding }
-        let materialId = material.id
-        if (draft.newMaterial || draft.scope === 'local') {
-          materialId = draft.newMaterialId; material.id = materialId; material.images = images; delete material.texture
-          operations.push({ op: 'material.add', material })
-          if (draft.target === 'entity') operations.push({ op: 'entity.material.set', entityId: draft.entityId, materialId })
-          else {
-            const slotIndex = draft.target === 'slot' ? Number(draft.slotIndex) : undefined
-            const bindings = editorClone(target.materialBindings || []).filter(binding => !(binding.partId === draft.partId && binding.slotIndex === slotIndex))
-            bindings.push({ partId: draft.partId, ...(slotIndex === undefined ? {} : { slotIndex }), materialId })
-            operations.push({ op: 'entity.materialBindings.set', entityId: draft.entityId, materialBindings: bindings })
-          }
-        } else {
-          if (material.texture) operations.push({ op: 'material.texture.set', materialId, texture: null })
-          operations.push({ op: 'material.images.set', materialId, images })
-        }
+        const partner = draft.includeTimberPartner ? pairedAssetEditor(draft) : null
+        if (draft.includeTimberPartner && !partner) throw new Error(t('assets.timberPairUnavailable'))
+        appendImageAssetOperations(operations, draft, asset, fail)
+        if (partner) appendImageAssetOperations(operations, {
+          ...draft, entityId: partner.original.id, newMaterialId: `${draft.newMaterialId}-partner`,
+        }, asset, fail, partner)
       }
       return { projectId: draft.projectId, baseRevision: draft.baseRevision, saveCheckpoint: true, renderPreview: true, actor: 'ui', operations }
     }
@@ -5141,9 +5174,15 @@ window.__ModuleLoader__.load({
         updateAsset: (field, value) => {
           const projectId = data.activeProjectId, current = data.assetDrafts[projectId]
           if (!current || data.assetWork[projectId]?.busy) return
-          const allowed = ['newEntityId', 'location', 'rotationEuler', 'scale', 'hideEntityId', 'makeSubject', 'entityId', 'target', 'partId', 'slotIndex', 'scope', 'newMaterial', 'channel', 'binding', 'replaceTexture', 'strength', 'rotation']
+          const allowed = ['newEntityId', 'location', 'rotationEuler', 'scale', 'hideEntityId', 'makeSubject', 'entityId', 'target', 'partId', 'slotIndex', 'scope', 'newMaterial', 'channel', 'binding', 'replaceTexture', 'includeTimberPartner', 'strength', 'rotation']
           if (!allowed.includes(field)) return
+          if (field === 'includeTimberPartner' && (typeof value !== 'boolean' || !pairedAssetEditor(current))) return
           const draft = editorClone(current); draft[field] = editorClone(value)
+          if (field === 'includeTimberPartner') draft.replaceTexture = false
+          if (field === 'scope' && draft.includeTimberPartner && !pairedAssetEditor(draft)) {
+            draft.includeTimberPartner = false
+            draft.replaceTexture = false
+          }
           if (['entityId', 'target'].includes(field)) { draft.partId = ''; draft.slotIndex = '' }
           if (field === 'partId') draft.slotIndex = ''
           if (['entityId', 'target', 'partId', 'slotIndex', 'channel', 'newMaterial'].includes(field)) resetAssetBinding(draft)
@@ -6847,21 +6886,26 @@ window.__ModuleLoader__.load({
       const choose = (label, field, value, entries, change) => el('label', { className: 'db-row' }, label,
         el('select', { className: 'db-input', 'aria-label': label, 'data-field': field, value, disabled: busy, onChange: event => change(event.target.value) },
           entries.map(([id, name]) => el('option', { value: id, key: id }, name))))
-      const check = (label, field, value, change) => el('label', { className: 'db-row' },
-        el('input', { type: 'checkbox', 'data-field': field, checked: value, disabled: busy, onChange: event => change(event.target.checked) }), label)
+      const check = (label, field, value, change, inline = false) => el('label', {
+        className: 'db-row', ...(inline ? { style: { flexWrap: 'nowrap', overflowWrap: 'anywhere' } } : {}),
+      }, el('input', { type: 'checkbox', 'data-field': field, checked: value, disabled: busy,
+        onChange: event => change(event.target.checked) }), label)
       const vector = (name, field, values, factor) => el('div', { className: 'db-inline' }, EDITOR_AXES.map((axis, index) => number(`${name} ${axis}`, `asset-${field}-${axis}`,
         values[index] === null ? '' : values[index] * factor, value => { const next = [...values]; next[index] = value === null ? null : value / factor; update(field, next) })))
-      let editor, material, part, error, affected = []
+      let editor, material, partner, part, error, affected = []
       if (draft) {
         error = assetDraftError(draft)
         if (draft.kind === 'image') {
           editor = assetEditor(draft); material = editor?.material.definition
+          partner = pairedAssetEditor(draft, editor)
           part = editor?.original.assetParts?.find(item => item.partId === draft.partId)
           affected = draft.scene.nodes.entities.filter(entity => entity.materialId === material?.id
             || entity.materialBindings?.some(binding => binding.materialId === material?.id)
             || entity.assetParts?.some(item => item.materialSlots?.some(slot => slot.materialId === material?.id))).map(entity => entity.id)
         }
       }
+      const paired = draft?.includeTimberPartner && partner
+      const replaceTexture = !draft?.newMaterial && (material?.texture || (paired && partner.material.definition.texture))
       const mapSetting = (key, value) => { const binding = editorClone(draft.binding); if (value === undefined) delete binding[key]; else binding[key] = value; update('binding', binding) }
       return el('section', { className: 'db-card', 'data-assets-library': projectId, 'data-asset-base-revision': draft?.baseRevision || '', 'data-asset-conflict': String(conflict) },
         el('h4', null, t('assets.title')), el('p', { className: 'db-muted' }, t('assets.help')),
@@ -6957,10 +7001,13 @@ window.__ModuleLoader__.load({
             ['roughness', 'metallic', 'alpha'].includes(draft.channel) ? choose(t('assets.scalarChannel'), 'asset-scalar-channel', draft.binding.channel || 'r', ['r', 'g', 'b', 'a'].map(value => [value, value]), value => mapSetting('channel', value)) : null,
             draft.channel === 'normal' ? number(t('assets.normalStrength'), 'asset-normal-strength', editorNumberDefault(draft.binding.strength, 1), value => mapSetting('strength', value), { min: 0, max: 10 }) : null,
             draft.channel === 'emissionColor' ? el('p', { className: 'db-muted' }, t('assets.emissionHelp')) : null,
-            !draft.newMaterial && material?.texture ? check(t('assets.replaceTexture'), 'asset-replace-texture', draft.replaceTexture, value => update('replaceTexture', value)) : null) : null,
+            partner ? check(t('assets.applyToTimberPartner', { name: partner.original.name || partner.original.id }),
+              'asset-include-timber-partner', Boolean(paired), value => update('includeTimberPartner', value), true) : null,
+            replaceTexture ? check(paired ? t('assets.replaceTimberTexture') : t('assets.replaceTexture'),
+              'asset-replace-texture', draft.replaceTexture, value => update('replaceTexture', value), Boolean(paired)) : null) : null,
           error ? el('p', { className: 'db-error' }, error) : null,
           el('div', { className: 'db-inline' }, Button({ action: 'asset-apply', tone: 'primary', disabled: busy || conflict || Boolean(error) || state.busy.editor || state.busy.patch || state.busy.restore || state.visualRuns[projectId]?.busy,
-            onClick: actions.applyAsset, children: t('assets.apply') }), Button({ action: 'asset-reset', disabled: busy, onClick: actions.discardAsset, children: t('assets.reset') }))) : null)
+            onClick: actions.applyAsset, children: paired ? t('assets.saveTimberPair') : t('assets.apply') }), Button({ action: 'asset-reset', disabled: busy, onClick: actions.discardAsset, children: t('assets.reset') }))) : null)
     }
 
     function CameraFitEditor(ctx) {

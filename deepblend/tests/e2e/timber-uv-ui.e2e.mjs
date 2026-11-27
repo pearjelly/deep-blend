@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-/** Verify paired texture editing on the locked 1.1 walnut-trivet recipe in Chrome and Blender. */
+/** Verify paired image attachment and UV editing on the locked 1.1 walnut-trivet in Chrome and Blender. */
 import assert from 'node:assert/strict'
 import { execFileSync } from 'node:child_process'
 import { createHash } from 'node:crypto'
@@ -65,37 +65,9 @@ try {
     }
   }
   const png = await sharp(pixels, { raw: { width: edge, height: edge, channels: 3 } }).png().toBuffer()
-  const hash = sha(png), assetId = 'timber-test-checker', assetPath = `assets/raw/${hash}.png`
-  mkdirSync(join(project, 'assets', 'raw'), { recursive: true })
-  writeFileSync(join(project, assetPath), png)
-  const materials = ['walnut-lengthwise', 'walnut-crosswise']
-  const seeded = await post(endpoint + '/patch', { patch: { baseRevision: 'r0001', saveCheckpoint: true, renderPreview: true,
-    operations: [{ op: 'asset.add', asset: { id: assetId, type: 'png', path: assetPath, sha256: hash } },
-      ...materials.flatMap(materialId => [{ op: 'material.texture.set', materialId, texture: null },
-        { op: 'material.images.set', materialId, images: { baseColor: { assetId } } }])] } })
-  assert.equal(seeded.status, 200, JSON.stringify(seeded.data.error))
-  const beforeSpec = read('revisions', 'r0002', 'scene-spec.json')
-  const savedLock = read('revisions', 'r0001', 'recipe-lock.json')
-  assert.equal(savedLock.version, '1.1.0')
-  const frame = beforeSpec.project.frameStart, cameraId = 'detail'
-  async function fixedView(revision) {
-    const { status, data } = await post(endpoint + '/preview', { revision, mode: 'beauty', samples: 24,
-      views: [{ id: 'detail', cameraId, frame }] })
-    assert.equal(status, 200, JSON.stringify(data.error))
-    const artifact = data.preview.artifacts[0]
-    return { artifact, png: readFileSync(join(project, artifact.path)) }
-  }
-  const before = await fixedView('r0002')
-  writeFileSync(join(output, 'before.png'), before.png)
-  const original = snapshot()
-  const assertDraftDidNotWrite = () => assert.deepEqual(snapshot(), original)
-  async function waitForScratch(expected) {
-    const deadline = Date.now() + 15_000
-    const present = () => readdirSync(join(root, 'tmp')).some(name => name.startsWith('timber-uv-'))
-    while (present() !== expected && Date.now() < deadline) await delay(50)
-    assert.equal(present(), expected, 'Blender preview scratch state')
-  }
-
+  const differentiated = await post(endpoint + '/patch', { patch: { baseRevision: 'r0001', saveCheckpoint: true,
+    renderPreview: true, operations: [{ op: 'material.parameter.update', materialId: 'walnut-crosswise', parameter: 'roughness', value: .57 }] } })
+  assert.equal(differentiated.status, 200, JSON.stringify(differentiated.data.error))
   browser = await Browser.launch({ args: ['--window-size=1440,1100', '--accept-lang=en-US,en'] })
   page = await browser.newPage()
   await page.addInitScript(`window.uvRequests = []
@@ -115,6 +87,123 @@ try {
   await page.goto(base + '/deepblend/workbench')
   await page.waitFor(`${element('[data-lighttable-revision="r0002"]')} !== null`, 45_000)
   await clickWorkbenchControl(page, '[data-view-tab="scene"]')
+  const materialRevision = read('revisions', 'r0002', 'scene-spec.json')
+  assert.notEqual(materialRevision.materials.find(m => m.id === 'walnut-crosswise').parameters.roughness,
+    materialRevision.materials.find(m => m.id === 'walnut-lengthwise').parameters.roughness)
+
+  const pointer = selector => clickWorkbenchControl(page, selector)
+  const assetField = name => `[data-field="asset-${name}"]`
+  async function choose(selector, value) {
+    await page.waitFor(`${element(selector)} !== null`, 30_000)
+    await page.evaluate(`(() => {
+      const control = ${element(selector)}
+      control.value = ${JSON.stringify(value)}
+      control.dispatchEvent(new Event('input', { bubbles: true }))
+    })()`)
+  }
+
+  await pointer(byAction('assets-open'))
+  await page.waitFor(`${element(assetField('upload'))} !== null`, 30_000)
+  const sourceName = 'wood-repeat-test.png', sourceImage = join(output, sourceName)
+  writeFileSync(sourceImage, png)
+  const { root: documentRoot } = await page.send('DOM.getDocument')
+  const picker = await page.send('DOM.querySelector', { nodeId: documentRoot.nodeId, selector: assetField('upload') })
+  await page.send('DOM.setFileInputFiles', { nodeId: picker.nodeId, files: [sourceImage] })
+  await page.waitFor(`Array.from(document.querySelectorAll('[data-asset-id]')).some(card => card.textContent.includes(${JSON.stringify(sourceName)}))`, 30_000)
+  const library = await (await fetch(endpoint + '/assets')).json()
+  const { asset } = library.assets.find(row => row.originalName === sourceName)
+  assert.equal(asset.sha256, sha(png))
+  const afterUpload = snapshot()
+  const card = `[data-asset-id="${asset.id}"][data-asset-path="${asset.path}"]`
+  await pointer(`${card} ${byAction('asset-preview:' + asset.id)}`)
+  await page.waitFor(`${element(card + ' [data-asset-preview]')}?.naturalWidth > 0`, 30_000)
+  const inspected = snapshot()
+  await pointer(`${card} ${byAction('asset-use:' + asset.id)}`)
+  await choose(assetField('target-entity'), members[0])
+  const includePartner = assetField('include-timber-partner'), replaceTexture = assetField('replace-texture')
+  const assetSave = byAction('asset-apply')
+  assert.equal(await page.evaluate(`${element(includePartner)}.checked`), false)
+  assert.match(await page.text(`label:has(${includePartner})`), /cross-slats/)
+  await pointer(replaceTexture)
+  await pointer(includePartner)
+  assert.equal(await page.evaluate(`${element(replaceTexture)}.checked`), false)
+  assert.equal(await page.evaluate(`${element(assetSave)}.disabled`), true)
+  await choose(assetField('map-channel'), 'roughness')
+  assert.equal(await page.count(includePartner), 0)
+  await choose(assetField('map-channel'), 'baseColor')
+  assert.equal(await page.evaluate(`${element(includePartner)}.checked`), false)
+  await pointer(includePartner)
+  await pointer(replaceTexture)
+  assert.deepEqual(snapshot(), inspected)
+  assert.equal(await page.evaluate('window.uvRequests.length'), 0)
+  assert.equal(read('project.json').currentRevision, 'r0002')
+  pass('the uploaded image is ready for both named groups only after explicit opt-in and replacement')
+
+  for (const [name, width, height] of [['paired-material-desktop.png', 1440, 1100], ['paired-material-mobile.png', 390, 844]]) {
+    await page.send('Emulation.setDeviceMetricsOverride', { width, height, deviceScaleFactor: 1, mobile: false })
+    await page.evaluate(`${element(includePartner)}.closest('label').scrollIntoView({ block: 'center' })`)
+    const usable = await page.evaluate(`(() => {
+      const label = ${element(includePartner)}.closest('label').getBoundingClientRect()
+      const save = ${element(assetSave)}.getBoundingClientRect()
+      return label.top >= 0 && label.left >= 0 && label.right <= innerWidth
+        && save.top >= label.bottom && save.bottom <= innerHeight && document.documentElement.scrollWidth <= innerWidth
+    })()`)
+    assert.equal(usable, true, name)
+    await page.screenshot(join(output, name))
+  }
+  await pointer(assetSave)
+  await page.waitFor(`${element('[data-lighttable-revision="r0003"]')} !== null`, 70_000)
+  const applied = await page.evaluate('window.uvRequests[0]')
+  assert.equal(applied.status, 200, JSON.stringify(applied.reply?.error))
+  assert.equal(applied.body.patch.baseRevision, 'r0002')
+  assert.deepEqual(applied.body.patch.operations.map(op => op.op),
+    ['asset.add','material.add','entity.material.set','material.add','entity.material.set'])
+  const appliedSpec = read('revisions', 'r0003', 'scene-spec.json')
+  const bindingIds = members.map(id => appliedSpec.entities.find(entity => entity.id === id).materialId)
+  assert.equal(new Set(bindingIds).size, 2)
+  for (const [index, materialId] of bindingIds.entries()) {
+    const entity = materialRevision.entities.find(entity => entity.id === members[index])
+    const old = materialRevision.materials.find(material => material.id === entity.materialId)
+    const next = appliedSpec.materials.find(material => material.id === materialId)
+    assert.deepEqual(next.parameters, old.parameters)
+    assert.equal(next.images.baseColor.assetId, asset.id)
+    assert(!Object.hasOwn(next, 'texture'))
+  }
+  const byId = values => Object.fromEntries(values.map(value => [value.id, value]))
+  assert.deepEqual(byId(appliedSpec.materials.filter(material => !bindingIds.includes(material.id))), byId(materialRevision.materials))
+  const originalMaterialIds = new Map(materialRevision.entities.map(entity => [entity.id, entity.materialId]))
+  const restoredEntities = appliedSpec.entities.map(entity => members.includes(entity.id)
+    ? { ...entity, materialId: originalMaterialIds.get(entity.id) } : entity)
+  assert.deepEqual(byId(restoredEntities), byId(materialRevision.entities))
+  assert.deepEqual(appliedSpec.halfLaps, materialRevision.halfLaps)
+  for (const [name,digest] of Object.entries(afterUpload)) {
+    if (name.startsWith('revisions/')) assert.equal(sha(readFileSync(join(project,name))), digest, name)
+  }
+  pass('one real browser save attaches the same image to independent materials and keeps saved history')
+  await pointer('[data-view-tab="scene"]')
+
+  const beforeSpec = read('revisions', 'r0003', 'scene-spec.json')
+  const savedLock = read('revisions', 'r0001', 'recipe-lock.json')
+  assert.equal(savedLock.version, '1.1.0')
+  const frame = beforeSpec.project.frameStart, cameraId = 'detail'
+  async function fixedView(revision) {
+    const { status, data } = await post(endpoint + '/preview', { revision, mode: 'beauty', samples: 24,
+      views: [{ id: 'detail', cameraId, frame }] })
+    assert.equal(status, 200, JSON.stringify(data.error))
+    const artifact = data.preview.artifacts[0]
+    return { artifact, png: readFileSync(join(project, artifact.path)) }
+  }
+  const before = await fixedView('r0003')
+  writeFileSync(join(output, 'before.png'), before.png)
+  const original = snapshot()
+  const assertDraftDidNotWrite = () => assert.deepEqual(snapshot(), original)
+  async function waitForScratch(expected) {
+    const deadline = Date.now() + 15_000
+    const present = () => readdirSync(join(root, 'tmp')).some(name => name.startsWith('timber-uv-'))
+    while (present() !== expected && Date.now() < deadline) await delay(50)
+    assert.equal(present(), expected, 'Blender preview scratch state')
+  }
+
   await clickWorkbenchControl(page, byAction('select-entity:' + members[0]))
   await page.waitFor(`${element(field('project'))} !== null`, 30_000)
   assert.equal((await page.click(field('project'))).via, 'pointer')
@@ -127,7 +216,7 @@ try {
   })()`)
   const previewAction = byAction('timber-uv-preview'), cancelAction = byAction('timber-uv-preview-cancel')
   const applyAction = byAction('editor-apply')
-  assert.equal(await page.evaluate('window.uvRequests.length'), 0)
+  assert.equal(await page.evaluate('window.uvRequests.length'), 1)
   pass('the second member is explicit and neither selection writes anything')
 
   assert.equal((await page.click(previewAction)).via, 'pointer')
@@ -135,7 +224,7 @@ try {
   await waitForScratch(true)
   assert.equal(await page.evaluate(`${element(applyAction)}.disabled`), true)
   assert.equal((await page.click(cancelAction)).via, 'pointer')
-  assert.equal(await page.evaluate('window.uvRequests[0].aborted'), true)
+  assert.equal(await page.evaluate('window.uvRequests.find(item => item.url.endsWith("/timber-uv-preview")).aborted'), true)
   await waitForScratch(false)
   assertDraftDidNotWrite()
   pass('cancelling the actual workbench request retains the current revision and files')
@@ -153,7 +242,7 @@ try {
   assert.equal(receipt.cameraId, cameraId)
   assert.equal(receipt.frame, frame)
   assert.deepEqual(receipt.entities, members)
-  assert.equal(receipt.baseRevision, 'r0002')
+  assert.equal(receipt.baseRevision, 'r0003')
   const incomplete = structuredClone(first.body)
   incomplete.patch.operations.pop()
   const refused = await post(endpoint + '/timber-uv-preview', incomplete)
@@ -195,15 +284,15 @@ try {
     await page.screenshot(join(output, name))
   }
   assert.equal((await page.click(applyAction)).via, 'pointer')
-  await page.waitFor(`document.querySelector('[data-lighttable-revision="r0003"]') !== null`, 60_000)
-  const writes = await page.evaluate('window.uvRequests.filter(item => item.url.endsWith("/patch"))')
+  await page.waitFor(`document.querySelector('[data-lighttable-revision="r0004"]') !== null`, 60_000)
+  const writes = await page.evaluate('window.uvRequests.filter(item => item.url.endsWith("/patch") && item.body.patch.baseRevision === "r0003")')
   assert.equal(writes.length, 1)
   const request = writes[0].body
   assert.equal(request.expectedSpecHash, preview.candidateSpecHash)
   assert.deepEqual(request.patch, last.body.patch)
   assert.equal(request.patch.operations.length, 2)
   assert(request.patch.operations.every(op => op.op === 'entity.uv.project' && op.scale === 2))
-  const saved = read('revisions', 'r0003', 'scene-spec.json')
+  const saved = read('revisions', 'r0004', 'scene-spec.json')
   assert.equal(specHash(saved), preview.candidateSpecHash)
   const saveWithoutUv = structuredClone(saved)
   for (const entity of saveWithoutUv.entities.filter(e => members.includes(e.id))) {
@@ -216,7 +305,7 @@ try {
   }
   pass('one browser save commits exactly both projections and preserves the original recipe lock and history')
 
-  const after = await fixedView('r0003')
+  const after = await fixedView('r0004')
   assert.deepEqual(settings(after.artifact), settings(before.artifact))
   const savedImage = decodePng(after.png)
   assert.deepEqual(savedImage.data, bb.data)
@@ -224,7 +313,7 @@ try {
   const nativePath = join(output, 'native.json')
   writeFileSync(join(output, 'native.log'), execFileSync(blenderPath, ['--background', '--factory-startup', '--disable-autoexec',
     '--python-exit-code', '1', '--python', join(REPO_ROOT, 'deepblend/tests/lib/inspect-native-mesh-uv.py'), '--',
-    join(project, 'revisions', 'r0002', 'scene.blend'), join(project, 'revisions', 'r0003', 'scene.blend'), nativePath, ...members],
+    join(project, 'revisions', 'r0003', 'scene.blend'), join(project, 'revisions', 'r0004', 'scene.blend'), nativePath, ...members],
   { timeout: 90_000, maxBuffer: 8 * 1024 * 1024 }))
   const native = JSON.parse(readFileSync(nativePath))
   measurements = { repair: members.map(member => ({ member, before: native.before.uvMaps[member][0].zeroAreaTriangleCount,
@@ -234,7 +323,7 @@ try {
   const stale = await post(endpoint + '/timber-uv-preview', last.body)
   assert.equal(stale.status, 409, JSON.stringify(stale.data.error))
   assert.equal(stale.data.error.code, 'REVISION_CONFLICT')
-  assert.equal(read('project.json').currentRevision, 'r0003')
+  assert.equal(read('project.json').currentRevision, 'r0004')
   pass('a preview from an older base is refused after saving')
 } catch (error) {
   failure = { message: error.message, stack: error.stack }
