@@ -7,7 +7,7 @@ import { copyFileSync, existsSync, mkdirSync, readFileSync, writeFileSync } from
 import { join, resolve } from 'node:path'
 import { createHash } from 'node:crypto'
 import { Browser } from '../../tools/browser-driver.mjs'
-import { REPO_ROOT, startWeb, storePatch } from '../../tools/dsh-web-harness.mjs'
+import { REPO_ROOT, startWeb, storePatch, fetchFromWebServer as fetch, authenticateWebPage } from '../../tools/dsh-web-harness.mjs'
 
 const directory = resolve(process.env.DEEPBLEND_E2E_ARTIFACTS || join(REPO_ROOT, '.deepblend', 'quality', `review-subject-ui-r16-${new Date().toISOString().replace(/[:.]/g, '-')}`))
 const root = join(directory, 'store'), projectId = 'speaker', results = [], requests = []
@@ -46,6 +46,7 @@ try {
   check('the fixture is a real checkpoint without preview renders', existsSync(projectPath('revisions', 'r0001', 'scene.blend')) && read('revisions', 'r0001', 'revision-manifest.json').previews.length === 0)
   browser = await Browser.launch({ args: ['--window-size=1440,1000'] }); page = await browser.newPage()
   await page.addInitScript(`window.__subjectRequests=[];const originalFetch=window.fetch;window.fetch=(input,init)=>{if(init?.method==='POST')window.__subjectRequests.push({url:String(input),body:typeof init.body==='string'?JSON.parse(init.body):null});return originalFetch(input,init)}`)
+  await authenticateWebPage(page, server)
   await page.goto(url)
   await page.waitFor('document.querySelector(\'[data-brief-base-revision="r0001"]\')!==null', 45000)
   check('automatic selection is shown with its actual resolved subject and reason', await page.evaluate(`document.querySelector(${JSON.stringify(selector)}).value==='' && document.querySelector('[data-review-subject-resolution]').dataset.reviewSubjectId==='power-cable' && document.querySelector('[data-review-subject-resolution]').dataset.reviewSubjectMode==='automatic'`))

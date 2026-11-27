@@ -29,6 +29,8 @@ import { fileURLToPath } from 'node:url'
 
 import { buildStoreOverride } from './operator-layer.mjs'
 import { localPackages } from './workspace-layout.mjs'
+import { registerWebOwnerSession, forgetWebOwnerSession, fetchFromWebServer } from './web-owner-session.mjs'
+export { authenticateWebPage, fetchFromWebServer } from './web-owner-session.mjs'
 
 /** Repository root, for locating the shipped bundle patch. */
 export const REPO_ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..', '..')
@@ -242,7 +244,7 @@ export function readServerUrl(child, timeoutMs = 90000) {
 /**
  * Start one `dsh web` and wait until it serves the DeepBlend route.
  *
- * @param {{ workspacePath: string, home?: string, port?: number, patch?: string, profile?: string, env?: Record<string, string>, keepHome?: boolean, inheritUserConfig?: boolean }} options
+ * @param {{ workspacePath: string, home?: string, port?: number, patch?: string, profile?: string, env?: Record<string, string>, keepHome?: boolean, inheritUserConfig?: boolean, trustedHosts?: string[] }} options
  * @returns {Promise<{ url: string, token: string, port: number, home: string, child: any, output: string[], stop: () => Promise<void> }>}
  */
 export async function startWeb(options) {
@@ -250,7 +252,8 @@ export async function startWeb(options) {
     inheritUserConfig: options.inheritUserConfig })
   seedWorkspace(home, options.workspacePath)
   const port = options.port ?? 0
-  const child = spawn('dsh', ['web', '--port', String(port), '--no-open'], {
+  const trustedHosts = (options.trustedHosts ?? []).flatMap(host => ['--trusted-host', host])
+  const child = spawn('dsh', ['web', '--port', String(port), '--no-open', ...trustedHosts], {
     cwd: options.workspacePath,
     env: { ...process.env, ...options.env, DSH_HOME: home },
     stdio: ['ignore', 'pipe', 'pipe'],
@@ -258,13 +261,14 @@ export async function startWeb(options) {
   let info
   try {
     info = await readServerUrl(child)
+    await registerWebOwnerSession(info)
 
     // The URL is printed before the first request is served; poll the DeepBlend
     // route so a test never races startup.
     const deadline = Date.now() + 60000
     for (;;) {
       try {
-        const response = await fetch(`http://127.0.0.1:${info.port}/deepblend/capabilities`)
+        const response = await fetchFromWebServer(`http://127.0.0.1:${info.port}/deepblend/capabilities`)
         if (response.ok) break
       } catch {
         // not listening yet
@@ -301,6 +305,7 @@ export async function startWeb(options) {
   async function stop() {
     const startedAt = Date.now()
     const cleanup = () => {
+      forgetWebOwnerSession(info)
       if (options.home === undefined && options.keepHome !== true) {
         rmSync(home, { recursive: true, force: true })
       }
@@ -322,6 +327,7 @@ export async function startWeb(options) {
       await exitedOnce
     }
     const ms = Date.now() - startedAt
+    forgetWebOwnerSession(info)
     if (options.home === undefined && options.keepHome !== true) {
       try {
         rmSync(home, { recursive: true, force: true })

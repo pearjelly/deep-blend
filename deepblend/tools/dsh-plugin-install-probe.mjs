@@ -62,6 +62,7 @@ import { pathToFileURL } from 'node:url'
 
 import { importDsh } from '../tests/lib/dsh-deployment.mjs'
 import { source } from './release-version.mjs'
+import { fetchFromWebServer, forgetWebOwnerSession, registerWebOwnerSession } from './web-owner-session.mjs'
 import { WORKBENCH_PAGE_ROUTE, WORKBENCH_PAGE_ROOT_ID } from '@deepblend/dsh-blender-ui'
 
 const HERE = import.meta.dirname
@@ -167,6 +168,7 @@ function withoutPnpm(directory) {
 
 const home = mkdtempSync(join(tmpdir(), 'deepblend-dsh-plugin-'))
 let server = null
+let ownerSession
 
 try {
   say('date', new Date().toISOString())
@@ -354,22 +356,24 @@ try {
   server.stderr.on('data', chunk => { output += chunk })
 
   const deadline = Date.now() + 90000
-  let port = null
-  while (Date.now() < deadline && port === null) {
-    const match = /127\.0\.0\.1:(\d+)/.exec(output)
-    if (match) port = Number(match[1])
+  while (Date.now() < deadline && !ownerSession && server.exitCode === null) {
+    const match = /http:\/\/127\.0\.0\.1:(\d+)\/\?token=[A-Za-z0-9_-]+/.exec(output)
+    if (match) ownerSession = { url: match[0], port: Number(match[1]) }
     else await new Promise(settle => setTimeout(settle, 200))
   }
 
-  if (port === null) {
-    say('capabilities route', `NO SERVER after 90 s — ${output.trim().split('\n').slice(-3).join(' | ')}`)
+  if (!ownerSession) {
+    say('capabilities route', 'DSH did not print a local owner launch URL')
+    problems.push('the DSH web session did not start')
   } else {
+    await registerWebOwnerSession(ownerSession)
+    const { port } = ownerSession
     say('dsh web', `port ${port}`)
     let capabilities = 'no answer within 60 s'
     const routeDeadline = Date.now() + 60000
     for (;;) {
       try {
-        const response = await fetch(`http://127.0.0.1:${port}/deepblend/capabilities`)
+        const response = await fetchFromWebServer(`http://127.0.0.1:${port}/deepblend/capabilities`)
         if (response.ok) {
           const body = await response.json()
           capabilities = `HTTP ${response.status}, route=${body.route}, hostApiVersion=${body.hostApiVersion}`
@@ -406,7 +410,7 @@ try {
     const workbenchDeadline = Date.now() + 60000
     for (;;) {
       try {
-        const response = await fetch(`http://127.0.0.1:${port}${WORKBENCH_PAGE_ROUTE}`)
+        const response = await fetchFromWebServer(`http://127.0.0.1:${port}${WORKBENCH_PAGE_ROUTE}`)
         const body = await response.text()
         const reservesRoot = body.includes(`id="${WORKBENCH_PAGE_ROOT_ID}"`)
         const importsOwnBundle = body.includes("modules.import('@deepblend/dsh-blender-bundle')")
@@ -507,6 +511,7 @@ try {
       : `the spec installs, serves DeepBlend and delivers both presets — ${SPEC}`)
     : `${problems.length} reading(s) say this route did NOT work: ${problems.join(' | ')}`)
 } finally {
+  forgetWebOwnerSession(ownerSession)
   if (server !== null) {
     try { server.kill('SIGTERM') } catch { /* already gone */ }
     await new Promise(settle => setTimeout(settle, 400))

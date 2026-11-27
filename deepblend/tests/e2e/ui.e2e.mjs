@@ -44,7 +44,7 @@ import { createHash } from 'node:crypto'
 import { encodePng } from '@deepblend/dsh-blender-contracts'
 
 import { Browser } from '../../tools/browser-driver.mjs'
-import { REPO_ROOT, dismissFirstRunDialogs, startWeb, storePatch } from '../../tools/dsh-web-harness.mjs'
+import { REPO_ROOT, dismissFirstRunDialogs, startWeb, storePatch, fetchFromWebServer as fetch } from '../../tools/dsh-web-harness.mjs'
 
 const results = []
 function check(name, ok, detail) {

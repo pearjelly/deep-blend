@@ -4,7 +4,7 @@ import assert from 'node:assert/strict'
 import { readFileSync } from 'node:fs'
 import { Readable } from 'node:stream'
 import { EventEmitter } from 'node:events'
-import { Context } from '@deepseek-ai/cordis'
+import { ownerHttpContext } from '../lib/http-owner.mjs'
 import BlenderUiHost, { createHandlers } from '@deepblend/dsh-blender-ui'
 import { buildSceneTree, compileSceneSpec, matchUiRoute, HOST_API_VERSION } from '@deepblend/dsh-blender-contracts'
 import { loadClientBundle } from '../lib/client-bundle.mjs'
@@ -99,7 +99,7 @@ test('bundle routes forward only declared member metadata and trusted request by
 })
 
 test('member HTTP body bypasses JSON limits and disconnect aborts its stream with listener cleanup', async t => {
-  const context = new Context(); t.after(() => context.fiber.dispose())
+  const context = ownerHttpContext(); t.after(() => context.fiber.dispose())
   const bytes = Buffer.alloc(9 * 1024 * 1024, 7), request = Readable.from([bytes])
   Object.assign(request, { method: 'POST', url: `/deepblend/projects/one/asset-uploads/${uploadId}/files/file-0`, headers: { 'content-type': 'application/octet-stream' } })
   const response = Object.assign(new EventEmitter(), { setHeader() {}, end(body) { this.body = body; this.writableEnded = true } })

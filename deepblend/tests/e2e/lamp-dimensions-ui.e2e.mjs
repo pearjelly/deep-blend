@@ -5,13 +5,14 @@ import {createHash} from 'node:crypto'
 import {isDeepStrictEqual} from 'node:util'
 import {instantiateRecipeLock} from '@deepblend/dsh-blender-contracts'
 import {Browser} from '../../tools/browser-driver.mjs'
-import {REPO_ROOT,startWeb,storePatch} from '../../tools/dsh-web-harness.mjs'
+import { REPO_ROOT,startWeb,storePatch, fetchFromWebServer as fetch, authenticateWebPage } from '../../tools/dsh-web-harness.mjs'
 const output=resolve(process.env.DEEPBLEND_E2E_ARTIFACTS||join(REPO_ROOT,'.deepblend/quality','lamp-ui-'+Date.now()));if(existsSync(output))throw Error('Evidence exists');mkdirSync(output)
 const root=join(output,'store'),id='lamp-ui-candidate',checks=[],save=(n,v)=>writeFileSync(join(output,n),JSON.stringify(v,null,2)+'\n'),read=(...p)=>JSON.parse(readFileSync(join(root,'projects',id,...p))),hash=p=>createHash('sha256').update(readFileSync(p)).digest('hex'),check=(name,ok,detail)=>{checks.push({name,ok,detail});console.log(`[${ok?'PASS':'FAIL'}] ${name}`);if(!ok)throw Error(name)}
 let server,browser,page,failure,shutdown
 try{
  const rows=JSON.parse(await storePatch(root));rows.find(r=>r.id==='deepblend-blender-runtime').config.blenderPath=process.env.DEEPBLEND_BLENDER_PATH||join(REPO_ROOT,'.tools/Blender.app/Contents/MacOS/Blender');rows.find(r=>r.id==='deepblend-blender-host').config.maxPreviewSamples=8
  server=await startWeb({workspacePath:REPO_ROOT,patch:JSON.stringify(rows),keepHome:false});browser=await Browser.launch({args:['--window-size=1440,1100']});page=await browser.newPage();await page.addInitScript(`window.__lampRequests=[];const original=window.fetch;window.fetch=(input,init)=>{let body;try{body=JSON.parse(init?.body)}catch{};window.__lampRequests.push({url:String(input),method:init?.method||'GET',body});return original(input,init)}`)
+ await authenticateWebPage(page, server)
  await page.goto(`http://127.0.0.1:${server.port}/deepblend/workbench`);await page.waitFor(`document.querySelector('[data-action="select-recipe:deepblend.metal-lamp@2.2.0"]')!==null`,45000)
  await clickWorkbenchControl(page, '[data-action="select-recipe:deepblend.metal-lamp@2.2.0"]');await page.fill('[data-field="project-title"]',id);await page.fill('[data-field="recipe-shade-diameter-mm"]','230');await page.fill('[data-field="recipe-spun-roughness"]','.31');await page.fill('[data-field="recipe-exposure"]','.1')
  check('typing creation parameters sends no write',await page.evaluate(`window.__lampRequests.every(r=>r.method!=='POST')`));check('one pointer creates the selected lamp',(await page.click('[data-action="create-project"]')).via==='pointer')

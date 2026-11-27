@@ -11,7 +11,7 @@ import { execFileSync } from 'node:child_process'
 import { isDeepStrictEqual } from 'node:util'
 import { decodePng, sceneSpecDigest } from '@deepblend/dsh-blender-contracts'
 import { Browser } from '../../tools/browser-driver.mjs'
-import { REPO_ROOT, startWeb, storePatch } from '../../tools/dsh-web-harness.mjs'
+import { REPO_ROOT, startWeb, storePatch, fetchFromWebServer as fetch, authenticateWebPage } from '../../tools/dsh-web-harness.mjs'
 
 const requestedOutput = resolve(process.env.DEEPBLEND_E2E_ARTIFACTS || join(REPO_ROOT, '.deepblend/quality',
   `render-selection-ui-${new Date().toISOString().replace(/[:.]/g, '-')}`))
@@ -165,6 +165,7 @@ try {
       } catch (error) { request.receipt = { ok: false, error: String(error) }; throw error }
     }
   `)
+  await authenticateWebPage(page, server)
   await page.goto(`${base}/deepblend/workbench`)
   await page.waitFor('document.querySelector("[data-brief-base-revision=r0001]") !== null', 45000)
   await page.click('[data-view-tab="jobs"]')

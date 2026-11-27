@@ -13,7 +13,7 @@ import Studio, { StudioConfig } from '@deepblend/dsh-blender-host'
 import { decodePng } from '@deepblend/dsh-blender-contracts'
 import { defaultSceneSpec } from '../../../packages/deepblend/host/lib/revision-transaction.js'
 import { Browser } from '../../tools/browser-driver.mjs'
-import { REPO_ROOT, startWeb, storePatch } from '../../tools/dsh-web-harness.mjs'
+import { REPO_ROOT, startWeb, storePatch, fetchFromWebServer as fetch, authenticateWebPage } from '../../tools/dsh-web-harness.mjs'
 import { revealWorkbenchControl } from './workbench-navigation.mjs'
 
 const directory = resolve(process.env.DEEPBLEND_E2E_ARTIFACTS || join(REPO_ROOT, '.deepblend/quality', `asset-library-ui-${new Date().toISOString().replace(/[:.]/g, '-')}`))
@@ -138,6 +138,7 @@ try {
         return response;
       }catch(error){record.error=String(error);record.completedAt=performance.now();throw error;}
     }`)
+  await authenticateWebPage(page, server)
   await page.goto(url); await page.waitFor('document.querySelector("[data-brief-base-revision=r0001]")!==null', 45000); await sceneView()
   check('the library is opened explicitly without an automatic inspection request', !(await page.evaluate('window.__assetRequests')).some(request => /\/assets/.test(request.url)))
   await page.click('[data-action="assets-open"]'); await page.waitFor('document.querySelector("[data-asset-limits]")!==null')

@@ -253,7 +253,7 @@ export default class BlenderUiHost extends Service {
 
     if (!config.serveRoute) return
 
-    ctx.inject(['webServer'], (serverCtx) => {
+    ctx.inject(['webServer', 'connection'], (serverCtx) => {
       this._webServer = serverCtx.webServer
       // Route registration belongs to this fiber, so unmounting the row removes
       // the route (SPEC §4.4 / lifecycle: every side effect is reversible).
@@ -276,6 +276,45 @@ export default class BlenderUiHost extends Service {
     return this._handlers
   }
 
+  /** Use DSH's own authority/session checks before any Host, body or byte access. */
+  _allowHttp(request, response, page) {
+    let rejection = 503
+    try {
+      const connection = this.ctx.get('connection')
+      if (typeof connection?.admit === 'function') {
+        const admission = connection.admit(request)
+        rejection = admission?.rejection !== undefined ? admission.rejection
+          : admission?.peer?.principal?.kind === 'owner' ? undefined : 403
+      } else if (typeof connection?.requestRejection === 'function') {
+        // The supported legacy host admits only its signed owner-browser cookie.
+        rejection = connection.requestRejection(request)
+      }
+      if (rejection !== undefined && rejection !== 401 && rejection !== 403) rejection = 503
+      if (page && rejection !== 403 && rejection !== 503) {
+        if (typeof connection?.authorizeIndex !== 'function') rejection = 503
+        else {
+          const allowed = connection.authorizeIndex(request, response)
+          // DSH owns the response after false, including asynchronous compression.
+          if (allowed === false) return false
+          if (allowed !== true) rejection = 503
+        }
+      }
+    } catch {
+      // Authentication failures must not disclose provider messages or credentials.
+      rejection = 503
+    }
+    if (rejection === undefined) return true
+    if (response.headersSent || response.writableEnded) { response.destroy?.(); return false }
+    const errors = {
+      401: ['UI_HTTP_AUTH_REQUIRED', 'Open the authenticated DSH launch URL in this browser before opening DeepBlend.'],
+      403: ['UI_HTTP_ACCESS_DENIED', 'This request is not permitted by the DSH web access policy.'],
+      503: ['UI_HTTP_AUTH_UNAVAILABLE', 'DeepBlend HTTP access requires the DSH Connection service. Restart or update the web profile.'],
+    }
+    const [code, message] = errors[rejection]
+    this._sendJson(response, rejection, { ok: false, error: { code, message } })
+    return false
+  }
+
   /**
    * Serve one UI request.
    *
@@ -289,8 +328,10 @@ export default class BlenderUiHost extends Service {
    */
   async _handle(request, response) {
     const url = new URL(request.url ?? '/', 'http://localhost')
-    const matched = matchUiRoute(request.method ?? 'GET', url.pathname)
+    const method = request.method ?? 'GET'
+    if (!this._allowHttp(request, response, method === 'GET' && url.pathname === WORKBENCH_PAGE_ROUTE)) return
 
+    const matched = matchUiRoute(method, url.pathname)
     if (matched === null) {
       this._sendJson(response, 404, {
         ok: false,

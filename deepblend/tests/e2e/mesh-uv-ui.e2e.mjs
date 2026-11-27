@@ -7,7 +7,7 @@ import { execFileSync } from 'node:child_process'
 import { isDeepStrictEqual } from 'node:util'
 import { decodePng, validateSceneSpec } from '@deepblend/dsh-blender-contracts'
 import { Browser } from '../../tools/browser-driver.mjs'
-import { REPO_ROOT, startWeb, storePatch } from '../../tools/dsh-web-harness.mjs'
+import { REPO_ROOT, startWeb, storePatch, fetchFromWebServer as fetch, authenticateWebPage } from '../../tools/dsh-web-harness.mjs'
 import { clickWorkbenchControl } from './workbench-navigation.mjs'
 
 const output = resolve(process.env.DEEPBLEND_E2E_ARTIFACTS || join(REPO_ROOT, '.deepblend', 'quality', `mesh-uv-ui-${new Date().toISOString().replace(/[:.]/g, '-')}`))
@@ -61,6 +61,7 @@ try {
     await page.click('[data-view-tab="scene"]'); await page.waitFor(`document.querySelector(${JSON.stringify('[data-action="select-entity:beam"]')})!==null`,30000)
     await clickWorkbenchControl(page,'[data-action="select-entity:beam"]'); await page.waitFor(`document.querySelector(${JSON.stringify(field('project'))})!==null`,30000)
   }
+  await authenticateWebPage(page, server)
   await page.goto(`${base}/deepblend/workbench`); await page.waitFor('document.querySelector("[data-lighttable-revision=r0001]")!==null',45000); await openEditor()
   check('opening existing mesh UV controls makes no write and leaves the saved UV choice intact', await page.evaluate(`window.__uvWrites.length===0&&!document.querySelector(${JSON.stringify(field('project'))}).checked&&document.querySelector('[data-scene-editor]').dataset.editorDirty==='false'`))
   const clicked = await page.click(field('project')); check('a real pointer stages UV projection',clicked.via==='pointer')

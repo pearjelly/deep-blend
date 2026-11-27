@@ -5,7 +5,7 @@ import { createHash } from 'node:crypto'
 import { spawnSync } from 'node:child_process'
 import { isDeepStrictEqual } from 'node:util'
 import { Browser } from '../../tools/browser-driver.mjs'
-import { REPO_ROOT, startWeb, storePatch } from '../../tools/dsh-web-harness.mjs'
+import { REPO_ROOT, startWeb, storePatch, fetchFromWebServer as fetch, authenticateWebPage } from '../../tools/dsh-web-harness.mjs'
 import { clickWorkbenchControl } from './workbench-navigation.mjs'
 
 const output = resolve(process.env.DEEPBLEND_E2E_ARTIFACTS || join(REPO_ROOT, '.deepblend/quality', 'assembly-placement-ui-' + Date.now()))
@@ -81,6 +81,7 @@ try {
   await page.send('Emulation.setDeviceMetricsOverride', { width: 1440, height: 1000, deviceScaleFactor: 1, mobile: false })
   await page.addInitScript(`window.__placementWrites=JSON.parse(sessionStorage.getItem('deepblend-placement-writes')||'[]');const original=window.fetch;
     window.fetch=(input,init)=>{if(init?.method==='POST'){window.__placementWrites.push({url:String(input),body:JSON.parse(init.body)});sessionStorage.setItem('deepblend-placement-writes',JSON.stringify(window.__placementWrites))}return original(input,init)}`)
+  await authenticateWebPage(page, server)
   await page.goto(base + '/deepblend/workbench')
   await page.waitFor(`document.querySelector('[data-field="lighttable-project"]')!==null`, 60000)
   await select('lighttable-project', id)

@@ -11,7 +11,7 @@ import { decodePng } from '@deepblend/dsh-blender-contracts'
 import { defaultSceneSpec } from '../../../packages/deepblend/host/lib/revision-transaction.js'
 import { Browser } from '../../tools/browser-driver.mjs'
 import { revealWorkbenchControl } from './workbench-navigation.mjs'
-import { REPO_ROOT, startWeb, storePatch } from '../../tools/dsh-web-harness.mjs'
+import { REPO_ROOT, startWeb, storePatch, fetchFromWebServer as fetch, authenticateWebPage } from '../../tools/dsh-web-harness.mjs'
 import { writeAssetUploadFixtures } from '../lib/asset-upload-fixtures.mjs'
 
 const directory = resolve(process.env.DEEPBLEND_E2E_ARTIFACTS || join(REPO_ROOT, '.deepblend/quality', `asset-bundle-upload-${new Date().toISOString().replace(/[:.]/g, '-')}`))
@@ -512,6 +512,7 @@ try {
   page = await browser.newPage('about:blank', { onConsole: (type, text) => record('console.jsonl', { type, text }) })
   observePageCommands(page) // Connection setup precedes tracing; every test command from this point is recorded.
   await page.addInitScript(`(${installUploadAudit.toString()})()`)
+  await authenticateWebPage(page, server)
   await page.goto(`${base}/deepblend/workbench`)
   await page.waitFor('document.querySelector("[data-brief-base-revision=r0001]")!==null', 45000)
   await verifyServedClient()

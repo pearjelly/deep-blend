@@ -30,7 +30,7 @@
  * Run all:        `node deepblend/tests/run.mjs` (as a test) / `run-all.sh`
  */
 
-import { Context } from '@deepseek-ai/cordis'
+import { ownerHttpContext } from '../lib/http-owner.mjs'
 import { readFileSync } from 'node:fs'
 import { join, resolve } from 'node:path'
 import { Readable, Writable } from 'node:stream'
@@ -419,7 +419,7 @@ function makeResponse() {
 // Part 1 — the Host half
 // ---------------------------------------------------------------------------
 
-const root = new Context()
+const root = ownerHttpContext()
 const studio = createStudioStub()
 const webServer = createWebServerStub()
 root.provide('blenderStudio', studio)
@@ -795,7 +795,7 @@ for (const [suffix, status, code] of [
 }
 {
   // A missing project must read as "not there" rather than "the Host broke".
-  const failing = new Context()
+  const failing = ownerHttpContext()
   const brokenStudio = createStudioStub()
   brokenStudio.getQaRecord = async () => {
     throw new BlenderError(BlenderErrorCode.PROJECT_NOT_FOUND, 'no such project')
@@ -932,7 +932,7 @@ check('every card registration has a component, so keying it cannot silently ren
 // --- the card keys must cover the tools the preset really registers ---------
 
 {
-  const toolRoot = new Context()
+  const toolRoot = ownerHttpContext()
   const registered = new Map()
   toolRoot.plugin({
     name: 'ui-plane-tool-harness',

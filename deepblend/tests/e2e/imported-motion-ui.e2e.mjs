@@ -7,7 +7,7 @@ import { defaultSceneSpec } from '../../../packages/deepblend/host/lib/revision-
 import { decodePng } from '@deepblend/dsh-blender-contracts'
 import { writeAssetUploadFixtures } from '../lib/asset-upload-fixtures.mjs'
 import { Browser } from '../../tools/browser-driver.mjs'
-import { REPO_ROOT,startWeb,storePatch } from '../../tools/dsh-web-harness.mjs'
+import { REPO_ROOT,startWeb,storePatch, fetchFromWebServer as fetch, authenticateWebPage } from '../../tools/dsh-web-harness.mjs'
 import { clickWorkbenchControl } from './workbench-navigation.mjs'
 import { createHash } from 'node:crypto'
 import { spawnSync } from 'node:child_process'
@@ -37,6 +37,7 @@ try{
  server=await startWeb({workspacePath:REPO_ROOT,patch:JSON.stringify(rows)});const base=`http://127.0.0.1:${server.port}`
  browser=await Browser.launch({args:['--window-size=1440,1000']});page=await browser.newPage()
  await page.addInitScript(`window.__motionRequests=[];window.__patches=[];window.__fitWrites=[];window.__fileSelections=[];document.addEventListener('input',e=>{if(e.target?.dataset?.field==='asset-bundle-directory')window.__fileSelections.push({trusted:e.isTrusted,files:Array.from(e.target.files||[]).map(f=>({path:f.webkitRelativePath,size:f.size}))})},true);const original=window.fetch;window.fetch=async(input,init)=>{if(init?.method==='POST'&&String(input).endsWith('/motion-previews'))window.__motionRequests.push(JSON.parse(init.body));if(init?.method==='POST'&&String(input).endsWith('/patch'))window.__patches.push(JSON.parse(init.body));if(init?.method==='POST'&&String(input).endsWith('/camera-fit'))window.__fitWrites.push(JSON.parse(init.body));return original(input,init)}`)
+ await authenticateWebPage(page, server)
  await page.goto(base+'/deepblend/workbench');await page.waitFor(`document.querySelector('[data-lighttable-revision="r0001"]')!==null`,60000);await page.click('[data-view-tab="scene"]')
  await clickWorkbenchControl(page,'[data-action="assets-open"]');await page.waitFor(`document.querySelector('[data-asset-bundle-picker]')!==null`,60000)
  await page.send('Page.bringToFront');await page.waitFor('document.visibilityState === "visible"');await page.send('DOM.getDocument');await page.send('Page.setInterceptFileChooserDialog',{enabled:true})

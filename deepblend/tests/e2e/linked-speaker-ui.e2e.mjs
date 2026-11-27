@@ -8,7 +8,7 @@ import { execFileSync } from 'node:child_process'
 import { decodePng } from '@deepblend/dsh-blender-contracts'
 import { Browser } from '../../tools/browser-driver.mjs'
 import { ensureWorkbenchCaptureReady } from '../../tools/docs-capture-visibility.mjs'
-import { REPO_ROOT, startWeb, storePatch } from '../../tools/dsh-web-harness.mjs'
+import { REPO_ROOT, startWeb, storePatch, fetchFromWebServer as fetch, authenticateWebPage } from '../../tools/dsh-web-harness.mjs'
 const output = resolve(process.env.DEEPBLEND_E2E_ARTIFACTS || join(REPO_ROOT, '.deepblend', 'quality', `linked-speaker-${Date.now()}`))
 if (existsSync(output)) throw Error(`Evidence already exists: ${output}`)
 mkdirSync(output, { recursive: true })
@@ -34,6 +34,7 @@ try {
   check('actual Host offers separate original and linked speaker versions', catalog.recipes.filter(r => r.id === 'deepblend.modular-speaker').length === 2)
   browser = await Browser.launch({ args: ['--window-size=1440,1100'] }); page = await browser.newPage()
   await page.addInitScript(`window.__writes=[];const original=window.fetch;window.fetch=(url,init)=>{if(init?.method==='POST')window.__writes.push({url:String(url),body:JSON.parse(init.body)});return original(url,init)}`)
+  await authenticateWebPage(page, server)
   await page.goto(base + '/deepblend/workbench'); await page.waitFor(`document.querySelector(${JSON.stringify(choice('1.0.0'))})!==null`, 45000)
   await clickWorkbenchControl(page, choice('1.0.0'))
   check('original version keeps its original appearance controls', await page.count(field('cabinet-width-mm')) === 0 && await page.count(field('surface-roughness')) === 1)

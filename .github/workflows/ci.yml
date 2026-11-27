@@ -161,6 +161,12 @@ jobs:
         env:
           DEEPBLEND_E2E_ARTIFACTS: ${{ runner.temp }}/deepblend-ci/browser
         run: xvfb-run -a node deepblend/tests/e2e/inspection-ui.e2e.mjs > "$DEEPBLEND_CI_EVIDENCE/browser.log" 2>&1
+      - name: Real DSH owner login and workbench access policy
+        if: ${{ !cancelled() && steps.graphics.outcome == 'success' }}
+        timeout-minutes: 5
+        env:
+          DEEPBLEND_E2E_ARTIFACTS: ${{ runner.temp }}/deepblend-ci/http-access
+        run: xvfb-run -a node deepblend/tests/e2e/http-access.e2e.mjs > "$DEEPBLEND_CI_EVIDENCE/http-access.log" 2>&1
       - name: Real handled-cup construction and dimensional edits
         if: ${{ !cancelled() && steps.graphics.outcome == 'success' }}
         timeout-minutes: 8
@@ -517,6 +523,11 @@ jobs:
         env:
           DEEPBLEND_E2E_ARTIFACTS: ${{ runner.temp }}/deepblend-ci/modern-browser
         run: xvfb-run -a node deepblend/tests/e2e/inspection-ui.e2e.mjs > "$DEEPBLEND_CI_EVIDENCE/browser.log" 2>&1
+      - name: Modern DSH owner login and workbench access policy
+        timeout-minutes: 5
+        env:
+          DEEPBLEND_E2E_ARTIFACTS: ${{ runner.temp }}/deepblend-ci/modern-http-access
+        run: xvfb-run -a node deepblend/tests/e2e/http-access.e2e.mjs > "$DEEPBLEND_CI_EVIDENCE/http-access.log" 2>&1
       - name: Preserve modern-host evidence
         if: always()
         uses: actions/upload-artifact@v4

@@ -37,7 +37,7 @@ import { pathToFileURL } from 'node:url'
 import { resolveDeploymentNodeModules } from '../lib/dsh-deployment.mjs'
 
 import { Browser } from '../../tools/browser-driver.mjs'
-import { REAL_HOME, REPO_ROOT, dismissFirstRunDialogs, startWeb, storePatch } from '../../tools/dsh-web-harness.mjs'
+import { REAL_HOME, REPO_ROOT, dismissFirstRunDialogs, startWeb, storePatch, fetchFromWebServer as fetch } from '../../tools/dsh-web-harness.mjs'
 
 const results = []
 function check(name, ok, detail) {

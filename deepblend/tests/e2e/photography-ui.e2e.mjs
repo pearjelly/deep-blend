@@ -7,7 +7,7 @@ import { isDeepStrictEqual } from 'node:util'
 import { decodePng } from '@deepblend/dsh-blender-contracts'
 import { Browser } from '../../tools/browser-driver.mjs'
 import { revealWorkbenchControl } from './workbench-navigation.mjs'
-import { REPO_ROOT, startWeb, storePatch } from '../../tools/dsh-web-harness.mjs'
+import { REPO_ROOT, startWeb, storePatch, fetchFromWebServer as fetch, authenticateWebPage } from '../../tools/dsh-web-harness.mjs'
 
 const output = resolve(process.env.DEEPBLEND_E2E_ARTIFACTS || join(REPO_ROOT, '.deepblend/quality', `photography-ui-${Date.now()}`))
 if (existsSync(output)) throw Error(`Evidence directory already exists: ${output}`)
@@ -45,6 +45,7 @@ try {
   copyFileSync(path(beforeArtifact.path), join(output, 'before.png'))
   browser = await Browser.launch({ args: ['--window-size=1440,1100'] }); page = await browser.newPage()
   await page.addInitScript(`window.__photoRequests=[];const original=window.fetch;window.fetch=async(input,init)=>{const entry={url:String(input),method:init?.method||'GET'};if(init?.body)entry.body=JSON.parse(init.body);window.__photoRequests.push(entry);const response=await original(input,init);if(response.headers.get('content-type')?.includes('application/json'))entry.result=await response.clone().json();entry.finished=true;return response}`)
+  await authenticateWebPage(page, server)
   await page.goto(`${base}/deepblend/workbench`)
   await page.waitFor('document.querySelector("[data-lighttable-revision]")!==null', 45000)
   const selectProject = async id => {

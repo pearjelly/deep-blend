@@ -56,7 +56,7 @@ import { createHash } from 'node:crypto'
 import { decodePng } from '@deepblend/dsh-blender-contracts'
 
 import { Browser } from '../../tools/browser-driver.mjs'
-import { REPO_ROOT, startWeb, storePatch } from '../../tools/dsh-web-harness.mjs'
+import { REPO_ROOT, startWeb, storePatch, fetchFromWebServer as fetch, authenticateWebPage } from '../../tools/dsh-web-harness.mjs'
 
 const results = []
 function check(name, ok, detail) {
@@ -361,6 +361,7 @@ try {
   // 0. The page opens, and it is NOT the console
   // -------------------------------------------------------------------------
   const pageUrl = `${base}deepblend/workbench`
+  await authenticateWebPage(page, server)
   await page.goto(pageUrl)
 
   await page.waitFor('document.querySelector("[data-deepblend-panel=deepblend]") !== null', 30000)

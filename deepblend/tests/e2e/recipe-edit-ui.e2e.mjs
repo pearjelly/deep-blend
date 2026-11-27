@@ -6,7 +6,7 @@ import { createHash } from 'node:crypto'
 import { execFileSync } from 'node:child_process'
 import { decodePng } from '@deepblend/dsh-blender-contracts'
 import { Browser } from '../../tools/browser-driver.mjs'
-import { REPO_ROOT, startWeb, storePatch } from '../../tools/dsh-web-harness.mjs'
+import { REPO_ROOT, startWeb, storePatch, fetchFromWebServer as fetch, authenticateWebPage } from '../../tools/dsh-web-harness.mjs'
 
 const output = resolve(process.env.DEEPBLEND_E2E_ARTIFACTS || join(REPO_ROOT, '.deepblend', 'quality', `recipe-edit-${Date.now()}`))
 if (existsSync(output)) throw Error('Use a fresh evidence directory')
@@ -52,6 +52,7 @@ try {
   const base = `http://127.0.0.1:${server.port}`
   browser = await Browser.launch({ args: ['--window-size=1440,1100'] }); page = await browser.newPage()
   await page.addInitScript(`window.__writes=JSON.parse(sessionStorage.getItem('deepblend-test-writes')||'[]');const original=window.fetch;window.fetch=async(url,init)=>{if(init?.method==='POST'){window.__writes.push({url:String(url),body:JSON.parse(init.body)});sessionStorage.setItem('deepblend-test-writes',JSON.stringify(window.__writes))}if(window.__holdRecipeSave&&String(url).endsWith('/recipe-parameters')){window.__holdRecipeSave=false;await new Promise(resolve=>{window.__releaseRecipeSave=resolve})}return original(url,init)}`)
+  await authenticateWebPage(page, server)
   await page.goto(base + '/deepblend/workbench')
   await page.waitFor('document.querySelector(\'[data-action="select-recipe:deepblend.modular-speaker@2.1.0"]\')!==null', 45000)
   await page.click('[data-action="select-recipe:deepblend.modular-speaker@2.1.0"]')

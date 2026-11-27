@@ -5,7 +5,7 @@ import { join, resolve, dirname, basename } from 'node:path'
 import { createHash } from 'node:crypto'
 import { execFileSync } from 'node:child_process'
 import { Browser } from '../../tools/browser-driver.mjs'
-import { startWeb, storePatch, REPO_ROOT } from '../../tools/dsh-web-harness.mjs'
+import { startWeb, storePatch, REPO_ROOT, fetchFromWebServer as fetch, authenticateWebPage } from '../../tools/dsh-web-harness.mjs'
 import { ensureWorkbenchCaptureReady } from '../../tools/docs-capture-visibility.mjs'
 
 const lampSelector = `[data-action="select-recipe:deepblend.metal-lamp@${JSON.parse(readFileSync(join(REPO_ROOT, 'deepblend/recipes/metal-lamp/recipe.json'), 'utf8')).version}"]`
@@ -53,6 +53,7 @@ try {
   const base = `http://127.0.0.1:${server.port}`
   browser = await Browser.launch({ args: ['--window-size=1440,1100'] }); page = await browser.newPage()
   await trackPage(page)
+  await authenticateWebPage(page, server)
   await page.goto(base + '/deepblend/workbench')
   await page.waitFor(`document.querySelector(${JSON.stringify(lampSelector)})!==null`, 45000)
   await ensureWorkbenchCaptureReady(page)
@@ -153,6 +154,7 @@ try {
   check('deleting one browser draft keeps current inputs and both saved projects', await page.evaluate(`document.querySelector('[data-field="project-title"]').value==='First page draft'&&window.__creationRequests.length===0&&!Object.keys(localStorage).filter(k=>k.startsWith('deepblend.creation-draft/v1:')).some(k=>JSON.parse(localStorage.getItem(k)).forms.title==='Second page draft')`) && projects().length === 2)
   const port = server.port; await server.stop()
   server = await startWeb({ workspacePath: REPO_ROOT, port, patch, keepHome: false })
+  await authenticateWebPage(page, server)
   const replay = await fetch(base + '/deepblend/projects', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(requests[2]) }).then(r => r.json())
   check('a restarted actual Host still recovers the same keyed request', replay.ok && replay.project.creationReplayed && replay.project.projectId === 'recovered-reply'
     && JSON.stringify(projectFiles('recovered-reply')) === JSON.stringify(before) && projects().length === 2)

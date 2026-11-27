@@ -9,7 +9,7 @@ import {isDeepStrictEqual} from 'node:util'
 import {decodePng,compileSceneSpec} from '@deepblend/dsh-blender-contracts'
 import {Browser} from '../../tools/browser-driver.mjs'
 import {ensureWorkbenchCaptureReady} from '../../tools/docs-capture-visibility.mjs'
-import {REPO_ROOT,startWeb,storePatch} from '../../tools/dsh-web-harness.mjs'
+import { REPO_ROOT,startWeb,storePatch, fetchFromWebServer as fetch, authenticateWebPage } from '../../tools/dsh-web-harness.mjs'
 const output=resolve(process.env.DEEPBLEND_E2E_ARTIFACTS||join(REPO_ROOT,'.deepblend','quality',`recipe-version-ui-${new Date().toISOString().replace(/[:.]/g,'-')}`))
 if(existsSync(output))throw Error(`Evidence directory already exists: ${output}`)
 mkdirSync(output,{recursive:true})
@@ -42,6 +42,7 @@ try{
   }
   browser=await Browser.launch({args:['--window-size=1440,1100']});page=await browser.newPage()
   await page.addInitScript(`window.__recipeEvents=[];document.addEventListener('click',event=>window.__recipeEvents.push({action:event.target.closest?.('[data-action]')?.dataset.action,trusted:event.isTrusted}),true);window.__recipeWrites=[];const original=window.fetch;window.fetch=(input,init)=>{if(init?.method==='POST')window.__recipeWrites.push({url:String(input),body:JSON.parse(init.body)});return original(input,init)}`)
+  await authenticateWebPage(page, server)
   await page.goto(`${base}/deepblend/workbench`);await page.waitFor(`document.querySelector(${JSON.stringify(choice('2.0.0'))})!==null`,45000)
   check('the real gallery offers separately selectable v1 and v2',await page.count(choice('1.0.0'))===1&&await page.count(choice('2.0.0'))===1)
   check('v2 is selected by a real pointer',(await clickWorkbenchControl(page, choice('2.0.0'))).via==='pointer')

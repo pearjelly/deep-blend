@@ -6,7 +6,7 @@ import { join, resolve } from 'node:path'
 import { execFileSync } from 'node:child_process'
 import { decodePng, sha256 } from '@deepblend/dsh-blender-contracts'
 import { Browser } from '../../tools/browser-driver.mjs'
-import { REPO_ROOT, startWeb, storePatch } from '../../tools/dsh-web-harness.mjs'
+import { REPO_ROOT, startWeb, storePatch, authenticateWebPage } from '../../tools/dsh-web-harness.mjs'
 import { clickWorkbenchControl } from './workbench-navigation.mjs'
 
 const output = resolve(process.env.DEEPBLEND_E2E_ARTIFACTS || join(REPO_ROOT, '.deepblend/quality', `trivet-spacing-${Date.now()}`))
@@ -54,6 +54,7 @@ try {
   browser = await Browser.launch({ args: ['--window-size=1440,1100'] }); page = await browser.newPage()
   await page.addInitScript(`window.__writes=[];const original=window.fetch;window.fetch=(url,init)=>{if(init?.method==='POST')window.__writes.push({url:String(url),body:JSON.parse(init.body)});return original(url,init)}`)
   await page.send('Browser.setDownloadBehavior', { behavior: 'allow', downloadPath: downloads, eventsEnabled: true })
+  await authenticateWebPage(page, server)
   await page.goto(base + '/deepblend/workbench')
   const choice = '[data-action="select-recipe:deepblend.walnut-trivet@1.2.0"]'
   await page.waitFor(`document.querySelector(${JSON.stringify(choice)}) !== null`, 45000)

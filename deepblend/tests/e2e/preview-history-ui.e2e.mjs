@@ -12,7 +12,7 @@ import { isDeepStrictEqual } from 'node:util'
 import { decodePng, sceneSpecDigest } from '@deepblend/dsh-blender-contracts'
 import { Browser } from '../../tools/browser-driver.mjs'
 import { ensureWorkbenchCaptureReady } from '../../tools/docs-capture-visibility.mjs'
-import { REPO_ROOT, startWeb, storePatch } from '../../tools/dsh-web-harness.mjs'
+import { REPO_ROOT, startWeb, storePatch, fetchFromWebServer as fetch, authenticateWebPage } from '../../tools/dsh-web-harness.mjs'
 const lampSelector = `[data-action="select-recipe:deepblend.metal-lamp@${JSON.parse(readFileSync(join(REPO_ROOT, 'deepblend/recipes/metal-lamp/recipe.json'), 'utf8')).version}"]`
 const output = resolve(process.env.DEEPBLEND_E2E_ARTIFACTS || join(REPO_ROOT, '.deepblend/quality', `preview-history-ui-${new Date().toISOString().replace(/[:.]/g, '-')}`))
 if (existsSync(output)) throw Error(`Evidence directory already exists: ${output}`)
@@ -39,6 +39,7 @@ try {
       if(url.includes('/previews?')){const nativeText=response.text.bind(response);response.text=async()=>{const text=await nativeText();const value=JSON.parse(text);if(window.__ownerCorruptProject&&url.includes('/projects/'+window.__ownerCorruptProject+'/previews?'))value.previews.projectId='wrong-project';window.__ownerResponses.push({url,projectId:value.previews?.projectId});return JSON.stringify(value);};if(window.__ownerHoldProject&&url.includes('/projects/'+window.__ownerHoldProject+'/previews?')){window.__ownerHeld.push(url);await new Promise(resolve=>window.__ownerReleases.push(resolve));}}
       if(url.includes('/diff?')){if(window.__versionHoldDiff)await new Promise(resolve=>window.__versionDiffReleases.push(resolve));const nativeJson=response.json.bind(response);response.json=async()=>{const value=await nativeJson();window.__versionDiffReads.push({url,from:value.diff?.fromRevision,to:value.diff?.toRevision});return value;};}
       if(window.__previewHoldRefresh&&(!init?.method||init.method==='GET')&&url.includes('/deepblend/')){window.__previewHeld.push(url);await new Promise(resolve=>window.__previewReleases.push(resolve));}return response;}`)
+  await authenticateWebPage(page, server)
   await page.goto(`${base}/deepblend/workbench`)
   await page.waitFor(`document.querySelector(${JSON.stringify(lampSelector)})!==null`, 45000)
   await page.click(lampSelector); await page.fill('[data-field="project-title"]', projectId)

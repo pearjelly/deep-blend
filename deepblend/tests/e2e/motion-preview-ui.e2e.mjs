@@ -4,7 +4,7 @@ import { join, resolve } from 'node:path'
 import { createHash } from 'node:crypto'
 import { isDeepStrictEqual } from 'node:util'
 import { Browser } from '../../tools/browser-driver.mjs'
-import { REPO_ROOT, startWeb, storePatch } from '../../tools/dsh-web-harness.mjs'
+import { REPO_ROOT, startWeb, storePatch, fetchFromWebServer as fetch, authenticateWebPage } from '../../tools/dsh-web-harness.mjs'
 import { clickWorkbenchControl } from './workbench-navigation.mjs'
 
 const output=resolve(process.env.DEEPBLEND_E2E_ARTIFACTS||join(REPO_ROOT,'.deepblend/quality','motion-preview-ui-'+Date.now()))
@@ -30,6 +30,7 @@ try{
  const original=hash(file('revisions','r0002','scene.blend')),before=read('revisions','r0002','scene-spec.json'),count=readdirSync(file('revisions')).length
  browser=await Browser.launch({args:['--window-size=1440,1000']});page=await browser.newPage()
  await page.addInitScript(`window.__motionWrites=JSON.parse(sessionStorage.getItem('motion-writes')||'[]');window.__previewReceipt=null;const original=window.fetch;window.fetch=async(input,init)=>{const save=init?.method==='POST'&&/\\/motion-previews\\/[^/]+\\/save$/.test(String(input));const preview=init?.method==='POST'&&String(input).endsWith('/motion-previews');if(preview){const response=await original(input,init);window.__previewReceipt=await response.clone().json();return response}if(!save)return original(input,init);const entry={url:String(input),body:JSON.parse(init.body)};window.__motionWrites.push(entry);sessionStorage.setItem('motion-writes',JSON.stringify(window.__motionWrites));const response=await original(input,init);entry.receipt=await response.clone().json();if(!sessionStorage.getItem('motion-reply-dropped')){sessionStorage.setItem('motion-reply-dropped','1');throw Error('Explicit fixture: reply lost after commit')};return response}`)
+ await authenticateWebPage(page, server)
  await page.goto(base+'/deepblend/workbench');await page.waitFor(`document.querySelector('[data-lighttable-revision="r0002"]')!==null`,60000);await page.click('[data-view-tab="jobs"]');await page.waitFor(`document.querySelector('[data-motion-editor]')!==null`,60000)
  await page.evaluate(`(()=>{const e=document.querySelector('[data-field="motion-camera"]');e.value='fitted-for-motion';e.dispatchEvent(new Event('input',{bubbles:true}));e.dispatchEvent(new Event('change',{bubbles:true}))})()`)
  await page.fill('[data-field="motion-seconds"]',String(seconds))

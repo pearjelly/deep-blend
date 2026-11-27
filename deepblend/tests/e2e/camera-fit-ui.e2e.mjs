@@ -5,7 +5,7 @@ import { createHash } from 'node:crypto'
 import { spawnSync } from 'node:child_process'
 import { isDeepStrictEqual } from 'node:util'
 import { Browser } from '../../tools/browser-driver.mjs'
-import { REPO_ROOT, startWeb, storePatch } from '../../tools/dsh-web-harness.mjs'
+import { REPO_ROOT, startWeb, storePatch, fetchFromWebServer as fetch, authenticateWebPage } from '../../tools/dsh-web-harness.mjs'
 import { clickWorkbenchControl } from './workbench-navigation.mjs'
 
 const output = resolve(process.env.DEEPBLEND_E2E_ARTIFACTS || join(REPO_ROOT, '.deepblend/quality', 'camera-fit-ui-' + Date.now()))
@@ -61,6 +61,7 @@ try {
   await page.addInitScript(`window.__fitWrites=JSON.parse(sessionStorage.getItem('deepblend-fit-writes')||'[]');const original=window.fetch;
     window.fetch=async(input,init)=>{const fit=init?.method==='POST'&&String(input).endsWith('/camera-fit');if(fit){window.__fitWrites.push({url:String(input),body:JSON.parse(init.body)});sessionStorage.setItem('deepblend-fit-writes',JSON.stringify(window.__fitWrites))}
     const response=await original(input,init);if(fit&&!sessionStorage.getItem('deepblend-fit-reply-dropped')){await response.clone().json();sessionStorage.setItem('deepblend-fit-reply-dropped','1');throw Error('Explicit acceptance fixture: reply lost after Host completed')};return response}`)
+  await authenticateWebPage(page, server)
   await page.goto(base + '/deepblend/workbench')
   await page.waitFor(`document.querySelector('[data-lighttable-revision="r0003"]')!==null`, 60000)
   await page.click('[data-view-tab="scene"]'); await clickWorkbenchControl(page, '[data-field="fit-frame"]')
