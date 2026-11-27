@@ -8,6 +8,7 @@ import { Readable } from 'node:stream'
 import { Context } from '@deepseek-ai/cordis'
 import BlenderStudio, { StudioConfig } from '@deepblend/dsh-blender-host'
 import { createImage, encodePng, reviewInputsDigest, sceneSpecDigest } from '@deepblend/dsh-blender-contracts'
+import { ownerHttpContext } from '../lib/http-owner.mjs'
 
 const PNG = encodePng(createImage(24, 18, [170, 80, 20, 255]))
 const OTHER = encodePng(createImage(24, 18, [20, 90, 170, 255]))
@@ -164,7 +165,8 @@ test('the real HTTP upload responds with structured errors for oversized bodies 
   const { createServer } = await import('node:http')
   const { default: BlenderUiHost } = await import('@deepblend/dsh-blender-ui')
   const { studio, projectId } = await setup(t)
-  const ctx = new Context(); let handler
+  const ctx = ownerHttpContext()
+  let handler
   ctx.provide('blenderStudio', studio)
   ctx.provide('webServer', { register(entry) { handler = entry.handler; return () => {} } })
   new BlenderUiHost(ctx, { serveRoute: true })
