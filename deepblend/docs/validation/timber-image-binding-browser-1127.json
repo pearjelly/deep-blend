@@ -1,0 +1,87 @@
+{
+  "schemaVersion": "deepblend.timber-image-binding-workbench/v1",
+  "recordedAt": "2026-11-27T14:38:01.149511+00:00",
+  "source": "f84b1f3c6f882f936f774669abe1b0098ade2b0e",
+  "baselineSource": "ffb3ec715824bd38c09839870fb3bce83786b8e6",
+  "recipeVersion": "1.1.0",
+  "spacingMm": 64,
+  "asset": {
+    "source": "https://polyhaven.com/a/dark_wood",
+    "license": "CC0-1.0",
+    "format": "1K diffuse JPEG",
+    "download": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/dark_wood/dark_wood_diff_1k.jpg",
+    "providerBytes": 754754,
+    "providerMd5": "47fa883f1bb33acc5711245f64b75975",
+    "sha256": "d68da31655bf47024af893156a6a01a6c95bb60f55d97e2dc9bdd47be320e5b5"
+  },
+  "scope": "One 64 mm walnut-trivet recipe fixture in Chrome and Blender. Counts cover target selection, texture confirmation and save after the photo has been inspected. The paired run preserved distinct material roughness parameters.",
+  "singleGroup": {
+    "actionsPerGroup": 4,
+    "totalActions": 8,
+    "saves": 2,
+    "perGroupActions": [
+      "choose inspected photo",
+      "select target member",
+      "explicitly replace procedural texture",
+      "apply and save"
+    ]
+  },
+  "pairedGroups": {
+    "actions": [
+      "choose the inspected photograph",
+      "select the first group",
+      "include the named partner",
+      "confirm replacement of procedural textures",
+      "save both groups and preview"
+    ],
+    "totalActions": 5,
+    "saves": 1,
+    "nativeBrowserChecks": 9,
+    "historicalRecipeLockPreserved": true,
+    "independentMaterialsRetained": true,
+    "previewAndSavedRgbaSha256": "0819a3eb3a3287ecfbc89450790146f0f949f608fc0df1d6e7addc28ea62ae97"
+  },
+  "verificationReportSha256": "71eb98c7a9a43446034a666816f58ba01a00fe80f2050ad6d5dc48bba1b6b965",
+  "nativeReopen": {
+    "source": "bac7f65176cfccd34476cb272601357155b46bcb",
+    "blenderVersion": "5.2.1 LTS",
+    "recipeLockVersion": "1.1.0",
+    "revisions": [
+      {
+        "revision": "r0002",
+        "fileSha256": "a646f0429715a0c51dbc601870135e3981b68d86987fb40d7cfd365e3d602895"
+      },
+      {
+        "revision": "r0003",
+        "fileSha256": "685d05e25b8c9fe67d20bd912bb14da0ada868f156f0e61e293986ebcb9cd907"
+      },
+      {
+        "revision": "r0004",
+        "fileSha256": "aaa259cd5ec2c450800c90b05cb217b83ca343ca3efa94b3bf189f66528af9dc"
+      }
+    ],
+    "geometryAndPhotographyUnchanged": true,
+    "sameBindingAfterUvEdit": true,
+    "groups": {
+      "longitudinal-slats": {
+        "roughness": 0.44,
+        "packedImageSha256": "d68da31655bf47024af893156a6a01a6c95bb60f55d97e2dc9bdd47be320e5b5",
+        "uvLayer": "UVMap",
+        "proceduralRoughnessBefore": true,
+        "proceduralRoughnessAfter": false,
+        "proceduralBumpBefore": true,
+        "proceduralBumpAfter": false
+      },
+      "cross-slats": {
+        "roughness": 0.57,
+        "packedImageSha256": "d68da31655bf47024af893156a6a01a6c95bb60f55d97e2dc9bdd47be320e5b5",
+        "uvLayer": "UVMap",
+        "proceduralRoughnessBefore": true,
+        "proceduralRoughnessAfter": false,
+        "proceduralBumpBefore": true,
+        "proceduralBumpAfter": false
+      }
+    },
+    "evidenceSha256": "226a46e94328dab643d9a70b68827f0d8105e1eebba1760ee62e47455957cbde"
+  }
+}

@@ -46,6 +46,8 @@ Imported models support whole-instance, source-part and original material-slot o
 
 Procedural textures offer noise, wave and Voronoi patterns, density/stretch, bump, and color/roughness variation. UV coordinates may name an existing UV layer; blank means the active render layer. A missing layer is rejected without discarding the draft. UV density is relative to the layout, not a manufacturing dimension. Image-material texture controls use the asset panel instead.
 
+For a saved timber half lap, select an inspected image in the asset panel, choose one group and the **Base color** channel, and include its named partner. Both groups use the same image, UV layer, tiling and offset. Each keeps its own roughness value and other image maps. Confirming replacement removes the procedural texture’s color, bump and roughness variation. **Save both timber groups and preview** records the two bindings in one revision.
+
 For a mesh generator with planar faces, select the option to rebuild per-face UVs on save. Set quarter turns and repeat scale, save, then inspect the actual material. This preserves geometry and materials, supports overlapping UV islands for repeating textures, and rejects non-planar faces. It does not pack an atlas or repair overlapping geometry. See [modeling](modeling.en.md#repeating-texture-uvs).
 
 The handled cup's advanced root spread (`rootTension`) is dimensionless, from 1 to 2.5. Larger values spread the connection surface; the control is not in millimeters. Compare roots with fixed photography rather than assuming a larger value looks better.
