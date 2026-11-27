@@ -43,9 +43,12 @@ dsh web
 The process-only options allow pnpm to install at the DSH profile workspace root and use peers supplied by DSH. / 两个临时参数允许向 profile 工作区根安装，并沿用 DSH 提供的 peer，不写全局配置。隔离 DSH 0.1.5-rc.2／pnpm 10.28.2 已复现无参数时的 `ERR_PNPM_ADDING_TO_ROOT`，加参数后本地候选包安装通过；这不是对正在运行的桌面 profile 的修改。
 
 If `dsh web` is already running, stop and restart it after installation. The bundle and presets load
-when the profile starts. Keep the `web` profile consistent across installation and launch.
+when the profile starts. Keep the `web` profile consistent across installation and launch. Open the launch
+link printed by DSH in the browser you will use for the workbench. The workbench and its HTTP routes use
+the DSH owner session.
 
-已运行的 `dsh web` 需要重启。在**新会话**里选择 **DeepBlend Studio** 预设，然后在侧栏打开 **Blender**。
+已运行的 `dsh web` 需要重启。在使用工作台的浏览器中打开 DSH 输出的启动链接完成登录。工作台及其 HTTP 路由使用 DSH 所有者会话。
+在**新会话**里选择 **DeepBlend Studio** 预设，然后在侧栏打开 **Blender**。
 安装包会同时部署工作台与智能体预设。
 
 <details>

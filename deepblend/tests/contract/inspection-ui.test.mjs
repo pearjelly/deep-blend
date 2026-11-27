@@ -4,7 +4,7 @@ import assert from 'node:assert/strict'
 import { readFileSync } from 'node:fs'
 import { Readable } from 'node:stream'
 import { EventEmitter } from 'node:events'
-import { Context } from '@deepseek-ai/cordis'
+import { ownerHttpContext } from '../lib/http-owner.mjs'
 import BlenderUiHost, { createHandlers } from '@deepblend/dsh-blender-ui'
 import { buildSceneTree, compileSceneSpec } from '@deepblend/dsh-blender-contracts'
 import { loadClientBundle } from '../lib/client-bundle.mjs'
@@ -188,7 +188,7 @@ test('explicit mode refuses old or unknown Host capabilities, missing revisions 
 test('closing an inspection response aborts actual Host work and releases listeners', async () => {
   const request = Readable.from([Buffer.from(JSON.stringify({ revision: 'r0001', mode: 'clay' }))]); Object.assign(request, { method: 'POST', url: '/deepblend/projects/one/preview', headers: { 'content-type': 'application/json' } })
   const response = Object.assign(new EventEmitter(), { setHeader() {}, end() { this.writableEnded = true } }); let signal
-  const context = new Context(); context.provide('blenderStudio', { hostApiVersion: () => 6, renderViews: async input => { signal = input.signal; response.emit('close'); return { artifacts: [], views: [] } } })
+  const context = ownerHttpContext(); context.provide('blenderStudio', { hostApiVersion: () => 6, renderViews: async input => { signal = input.signal; response.emit('close'); return { artifacts: [], views: [] } } })
   await new BlenderUiHost(context, { serveRoute: false })._handle(request, response)
   assert.equal(signal.aborted, true); assert.equal(response.listenerCount('close'), 0); assert.equal(request.listenerCount('aborted'), 0)
 })

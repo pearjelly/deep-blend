@@ -14,6 +14,7 @@
 | `deepblend/tests/composition/tool-plane-m3.e2e.mjs` | 新宿主渲染、交付生命周期与工具清单 |
 | `deepblend/tests/composition/tool-plane-m1.e2e.mjs` | 实际 Agent 工具、灰模/材质图片附件、PNG 摘要、相同摄影设置与旧预览保护 |
 | `deepblend/tests/e2e/inspection-ui.e2e.mjs` | 实际浏览器生成图、刷新与历史版本、草稿保护和取消 |
+| `deepblend/tests/e2e/http-access.e2e.mjs` | 旧版与新版 DSH 的真实浏览器登录、匿名拒绝、原生版本保存和历史文件保护 |
 | `deepblend/tests/blender-integration/handled-cup.e2e.mjs` | 实际杯体构造、封闭性与角点法线、尺寸编辑、固定材质/灰模图片、过渡参数实际几何及旧文件保护 |
 | `deepblend/tests/e2e/handled-cup-ui.e2e.mjs` | 实际画廊创建、参数与来源锁定、桌面/窄屏完整预览、毫米与无量纲过渡参数编辑与拒绝、重载及旧版本保护 |
 | `deepblend/tests/e2e/lamp-dimensions-native.e2e.mjs` | 灯罩默认/边界/230 mm及连续修改的真实Host保存、闭合网格、法向壁厚/内衬间隙、颈口装配、旧文件及内衬检查PNG；候选门槛，最终Linux结果另核对 |
@@ -172,7 +173,7 @@ run `38290709648` 的八分钟杯步骤仍超时。完整 ZIP 的 CRC 已验证�
 本机分组验证已完成：默认完整组65/65，构造38/38，尺寸28/28，名称并集恰好为原65项，只重复环境激活检查。实际耗时分别367576/180976/185240 ms，不能当作Linux耗时或受控提速。未知组在创建项目之前拒绝；故意将构造组选成参数组、将参数组选成构造组、移除完整入口的all覆盖，三项均使具体契约失败，恢复后通过。源产品175文件与已验收冻结字节相同，分组报告另标明自己的范围。当前新四作业CI仍未执行，不计稳定发布。
 
 
-新版宿主另有 harness-021-compatibility job：按 compatibility/dsh-0.2.1-rc.1 的独立锁安装，不覆盖旧基线；运行实际 Host、预览图像回执、渲染/交付生命周期与两种模式选择、浏览器检查。产物名 harness-021-<run>-<attempt>。本 job 不调用线上模型；是否已执行成功以具体提交的 Actions 与产物为准。
+新版宿主的 `harness-021-compatibility` 作业按 `compatibility/dsh-0.2.1-rc.1` 的独立锁安装。它验证实际 Host、预览图像回执、渲染交付、两种预设选择、浏览器检查和工作台访问。旧版与新版的访问报告分别保存在 `http-access/` 和 `modern-http-access/`。新版作业的产物名为 `harness-021-<run>-<attempt>`，作业在本地运行，不调用线上模型。
 
 macOS 托管安装的零配置发现由本机完整 `composition/activation.e2e.mjs` 验证；它依赖 `.tools/Blender.app`，不作为 Linux 托管安装的证据。新版 Linux job 使用真实已固定的 Blender 绝对路径，保持执行路径白名单。
 

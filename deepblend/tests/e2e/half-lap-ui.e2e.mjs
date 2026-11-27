@@ -7,7 +7,7 @@ import { join, resolve } from 'node:path'
 import { createHash } from 'node:crypto'
 import { decodePng, validateSceneSpec } from '@deepblend/dsh-blender-contracts'
 import { Browser } from '../../tools/browser-driver.mjs'
-import { REPO_ROOT, startWeb, storePatch } from '../../tools/dsh-web-harness.mjs'
+import { REPO_ROOT, startWeb, storePatch, fetchFromWebServer as fetch, authenticateWebPage } from '../../tools/dsh-web-harness.mjs'
 import { buildHalfLapFixture } from '../../examples/runtime-author/conformance.mjs'
 import { clickWorkbenchControl } from './workbench-navigation.mjs'
 
@@ -121,6 +121,7 @@ try {
     return { request: response.body, hash: preview.candidateSpecHash }
   }
 
+  await authenticateWebPage(page, server)
   await page.goto(url)
   await waitFor('[data-lighttable-revision="r0001"]', 45000)
   assert.equal(await page.evaluate('document.documentElement.lang'), 'en')

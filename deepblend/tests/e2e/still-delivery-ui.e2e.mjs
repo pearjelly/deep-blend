@@ -5,7 +5,7 @@ import { createHash } from 'node:crypto'
 import yauzl from 'yauzl'
 import { decodePng } from '@deepblend/dsh-blender-contracts'
 import { Browser } from '../../tools/browser-driver.mjs'
-import { REPO_ROOT, startWeb, storePatch } from '../../tools/dsh-web-harness.mjs'
+import { REPO_ROOT, startWeb, storePatch, fetchFromWebServer as fetch, authenticateWebPage } from '../../tools/dsh-web-harness.mjs'
 import { clickWorkbenchControl } from './workbench-navigation.mjs'
 
 const out = resolve(process.env.DEEPBLEND_E2E_ARTIFACTS || join(REPO_ROOT, '.deepblend/quality', `still-delivery-ui-${Date.now()}`))
@@ -34,6 +34,7 @@ try {
   const previousOutput = hash(file('output', 'final.mp4'))
   browser = await Browser.launch({ args: ['--window-size=1440,1000'] }); page = await browser.newPage()
   await page.addInitScript(`window.__renders=[];const original=window.fetch;window.fetch=async(input,init)=>{if(init?.method==='POST'&&String(input).endsWith('/render')){const item={body:JSON.parse(init.body)};window.__renders.push(item);const response=await original(input,init);item.response=await response.clone().json();return response}return original(input,init)}`)
+  await authenticateWebPage(page, server)
   await page.goto(`${base}/deepblend/workbench`); await page.waitFor(`document.querySelector('[data-lighttable-revision="r0001"]')!==null`, 60000)
   await page.click('[data-view-tab="jobs"]'); await page.waitFor(`document.querySelector('[data-field="render-delivery-kind"]')!==null`, 60000)
   await page.fill('[data-field="frame-start"]', '1'); await page.fill('[data-field="frame-end"]', '1')

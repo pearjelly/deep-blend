@@ -8,7 +8,7 @@ import { tmpdir } from 'node:os'
 import { dirname, join } from 'node:path'
 import { test } from 'node:test'
 import yauzl from 'yauzl'
-import { Context } from '@deepseek-ai/cordis'
+import { ownerHttpContext } from '../lib/http-owner.mjs'
 import { PROJECT_RECORD_VERSION, sceneSpecDigest, specHash, sha256 } from '@deepblend/dsh-blender-contracts'
 import BlenderUi, { assertSnapshotHttpRequest } from '@deepblend/dsh-blender-ui'
 import { ProjectStore } from '../../../packages/deepblend/host/lib/project-store.js'
@@ -365,7 +365,7 @@ test('new HTTP surface enforces local Host/Origin/JSON boundaries and streams an
     allowed('127.0.0.1', 'localhost:3210', { 'sec-fetch-site': 'cross-site' }), allowed('127.0.0.1', 'localhost:3210', { 'content-type': 'text/plain' })])
     assert.throws(() => assertSnapshotHttpRequest(request), code('SNAPSHOT_LOCAL_ONLY'))
   let opened = 0
-  const ctx = new Context()
+  const ctx = ownerHttpContext()
   ctx.provide('blenderStudio', {
     openEditableSnapshot: request => { opened++; return f.service.open(request) }, getEditableSnapshot: request => f.service.get(request),
     openRenderVideo: request => { opened++; return f.service.openVideo(request) },

@@ -4,7 +4,7 @@ import { createHash } from 'node:crypto'
 import { join,resolve } from 'node:path'
 import { isDeepStrictEqual } from 'node:util'
 import { Browser } from '../../tools/browser-driver.mjs'
-import { REPO_ROOT,startWeb,storePatch } from '../../tools/dsh-web-harness.mjs'
+import { REPO_ROOT,startWeb,storePatch, fetchFromWebServer as fetch, authenticateWebPage } from '../../tools/dsh-web-harness.mjs'
 import { clickWorkbenchControl } from './workbench-navigation.mjs'
 const output=resolve(process.env.DEEPBLEND_E2E_ARTIFACTS||join(REPO_ROOT,'.deepblend/quality','speaker-motion-ui-'+Date.now()))
 if(existsSync(output))throw Error('Preserve existing speaker motion evidence: '+output)
@@ -22,6 +22,7 @@ try{
  check('the source has 100 visible parts and 10 hidden construction tools',expected.length===100&&hidden.length===10)
  browser=await Browser.launch({args:['--window-size=1440,1000']});page=await browser.newPage()
  await page.addInitScript(`window.__motion=[];window.__motionResults=[];const old=window.fetch;window.fetch=async(input,init)=>{const motion=init?.method==='POST'&&String(input).endsWith('/motion-previews');if(motion)window.__motion.push(JSON.parse(init.body));const result=await old(input,init);if(motion)window.__motionResults.push(await result.clone().json());return result}`)
+ await authenticateWebPage(page, server)
  await page.goto(base+'/deepblend/workbench');await page.waitFor(`document.querySelector('[data-lighttable-revision="r0001"]')!==null`,60000);await page.click('[data-view-tab="jobs"]');await page.waitFor(`document.querySelector('[data-motion-editor]')!==null`,60000)
  await clickWorkbenchControl(page,'[data-field="motion-seconds"]');await page.fill('[data-field="motion-seconds"]','1');await page.evaluate(`(()=>{document.querySelector('[data-field="motion-seconds"]').dispatchEvent(new Event('change',{bubbles:true}))})()`)
  check('visible tagged parts are selectable with a real pointer',(await clickWorkbenchControl(page,'[data-action="motion-tagged"]')).via==='pointer')

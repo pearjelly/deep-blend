@@ -5,7 +5,7 @@ import {resolve,join} from 'node:path'
 import {createHash} from 'node:crypto'
 import {decodePng} from '@deepblend/dsh-blender-contracts'
 import {Browser} from '../../tools/browser-driver.mjs'
-import {startWeb,storePatch,REPO_ROOT} from '../../tools/dsh-web-harness.mjs'
+import { startWeb,storePatch,REPO_ROOT, authenticateWebPage } from '../../tools/dsh-web-harness.mjs'
 const lampSelector = `[data-action="select-recipe:deepblend.metal-lamp@${JSON.parse(readFileSync(join(REPO_ROOT, 'deepblend/recipes/metal-lamp/recipe.json'), 'utf8')).version}"]`
 const out=resolve(process.env.DEEPBLEND_E2E_ARTIFACTS||'.deepblend/quality/png-download-'+new Date().toISOString().replace(/[:.]/g,'-'))
 if(existsSync(out))throw Error('Evidence directory already exists: '+out)
@@ -23,11 +23,13 @@ try{
  const rows=JSON.parse(await storePatch(root)),host=rows.find(r=>r.id==='deepblend-blender-host').config
  rows.find(r=>r.id==='deepblend-blender-runtime').config.blenderPath=process.env.DEEPBLEND_BLENDER_PATH||join(REPO_ROOT,'.tools/Blender.app/Contents/MacOS/Blender')
  host.maxPreviewSamples=8;host.ffmpegPath=join(out,'encoder-does-not-exist');host.ffprobePath=join(out,'probe-does-not-exist')
- server=await startWeb({workspacePath:REPO_ROOT,patch:JSON.stringify(rows),keepHome:false})
+ const nonsecureHost='deepblend.test'
+ server=await startWeb({workspacePath:REPO_ROOT,patch:JSON.stringify(rows),keepHome:false,trustedHosts:[nonsecureHost]})
  const base=`http://127.0.0.1:${server.port}`
- browser=await Browser.launch({args:['--window-size=1440,1100','--host-resolver-rules=MAP deepblend.test 127.0.0.1']});page=await browser.newPage()
+ browser=await Browser.launch({args:['--window-size=1440,1100',`--host-resolver-rules=MAP ${nonsecureHost} 127.0.0.1`]});page=await browser.newPage()
  await page.send('Browser.setDownloadBehavior',{behavior:'allow',downloadPath:downloads,eventsEnabled:true})
  await page.addInitScript(`window.__pngRequests=[];const original=window.fetch;window.fetch=(url,init)=>{window.__pngRequests.push({url:String(url),method:init?.method||'GET',accept:init?.headers?.accept});return original(url,init)}`)
+ await authenticateWebPage(page, server)
  await page.goto(base+'/deepblend/workbench')
  await page.waitFor(`document.querySelector(${JSON.stringify(lampSelector)})!==null`, 45000)
  await page.click(lampSelector);await page.fill('[data-field="project-title"]',projectId)
@@ -55,10 +57,14 @@ try{
  archiveImage('first');writeFileSync(imagePath,original);await page.click(selector);await waitDownloads(1)
  check('retry after restoring the exact image succeeds',files().every(f=>readFileSync(join(downloads,f)).equals(original)))
  await page.waitFor(`document.querySelector(${JSON.stringify(selector)})?.disabled===false`)
- // A reserved HTTP hostname mapped inside this isolated Chrome proves the real
- // nonsecure context, while all requests still reach our local test server.
+ // The isolated DSH invocation trusts this reserved hostname. Login on that
+ // authority so DSH issues the cookie there and Chrome keeps HTTP nonsecure.
  const secureRequests=await page.evaluate('window.__pngRequests')
- archiveImage('retry');await page.goto(`http://deepblend.test:${server.port}/deepblend/workbench`)
+ const nonsecureLaunch=new URL(server.url)
+ nonsecureLaunch.hostname=nonsecureHost
+ archiveImage('retry')
+ await page.goto(nonsecureLaunch.href)
+ await page.goto(nonsecureLaunch.origin+'/deepblend/workbench')
  await page.waitFor('document.querySelector("[data-lighttable-revision]")!==null',45000)
  await page.click('[data-action="new-work"]')
  await page.waitFor(`document.querySelector('[data-action="select-project:${projectId}"]')!==null`,45000)
@@ -74,7 +80,7 @@ try{
  const requests=[...secureRequests,...await page.evaluate('window.__pngRequests')];record('requests',requests)
  check('only creation writes; saving does not create another revision or render job',requests.filter(r=>r.method==='POST').length===1&&JSON.stringify(readdirSync(join(project,'jobs')).sort())===JSON.stringify(jobsBefore)&&protectedFiles.every(f=>hash(readFileSync(join(project,f.p)))===f.sha256))
  record('source',{artifact,protectedFiles,firstImageMs,archived,downloaded:files().map(f=>({filename:f,sha256:hash(readFileSync(join(downloads,f)))}))})
-}catch(error){failure=error.stack||String(error);console.error(error);record('browser-console',page?.consoleLog||[]);if(page)record('failure-requests',await page.evaluate('window.__pngRequests').catch(()=>[]));await page?.screenshot(join(out,'failure.png')).catch(()=>{})}
+}catch(error){failure=(error.stack||String(error)).replace(/token=[A-Za-z0-9_-]+/g,'token=[redacted]');console.error(failure);record('browser-console',(page?.consoleLog||[]).map(entry=>JSON.parse(JSON.stringify(entry).replace(/token=[A-Za-z0-9_-]+/g,'token=[redacted]'))));if(page)record('failure-requests',await page.evaluate('window.__pngRequests').catch(()=>[]));await page?.screenshot(join(out,'failure.png')).catch(()=>{})}
 finally{if(original&&imagePath)writeFileSync(imagePath,original);await browser?.close();await server?.stop();record('report',{status:failure?'failed':'passed',checks,failure,scope:'Real Chrome download, DSH, native Blender preview, missing encoders, corrupted artifact refusal, retry, actual nonsecure HTTP hashing and narrow layout; no online model calls.'})}
 console.log(`Preview PNG delivery: ${checks.filter(c=>c.ok).length}/${checks.length} checks passed; ${out}`)
 if(failure)process.exitCode=1

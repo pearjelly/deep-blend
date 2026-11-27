@@ -4,7 +4,7 @@ import assert from 'node:assert/strict'
 import { readFileSync } from 'node:fs'
 import { Readable } from 'node:stream'
 import { EventEmitter } from 'node:events'
-import { Context } from '@deepseek-ai/cordis'
+import { ownerHttpContext } from '../lib/http-owner.mjs'
 import BlenderUiHost, { createHandlers, statusForError } from '@deepblend/dsh-blender-ui'
 import { BlenderError, buildSceneTree, compileSceneSpec, applyPatchToSpec, validateScenePatch, validateSceneSpec, UI_ROUTES, matchUiRoute, HOST_API_VERSION } from '@deepblend/dsh-blender-contracts'
 import { loadClientBundle } from '../lib/client-bundle.mjs'
@@ -94,7 +94,7 @@ test('asset routes are closed; Host inputs omit arbitrary paths, commands and re
 test('generic raw upload exceeds reference/JSON limits and passes the actual stream, license and cancellation signal', async () => {
   const bytes = Buffer.alloc(8 * 1024 * 1024 + 1, 7), request = Readable.from([bytes])
   Object.assign(request, { method: 'POST', url: '/deepblend/projects/one/assets?name=source.glb&license=CC0', headers: { 'content-type': 'application/octet-stream' } })
-  const context = new Context(); let received
+  const context = ownerHttpContext(); let received
   context.provide('blenderStudio', { uploadAsset: async input => { received = input; const chunks = []; for await (const chunk of input.stream) chunks.push(chunk); assert.deepEqual(Buffer.concat(chunks), bytes); return { asset: entry('glb').asset } } })
   const host = new BlenderUiHost(context, { serveRoute: false }), response = Object.assign(new EventEmitter(), { setHeader() {}, end(body) { this.body = body; this.writableEnded = true } })
   await host._handle(request, response)
@@ -105,7 +105,7 @@ test('generic raw upload exceeds reference/JSON limits and passes the actual str
 test('a disconnected preview aborts Host work and removes request listeners', async () => {
   const request = Readable.from([Buffer.from(JSON.stringify({ sha256: sha }))]); Object.assign(request, { method: 'POST', url: '/deepblend/projects/one/assets/a/preview', headers: { 'content-type': 'application/json' } })
   const response = Object.assign(new EventEmitter(), { setHeader() {}, end() { this.writableEnded = true } })
-  const context = new Context(); let signal
+  const context = ownerHttpContext(); let signal
   context.provide('blenderStudio', { previewAsset: async input => { signal = input.signal; response.emit('close'); assert.equal(signal.aborted, true); return {} } })
   await new BlenderUiHost(context, { serveRoute: false })._handle(request, response)
   assert.equal(signal.aborted, true); assert.equal(response.listenerCount('close'), 0); assert.equal(request.listenerCount('aborted'), 0)

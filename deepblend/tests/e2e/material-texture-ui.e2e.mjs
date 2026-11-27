@@ -8,7 +8,7 @@ import {execFileSync} from 'node:child_process'
 import {isDeepStrictEqual} from 'node:util'
 import {decodePng} from '@deepblend/dsh-blender-contracts'
 import {Browser} from '../../tools/browser-driver.mjs'
-import {REPO_ROOT,startWeb,storePatch} from '../../tools/dsh-web-harness.mjs'
+import { REPO_ROOT,startWeb,storePatch, fetchFromWebServer as fetch, authenticateWebPage } from '../../tools/dsh-web-harness.mjs'
 const output=resolve(process.env.DEEPBLEND_E2E_ARTIFACTS||join(REPO_ROOT,'.deepblend','quality',`material-texture-ui-${new Date().toISOString().replace(/[:.]/g,'-')}`))
 if(existsSync(output))throw Error(`Evidence directory already exists: ${output}`)
 mkdirSync(output,{recursive:true})
@@ -36,6 +36,7 @@ try{
   copyFileSync(path(beforePreview.path),join(output,'before.png'))
   browser=await Browser.launch({args:['--window-size=1440,1100']});page=await browser.newPage()
   await page.addInitScript(`window.__surfaceWrites=[];const originalFetch=window.fetch;window.fetch=(input,init)=>{if(init?.method==='POST')window.__surfaceWrites.push({url:String(input),body:JSON.parse(init.body)});return originalFetch(input,init)}`)
+  await authenticateWebPage(page, server)
   await page.goto(url);await page.waitFor('document.querySelector("[data-lighttable-revision=r0001]")!==null',45000)
   const selectEntity=async()=>{await page.click('[data-view-tab="scene"]');await page.waitFor(`document.querySelector(${JSON.stringify('[data-action="select-entity:shade-shell"]')})!==null`,30000);await clickWorkbenchControl(page, '[data-action="select-entity:shade-shell"]');await page.waitFor(`document.querySelector(${JSON.stringify(field('type'))})!==null`,30000)}
   const select=async(key,value)=>page.evaluate(`(()=>{const node=document.querySelector(${JSON.stringify(field(key))});Object.getOwnPropertyDescriptor(HTMLSelectElement.prototype,'value').set.call(node,${JSON.stringify(value)});node.dispatchEvent(new Event('input',{bubbles:true}));})()`)

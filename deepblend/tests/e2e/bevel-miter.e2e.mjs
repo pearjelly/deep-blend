@@ -8,7 +8,7 @@ import { createHash } from 'node:crypto'
 import { isDeepStrictEqual } from 'node:util'
 import { decodePng } from '@deepblend/dsh-blender-contracts'
 import { Browser } from '../../tools/browser-driver.mjs'
-import { REPO_ROOT, startWeb, storePatch } from '../../tools/dsh-web-harness.mjs'
+import { REPO_ROOT, startWeb, storePatch, fetchFromWebServer as fetch, authenticateWebPage } from '../../tools/dsh-web-harness.mjs'
 
 const directory = resolve(process.env.DEEPBLEND_E2E_ARTIFACTS || join(REPO_ROOT, '.deepblend', 'quality', `bevel-miter-ui-${new Date().toISOString().replace(/[:.]/g, '-')}`))
 const root = join(directory, 'store'), projectId = 'curved-bore', results = [], startedAt = new Date().toISOString()
@@ -44,6 +44,7 @@ try {
   check('the baseline is a real preview with miterInner still omitted', before.kind === 'preview' && !Object.hasOwn(beforeSpec.entities.find(entity => entity.id === 'body').modifiers[1], 'miterInner'))
   browser = await Browser.launch({ args: ['--window-size=1440,1000'] }); page = await browser.newPage()
   await page.addInitScript(`window.__bevelWrites=[];const originalFetch=window.fetch;window.fetch=(input,init)=>{if(init?.method==='POST')window.__bevelWrites.push({url:String(input),body:JSON.parse(init.body)});return originalFetch(input,init)}`)
+  await authenticateWebPage(page, server)
   await page.goto(url); await page.waitFor('document.querySelector(\'[data-brief-base-revision="r0001"]\')!==null', 45000)
   await page.click('[data-view-tab="scene"]'); await page.waitFor('document.querySelector(\'[data-action="select-entity:body"]\')!==null', 30000)
   await page.click('[data-action="select-entity:body"]'); await page.waitFor(`document.querySelector(${JSON.stringify(field)})!==null`, 30000)

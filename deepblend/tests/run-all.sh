@@ -146,6 +146,9 @@ run_suite "Workbench UI in a real browser: manage a project, refresh, cancel, no
 run_suite "Standalone fullscreen workbench: its own route, the console's own bundle, refresh (M6)" \
   node deepblend/tests/e2e/workbench-page.e2e.mjs
 
+run_suite "HTTP owner access: real DSH login, cross-origin refusal and protected native history" \
+  node deepblend/tests/e2e/http-access.e2e.mjs
+
 run_suite "Render selection: native profile, submitted revision, frame dimensions and encoded delivery" \
   node deepblend/tests/e2e/render-selection-ui.e2e.mjs
 

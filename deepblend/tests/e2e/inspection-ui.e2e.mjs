@@ -10,7 +10,7 @@ import { isDeepStrictEqual } from 'node:util'
 import { decodePng } from '@deepblend/dsh-blender-contracts'
 import { Browser } from '../../tools/browser-driver.mjs'
 import { revealWorkbenchControl, clickWorkbenchControl } from './workbench-navigation.mjs'
-import { REPO_ROOT, startWeb, storePatch, dismissFirstRunDialogs } from '../../tools/dsh-web-harness.mjs'
+import { REPO_ROOT, startWeb, storePatch, dismissFirstRunDialogs, fetchFromWebServer as fetch } from '../../tools/dsh-web-harness.mjs'
 const directory = resolve(process.env.DEEPBLEND_E2E_ARTIFACTS || join(REPO_ROOT, '.deepblend/quality', `inspection-ui-${new Date().toISOString().replace(/[:.]/g, '-')}`))
 if (existsSync(directory)) throw new Error(`Evidence directory already exists: ${directory}`)
 mkdirSync(directory, { recursive: true })

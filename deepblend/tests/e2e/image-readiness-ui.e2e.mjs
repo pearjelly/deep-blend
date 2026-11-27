@@ -3,7 +3,7 @@ import assert from 'node:assert/strict'
 import { existsSync, mkdirSync, writeFileSync } from 'node:fs'
 import { join, resolve } from 'node:path'
 import { Browser } from '../../tools/browser-driver.mjs'
-import { REPO_ROOT, startWeb, storePatch } from '../../tools/dsh-web-harness.mjs'
+import { REPO_ROOT, startWeb, storePatch, fetchFromWebServer as fetch, authenticateWebPage } from '../../tools/dsh-web-harness.mjs'
 const output=resolve(process.env.DEEPBLEND_E2E_ARTIFACTS||join(REPO_ROOT,'.deepblend/quality','image-readiness-ui-'+Date.now()))
 if(existsSync(output))throw Error('Preserve existing image-readiness evidence: '+output)
 mkdirSync(output,{recursive:true});const store=join(output,'store');let server,browser,page,failure,shutdown
@@ -16,6 +16,7 @@ try{
  check('cross-origin callers cannot spend a model request',forbidden.status===403,forbidden.status)
  browser=await Browser.launch({args:['--window-size=1440,1000']});page=await browser.newPage()
  await page.addInitScript(`window.__readiness=[];const old=window.fetch;window.fetch=async(input,init)=>{const r=await old(input,init);if(String(input).endsWith('/readiness/image-input'))window.__readiness.push({status:r.status,payload:await r.clone().json()});return r}`)
+ await authenticateWebPage(page, server)
  await page.goto(base+'/deepblend/workbench');await page.waitFor(`document.querySelector('[data-action="probe-image-input"]')&&!document.querySelector('[data-action="probe-image-input"]').disabled`,60000)
  check('opening the page does not automatically call a model',await page.evaluate('window.__readiness.length===0'))
  await page.click('.db-utility-menu summary');await page.waitFor(`document.querySelector('.db-utility-menu').open===true`,10000)

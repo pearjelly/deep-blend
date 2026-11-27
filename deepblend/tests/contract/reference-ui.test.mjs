@@ -3,7 +3,7 @@ import test from 'node:test'
 import assert from 'node:assert/strict'
 import { readFileSync } from 'node:fs'
 import { Readable } from 'node:stream'
-import { Context } from '@deepseek-ai/cordis'
+import { ownerHttpContext } from '../lib/http-owner.mjs'
 import BlenderUiHost, { createHandlers, statusForError } from '@deepblend/dsh-blender-ui'
 import { BlenderError, buildSceneTree, buildQaView, compileSceneSpec, sceneSpecDigest, validateScenePatch, validateSceneSpec, applyPatchToSpec, HOST_API_VERSION, UI_ROUTES, matchUiRoute } from '@deepblend/dsh-blender-contracts'
 import { loadClientBundle } from '../lib/client-bundle.mjs'
@@ -254,7 +254,7 @@ test('HTTP upload passes the untouched stream and MIME to Host, bypassing JSON b
   const data = Buffer.alloc(4 * 1024 * 1024 + 1, 0xff), request = Readable.from([data.subarray(0, 50), data.subarray(50)])
   Object.assign(request, { method: 'POST', url: '/deepblend/projects/one/reference-images?name=front%20view.png', headers: { 'content-type': 'image/png' } })
   let received
-  const context = new Context(); context.provide('blenderStudio', { uploadReferenceImage: async input => {
+  const context = ownerHttpContext(); context.provide('blenderStudio', { uploadReferenceImage: async input => {
     assert.equal(input.stream, request); const parts = []; for await (const part of input.stream) parts.push(part)
     received = { ...input, bytes: Buffer.concat(parts) }; return { asset, image }
   } })

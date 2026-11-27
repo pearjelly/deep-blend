@@ -8,7 +8,7 @@ import { readFileSync, writeFileSync, mkdirSync, copyFileSync, existsSync } from
 import { join, resolve } from 'node:path'
 import { createHash } from 'node:crypto'
 import { Browser } from '../../tools/browser-driver.mjs'
-import { REPO_ROOT, startWeb, storePatch } from '../../tools/dsh-web-harness.mjs'
+import { REPO_ROOT, startWeb, storePatch, fetchFromWebServer as fetch, authenticateWebPage } from '../../tools/dsh-web-harness.mjs'
 
 const infoPath = process.argv[2] ? resolve(process.argv[2]) : null
 let info = infoPath ? JSON.parse(readFileSync(infoPath)) : null
@@ -77,6 +77,7 @@ try {
       return originalFetch(input, init)
     }
   `)
+  await authenticateWebPage(page, server)
   await page.goto(info.url)
   await page.waitFor('document.querySelector("[data-view-tab=projects]")?.disabled === false', 45000)
   await page.click('[data-view-tab=projects]')

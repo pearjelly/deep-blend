@@ -4,7 +4,7 @@ import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs'
 import { join, resolve } from 'node:path'
 import { createHash } from 'node:crypto'
 import { Browser } from '../../tools/browser-driver.mjs'
-import { REPO_ROOT, startWeb, storePatch } from '../../tools/dsh-web-harness.mjs'
+import { REPO_ROOT, startWeb, storePatch, authenticateWebPage } from '../../tools/dsh-web-harness.mjs'
 
 const output=resolve(process.env.DEEPBLEND_E2E_ARTIFACTS || join(REPO_ROOT,'.deepblend/quality',`cup-ui-${new Date().toISOString().replace(/[:.]/g,'-')}`))
 if(existsSync(output))throw Error(`Evidence exists: ${output}`)
@@ -32,6 +32,7 @@ try {
   server=await startWeb({workspacePath:REPO_ROOT,patch:JSON.stringify(rows),keepHome:false});base=`http://127.0.0.1:${server.port}`
   browser=await Browser.launch({args:['--window-size=1440,1100']});page=await browser.newPage()
   await page.addInitScript(`window.__cupRequests=[];const original=window.fetch;window.fetch=(input,init)=>{let body;try{body=JSON.parse(init?.body)}catch{};window.__cupRequests.push({url:String(input),method:init?.method||'GET',body});return original(input,init)}`)
+  await authenticateWebPage(page, server)
   await page.goto(`${base}/deepblend/workbench`)
   await page.waitFor(`document.querySelector('[data-action="select-recipe:deepblend.glazed-cup@3.1.0"]')!==null`,45_000)
   const card='[data-recipe="deepblend.glazed-cup"]'

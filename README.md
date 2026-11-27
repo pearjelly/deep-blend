@@ -40,8 +40,9 @@ dsh web
 
 The two environment options apply only to the install command: they allow pnpm to add the plugin at the profile workspace root and use peers supplied by DSH. They do not change global pnpm settings.
 
-Restart an already running `dsh web` after installation. In a new session, choose the **DeepBlend Studio**
-preset and open **Blender** in the sidebar. Both the workbench and agent presets are included.
+Restart an already running `dsh web` after installation. Open the launch link that DSH prints in your browser
+to sign in. In a new session, choose the **DeepBlend Studio** preset and open **Blender** in the sidebar.
+Both the workbench and agent presets are included.
 
 **First time setting up Blender or DSH?** Follow the [English / Chinese quick-start guide](deepblend/docs/quick-start.md).
 FFmpeg and ffprobe are needed when encoding an MP4. Install them with `brew install ffmpeg` on macOS,
@@ -268,7 +269,7 @@ npm run dev:test
 Full native acceptance remains a separate entry:
 
 ```sh
-bash deepblend/tests/run-all.sh      # 58 suites; README.zh.md carries the measured snapshot
+bash deepblend/tests/run-all.sh      # 59 suites; README.zh.md carries the measured snapshot
 ```
 
 [Development setup](deepblend/development/README.md) · [CI scope and artifacts](deepblend/docs/ci.md) · [Architecture decisions](deepblend/docs/architecture-decisions.md)
