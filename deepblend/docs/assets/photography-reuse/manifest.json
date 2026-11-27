@@ -2,7 +2,7 @@
   "schemaVersion": "deepblend.photography-docs/v1",
   "at": "2026-11-01T05:56:43.560027+00:00",
   "sourceBase": "d68f6d452b476c8c0b4c8fb6739b13c7ef59112f",
-  "uiSha256": "6cfa7c8bb3f13ca39ef0b499fa26b92ea0f1091d249ae79f6caef5de9c51b2cf",
+  "uiSha256": "9316305e6bc0cbba4670cd9f6f1c8ceb130b6488d0748c9ec8a0472fdd61668b",
   "nativeSource": ".tmp-photography-reuse-1022-v1",
   "nativeChecks": 36,
   "viewed": true,
@@ -11,30 +11,30 @@
     {
       "file": "draft.png",
       "original": "photography-desktop.jpg",
-      "sha256": "d126cf18dd18fbf0bd3c4a85eafbeb3c2d3bd0d22be4be116151e391c9a5b8cf",
-      "bytes": 406355,
+      "sha256": "14d068262457231568fee5debc305649837806e62ffc25439c0cdd880f55a41d",
+      "bytes": 392205,
       "width": 1440,
       "height": 1013,
       "postProcessed": false,
       "encodingConversion": {
         "sourceFile": "photography-desktop.jpg",
         "sourceFormat": "JPEG",
-        "sourceSha256": "599febbf15563a4006de552f77c9103eaa0af4c48f62ce3b0cb9e387ae5dafe1",
-        "decodedPixelsSha256": "2bc2589f33bc8dd9a6961ed106aadf296702e4e5c57006dfbf6166acd8fd3bb2",
+        "sourceSha256": "945f1c91f9b27cdcd39d02d18db4461710774188a34bc906ac7b6b78e1d3a722",
+        "decodedPixelsSha256": "4d23b60bcda909a447ad3da380cf0586ac81bb3ab5d64362012d9dea71edb699",
         "pixelMode": "RGB",
         "decodedPixelsIdentical": true,
         "cropped": false,
         "resized": false,
         "colorAdjusted": false,
-        "pngSha256": "d126cf18dd18fbf0bd3c4a85eafbeb3c2d3bd0d22be4be116151e391c9a5b8cf"
+        "pngSha256": "14d068262457231568fee5debc305649837806e62ffc25439c0cdd880f55a41d"
       },
       "metadataOnlyOriginEmbedded": true
     },
     {
       "file": "narrow.png",
       "original": "photography-narrow.jpg",
-      "sha256": "a433211f7d804a1973581688af1d746324beb5b2efee18de8e94a596211ecafe",
-      "bytes": 175960,
+      "sha256": "49bf469c63a64844a976c3e3fc65b01a91eade7f4eeb20a29f2341433dfbbbbc",
+      "bytes": 173288,
       "width": 390,
       "height": 844,
       "postProcessed": false,
@@ -48,7 +48,7 @@
         "cropped": false,
         "resized": false,
         "colorAdjusted": false,
-        "pngSha256": "a433211f7d804a1973581688af1d746324beb5b2efee18de8e94a596211ecafe"
+        "pngSha256": "49bf469c63a64844a976c3e3fc65b01a91eade7f4eeb20a29f2341433dfbbbbc"
       },
       "metadataOnlyOriginEmbedded": true
     }
@@ -74,14 +74,14 @@
   },
   "capture": {
     "interaction": "cdp-browser-ui",
-    "source": ".tmp-timber-edge-study/photography-capture",
+    "source": ".tmp-paired-uv/photography-recapture",
     "report": "capture-report.json",
-    "reportSha256": "af83b47997d67aaaa334950468f6580e6da7430f378e55af88db7612e974ab8c",
-    "uiSha256": "6cfa7c8bb3f13ca39ef0b499fa26b92ea0f1091d249ae79f6caef5de9c51b2cf",
+    "reportSha256": "9c978d3afec4a7f60a07dfdcb85ba7ced057374a251c64ea112575e3425fa88b",
+    "uiSha256": "9316305e6bc0cbba4670cd9f6f1c8ceb130b6488d0748c9ec8a0472fdd61668b",
     "nativeRegressionRerun": false,
     "scope": "Actual current-client saved-source photography draft capture, with an existing target preview. No save or model request during capture; historical native regression remains separately pinned.",
     "encodingNote": "Actual CDP JPEG screenshots converted at the same dimensions and RGB mode with every decoded pixel identical; source metadata embedded separately.",
-    "at": "2026-11-21T15:45:49.395118+00:00"
+    "at": "2026-11-27T13:49:47.190030+00:00"
   },
-  "viewedAt": "2026-11-21T15:45:49.395118+00:00"
+  "viewedAt": "2026-11-27T13:50:14.387437+00:00"
 }

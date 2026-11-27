@@ -1,0 +1,53 @@
+{
+  "schemaVersion": "deepblend.timber-uv-browser-comparison/v1",
+  "observedAt": "2026-11-27",
+  "testedSource": "6b61581fe11fac4d96b4cf3afe1896b4e6ba3e42",
+  "recipe": {
+    "id": "deepblend.walnut-trivet",
+    "version": "1.1.0",
+    "slatSpacingMm": 64
+  },
+  "scope": "Two runs in Chrome and Blender on separate fresh DSH projects using the same candidate. Both started in Adjust and saved using Apply and preview. These counts treat a field edit as one action and exclude the optional before-save texture preview. No user timing or broader task success is inferred.",
+  "inspection": {
+    "cameraId": "detail",
+    "frame": 1,
+    "resolution": [
+      720,
+      540
+    ],
+    "samples": 24
+  },
+  "initialSpecHash": "c7ec036c7066388e3d03cf6f1b8452a6008a3f418260f35a4ec4b99f39315ec1",
+  "resultingSpecHash": "4773464618cb45a2d5c5cbd763ccca00277c001ab0cc8437e9ca0ab5994cc9a5",
+  "fixedViewRgbaSha256": "f3e55660d65d1d36bd7441984ceb2698a6dffbcd9c0aed19c0236201fb1227a2",
+  "runs": [
+    {
+      "mode": "single",
+      "actions": [
+        "Select longitudinal-slats",
+        "Enable per-face UV projection",
+        "Set repeats to 2",
+        "Apply and preview",
+        "Return to Adjust",
+        "Select cross-slats",
+        "Enable per-face UV projection",
+        "Set repeats to 2",
+        "Apply and preview"
+      ],
+      "saves": 2,
+      "revision": "r0004"
+    },
+    {
+      "mode": "paired",
+      "actions": [
+        "Select longitudinal-slats",
+        "Enable per-face UV projection",
+        "Include the saved partner",
+        "Set repeats to 2",
+        "Apply and preview"
+      ],
+      "saves": 1,
+      "revision": "r0003"
+    }
+  ]
+}
