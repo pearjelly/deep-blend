@@ -32,6 +32,7 @@
 | `deepblend/tests/blender-integration/procedural-uv.py` | 实际程序 UV 节点、渲染层选择、缺失 UV 与求值修改器拒绝、独立保存重开像素 |
 | `deepblend/tests/e2e/material-texture-ui.e2e.mjs` | 实际纹理控件、UV 草稿、缺失层拒绝与修正、独立重开节点、像素变化、刷新与旧版本保护 |
 | `deepblend/tests/e2e/mesh-uv-ui.e2e.mjs` | 逐面 UV 草稿、真实保存、独立重开零面积三角形与几何保护、固定设置图片变化、请求重放、刷新及原修订保护；步骤限时三分钟 |
+| `deepblend/tests/e2e/timber-uv-ui.e2e.mjs` | 从旧版木托配方预览半搭接两组纹理，核对取消与临时文件清理、同一版本写入两组 UV、草稿和保存像素，以及独立重开检查 |
 | `deepblend/tests/e2e/half-lap-ui.e2e.mjs` | 预览两侧槽口、切换上下半部、拒绝过期草稿、确认保存及移除搭接；独立重开 Blender 核对切深、闭合部件与原几何恢复 |
 | `deepblend/tests/e2e/recipe-version-ui.e2e.mjs` | 同 ID 新旧配方共存、比较设置保留与明确重置、浏览器草稿重载恢复、所选输入的真实渲染与独立原生重开、新版 UV 默认值、旧版参数含义、过期选择及旧文件保护 |
 | `deepblend/tests/e2e/linked-speaker-ui.e2e.mjs` | 原版与联动版音箱分开选择；毫米输入、无效范围阻止提交、真实模型创建、来源锁与预览身份、独立重开尺寸及边界差、原项目源文件/锁/模型/预览保护 |

@@ -7,7 +7,7 @@ import json
 import math
 import sys
 
-before_path, after_path, output_path = sys.argv[sys.argv.index('--') + 1:]
+before_path, after_path, output_path, *targets = sys.argv[sys.argv.index('--') + 1:]
 
 
 def digest(value):
@@ -45,16 +45,26 @@ def inspect(path):
                            'triangleCount': len(areas), 'zeroAreaTriangleCount': sum(area == 0 for area in areas),
                            'minimumTriangleArea': min(areas, default=None), 'uvDigest': digest(coordinates)})
         maps[key] = layers
+    target_names = targets or ['beam']
     return {'geometryDigest': digest(geometry), 'objectsDigest': digest(objects), 'uvMaps': maps,
-            'targetVertices': len(geometry['beam']['vertices']), 'targetFaces': len(geometry['beam']['faces'])}
+            'targetVertices': sum(len(geometry[name]['vertices']) for name in target_names),
+            'targetFaces': sum(len(geometry[name]['faces']) for name in target_names)}
 
 
 before, after = inspect(before_path), inspect(after_path)
 json.dump({'before': before, 'after': after}, open(output_path, 'w'), indent=2)
 assert before['geometryDigest'] == after['geometryDigest'], 'UV edit changed native geometry or normals'
 assert before['objectsDigest'] == after['objectsDigest'], 'UV edit changed native objects, matrices, material slots, lights or cameras'
-assert before['uvMaps']['beam'][0]['zeroAreaTriangleCount'] == 48
-assert after['uvMaps']['beam'][0]['zeroAreaTriangleCount'] == 0
-assert after['uvMaps']['beam'][0]['finite']
-assert before['targetVertices'] == after['targetVertices'] == 48
-assert before['targetFaces'] == after['targetFaces'] == 36
+if targets:
+    for target in targets:
+        assert before['uvMaps'][target][0]['zeroAreaTriangleCount'] > 0
+        assert after['uvMaps'][target][0]['zeroAreaTriangleCount'] == 0
+        assert after['uvMaps'][target][0]['finite']
+    assert before['targetVertices'] == after['targetVertices']
+    assert before['targetFaces'] == after['targetFaces']
+else:
+    assert before['uvMaps']['beam'][0]['zeroAreaTriangleCount'] == 48
+    assert after['uvMaps']['beam'][0]['zeroAreaTriangleCount'] == 0
+    assert after['uvMaps']['beam'][0]['finite']
+    assert before['targetVertices'] == after['targetVertices'] == 48
+    assert before['targetFaces'] == after['targetFaces'] == 36

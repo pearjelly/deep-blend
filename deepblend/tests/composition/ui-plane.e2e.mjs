@@ -96,6 +96,7 @@ const WRITE_METHOD = {
   'project.preview': 'renderViews',
   'project.patch': 'applyScenePatch',
   'project.halfLap.preview': 'previewHalfLap',
+  'project.timberUv.preview': 'previewTimberUv',
   'project.recipeParameters.update': 'updateRecipeParameters',
   'project.surfacePlacement': 'placeOnSurface',
   'project.cameraFit': 'fitCamera',
@@ -158,6 +159,7 @@ function createStudioStub() {
     async openMotionPreview(request) { record('openMotionPreview', request); return { bytes: 4, filename: 'preview.mp4', contentType: 'video/mp4', stream: Readable.from([Buffer.from('MP40')]), close: async () => {} } },
     async previewMotion(request) { record('previewMotion', request); return { id: 'candidate' } },
     async previewHalfLap(request) { record('previewHalfLap', request); return { candidateSpecHash: 'b'.repeat(64) } },
+    async previewTimberUv(request) { record('previewTimberUv', request); return { candidateSpecHash: 'd'.repeat(64) } },
     async probeImageInput(request) { record('probeImageInput', request); return { status: 'unavailable', reason: 'authentication' } },
     async saveMotionPreview(request) { record('saveMotionPreview', request); return { revision: 'r0003' } },
     async discardMotionPreview(request) { record('discardMotionPreview', request); return { discarded: true } },
@@ -509,13 +511,26 @@ const halfLapDraft = {
   expectedDigest: 'a'.repeat(64),
   expectedStoreIdentity: 'c'.repeat(64),
 }
+const timberUvDraft = {
+  patch: { projectId: 'another-project', baseRevision: 'r0002', operations: [
+    { op: 'entity.uv.project', entityId: 'timber-x', quarterTurns: 1, scale: 2 },
+    { op: 'entity.uv.project', entityId: 'timber-y', quarterTurns: 1, scale: 2 },
+  ] },
+  cameraId: 'detail',
+  expectedDigest: 'a'.repeat(64),
+  expectedStoreIdentity: 'c'.repeat(64),
+}
+const previewBodies = {
+  'project.halfLap.preview': halfLapDraft,
+  'project.timberUv.preview': timberUvDraft,
+}
 
 for (const route of UI_ROUTES) {
   studio.calls.length = 0
   const placement = route.id === 'project.surfacePlacement' ? { baseRevision: 'r0002', scope: 'recipe-assembly',
     subjectEntityId: 'weighted-base', supportEntityId: 'task-ramp', frame: 24, clearanceMm: 1.5,
     pose: { translationMm: [200, -100, 150], yawDegrees: 35, pivotMm: [80, -30, 0] } } : null
-  const sampleBody = route.id === 'project.halfLap.preview' ? halfLapDraft : placement
+  const sampleBody = previewBodies[route.id] ?? placement
   const { response, json } = await request(route.method, sampleUrl(route), sampleBody ?? (route.method === 'POST' ? { title: 'Demo', patch: {}, revision: 'r0001', frameStart: 1, frameEnd: 3, jobId: 'render-0001', sha256: 'c'.repeat(64), entrypoint: 'model.glb', files: [{ path: 'model.glb', bytes: 3 }] } : undefined))
   if (route.id === 'project.preview') {
     // The pair reaches the browser; the PNG buffers do not (a JSON body of image
@@ -609,6 +624,15 @@ for (const route of UI_ROUTES) {
       && forwarded.patch.baseRevision === halfLapDraft.patch.baseRevision
       && JSON.stringify(forwarded.patch.operations) === JSON.stringify(halfLapDraft.patch.operations)
       && json?.preview?.candidateSpecHash === 'b'.repeat(64))
+  }
+  if (route.id === 'project.timberUv.preview') {
+    const forwarded = studio.calls[0]?.args
+    check('timber UV preview forwards both projections, the saved camera and the cancellable source identity',
+      forwarded?.expectedDigest === timberUvDraft.expectedDigest && forwarded.expectedStoreIdentity === timberUvDraft.expectedStoreIdentity
+      && forwarded.cameraId === timberUvDraft.cameraId && forwarded.signal instanceof AbortSignal
+      && forwarded.patch?.projectId === 'demo' && forwarded.patch.baseRevision === timberUvDraft.patch.baseRevision
+      && JSON.stringify(forwarded.patch.operations) === JSON.stringify(timberUvDraft.patch.operations)
+      && json?.preview?.candidateSpecHash === 'd'.repeat(64))
   }
   if (route.write === true) {
     check(`${route.id} is a write, and calls exactly ${WRITE_METHOD[route.id]} once`,

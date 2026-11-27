@@ -539,7 +539,14 @@ window.__ModuleLoader__.load({
       'editor.uv.direction': '纹理方向',
       'editor.uv.scale': '纹理重复',
       'editor.uv.scaleInvalid': '请输入 0.0001 到 10000 之间的重复次数。',
-      'editor.uv.scaleHelp': '最长局部网格边界跨度内的重复次数。只改变纹理坐标，保存后查看实际预览。',
+      'editor.uv.scaleHelp': '最长局部网格边界跨度内的重复次数。',
+      'editor.uv.includePartner': '也重建 {name} 的 UV',
+      'editor.uv.previewCamera': '预览机位',
+      'editor.uv.preview': '预览纹理',
+      'editor.uv.previewBusy': '正在渲染纹理…',
+      'editor.uv.previewCaption': '草稿预览 · {camera} · 第 {frame} 帧',
+      'editor.uv.previewImage': '两组木条的纹理草稿预览',
+      'editor.uv.previewError': '纹理预览失败。{message}',
       'editor.halfLap.title': '半搭接',
       'editor.halfLap.partner': '搭接对象',
       'editor.halfLap.none': '无搭接',
@@ -1458,7 +1465,14 @@ window.__ModuleLoader__.load({
       'editor.uv.direction': 'Texture direction',
       'editor.uv.scale': 'Texture repetitions',
       'editor.uv.scaleInvalid': 'Enter repetitions from 0.0001 to 10000.',
-      'editor.uv.scaleHelp': 'Repetitions across the longest local mesh extent. Only texture coordinates change; check the saved preview.',
+      'editor.uv.scaleHelp': 'Repetitions across the longest local mesh extent.',
+      'editor.uv.includePartner': 'Also rebuild UVs on {name}',
+      'editor.uv.previewCamera': 'Preview camera',
+      'editor.uv.preview': 'Preview texture',
+      'editor.uv.previewBusy': 'Rendering texture…',
+      'editor.uv.previewCaption': 'Draft preview · {camera} · Frame {frame}',
+      'editor.uv.previewImage': 'Texture draft of both timber groups',
+      'editor.uv.previewError': 'Texture preview failed. {message}',
       'editor.halfLap.title': 'Half lap',
       'editor.halfLap.partner': 'Join with',
       'editor.halfLap.none': 'No joint',
@@ -2787,6 +2801,12 @@ window.__ModuleLoader__.load({
           && ['location', 'rotationEuler', 'scale'].includes(track.property?.split('.')[0]))
     }
 
+    function editorTimberUvPartner(draft) {
+      const partner = editorHalfLapPartner(draft.originalHalfLap, draft.entityId)
+      return draft.entities.find(entity => entity.id === partner
+        && entity.kind === 'generator' && entity.generator?.shape === 'mesh')
+    }
+
     function editorHalfLapPartners(draft) {
       const saved = editorHalfLapPartner(draft.originalHalfLap, draft.entityId)
       const canJoin = editorTimberCandidate(draft.entity, draft.tracks) && (saved || (draft.halfLaps?.length ?? 0) < 32)
@@ -2871,6 +2891,7 @@ window.__ModuleLoader__.load({
         if (draft.entity.kind !== 'generator' || generator?.shape !== 'mesh') bad(t('editor.uv.title'))
         scalar(draft.uvProjection.quarterTurns, t('editor.uv.direction'), 0, 3, true)
         scalar(draft.uvProjection.scale, t('editor.uv.scale'), 0.0001, 10000)
+        if (draft.uvProjection.includePartner && !editorTimberUvPartner(draft)) bad(t('editor.uv.title'))
       }
       if (draft.halfLap) {
         scalar(Object.hasOwn(draft.halfLap, 'edgeWidth') ? draft.halfLap.edgeWidth : 0, t('editor.halfLap.edgeWidth'), 0, .005)
@@ -3002,7 +3023,12 @@ window.__ModuleLoader__.load({
       for (const key of ['location', 'rotationEuler']) if (!editorEqual(entity.transform[key], original.transform[key])) transform[key] = editorClone(entity.transform[key])
       if (Object.keys(transform).length > 2) operations.push(transform)
       if (!editorEqual(entity.generator, original.generator)) operations.push({ op: 'entity.generator.set', entityId: draft.entityId, generator: editorClone(entity.generator) })
-      if (draft.uvProjection != null) operations.push({ op: 'entity.uv.project', entityId: draft.entityId, ...editorClone(draft.uvProjection) })
+      if (draft.uvProjection != null) {
+        const { quarterTurns, scale, includePartner } = draft.uvProjection
+        const projection = { op: 'entity.uv.project', quarterTurns, scale }
+        operations.push({ ...projection, entityId: draft.entityId })
+        if (includePartner) operations.push({ ...projection, entityId: editorTimberUvPartner(draft).id })
+      }
       if (!editorEqual(entity.modifiers, original.modifiers)) operations.push({ op: 'entity.modifiers.set', entityId: draft.entityId, modifiers: editorClone(entity.modifiers) })
       const { halfLap, originalHalfLap } = draft
       if (halfLap?.lowerEntityId !== originalHalfLap?.lowerEntityId || halfLap?.upperEntityId !== originalHalfLap?.upperEntityId
@@ -3046,6 +3072,38 @@ window.__ModuleLoader__.load({
 
     function editorDraftFor(state) {
       return state.editorDrafts?.[editorKey(state.activeProjectId, state.editorEntityId)] || null
+    }
+
+    function timberUvPreviewCamera(scene, draft) {
+      const cameras = scene?.nodes?.cameras ?? []
+      const requested = draft.uvProjection?.cameraId ?? scene?.project?.activeCamera
+      return cameras.find(camera => camera.id === requested) ?? cameras[0]
+    }
+
+    function timberUvPreviewIntent(state, draft = editorDraftFor(state), patch) {
+      const scene = state.selected?.scene
+      if (!state.timberUvPreviewSupported || state.view !== 'scene' || !draft?.uvProjection?.includePartner
+        || !scene || draft.baseRevision !== scene.revision || !/^[a-f0-9]{64}$/.test(scene.digest ?? '')
+        || !/^[a-f0-9]{64}$/.test(state.storeIdentity ?? '')) return null
+      const partner = editorTimberUvPartner(draft)
+      const camera = timberUvPreviewCamera(scene, draft)
+      if (!partner || !camera || !Number.isInteger(scene.project.frameStart)) return null
+      try { patch ??= buildEditorPatch(draft) } catch { return null }
+      const key = JSON.stringify([state.storeIdentity, scene.digest, camera.id, patch])
+      return { key, patch, expectedDigest: scene.digest, expectedStoreIdentity: state.storeIdentity,
+        cameraId: camera.id, frame: scene.project.frameStart, entities: [draft.entityId, partner.id] }
+    }
+
+    function verifiedTimberUvPreview(preview, intent) {
+      const image = preview?.image
+      return preview?.schemaVersion === 'deepblend.timber-uv-preview/v1' && preview.projectId === intent.patch.projectId
+        && preview.baseRevision === intent.patch.baseRevision && preview.baseDigest === intent.expectedDigest
+        && preview.storeIdentity === intent.expectedStoreIdentity && /^[a-f0-9]{64}$/.test(preview.candidateSpecHash ?? '')
+        && preview.cameraId === intent.cameraId && preview.frame === intent.frame && editorEqual(preview.entities, intent.entities)
+        && Number.isInteger(image?.width) && image.width > 0 && image.width <= 720
+        && Number.isInteger(image.height) && image.height > 0 && image.height <= 720
+        && /^[a-f0-9]{64}$/.test(image.sha256 ?? '') && typeof image.pngBase64 === 'string'
+        && image.pngBase64.length <= 4194304 && /^iVBORw0KGgo[A-Za-z0-9+/]+=*$/.test(image.pngBase64)
     }
 
     function halfLapPreviewIntent(state, draft = editorDraftFor(state), patch) {
@@ -3876,6 +3934,8 @@ window.__ModuleLoader__.load({
         editorDrafts: {},
         halfLapPreviewSupported: false,
         halfLapPreview: null,
+        timberUvPreviewSupported: false,
+        timberUvPreview: null,
         geometryMeasurements: {},
         editorLastEdits: {},
         editorComparison: null,
@@ -3965,6 +4025,7 @@ window.__ModuleLoader__.load({
       const cameraFitStorage = settings.cameraFitStorage ?? preferenceStorage
       const motionControllers = new Map()
       let halfLapPreviewController
+      let timberUvPreviewController
       let imageProbeController = null
       const motionStorage = settings.motionStorage ?? preferenceStorage
       const motionWork = (key, changes) => set({ motionWork: { ...data.motionWork, [key]: { ...data.motionWork[key], ...changes } } })
@@ -4053,6 +4114,11 @@ window.__ModuleLoader__.load({
           halfLapPreviewController?.abort()
           halfLapPreviewController = undefined
           next.halfLapPreview = null
+        }
+        if (next.timberUvPreview && timberUvPreviewIntent(next)?.key !== next.timberUvPreview.key) {
+          timberUvPreviewController?.abort()
+          timberUvPreviewController = undefined
+          next.timberUvPreview = null
         }
         data = next; notify()
       }
@@ -4148,6 +4214,7 @@ window.__ModuleLoader__.load({
           stillImageDeliverySupported: payload.stillImageDeliverySupported === true,
           motionPreviewSupported: payload.motionPreviewSupported === true,
           halfLapPreviewSupported: payload.halfLapPreviewSupported === true,
+          timberUvPreviewSupported: payload.timberUvPreviewSupported === true,
           imageInputProbeSupported: payload.imageInputProbeSupported === true,
           selectedReviewViewsSupported: payload.selectedReviewViewsSupported === true,
           creationRequestProtocol: payload.creationRequestProtocol ?? null,
@@ -5531,7 +5598,7 @@ window.__ModuleLoader__.load({
         },
         previewHalfLap: async () => {
           const intent = halfLapPreviewIntent(data)
-          if (!intent || data.busy.editor || halfLapPreviewController) return
+          if (!intent || data.busy.editor || halfLapPreviewController || timberUvPreviewController) return
           const controller = new AbortController()
           halfLapPreviewController = controller
           const { key, patch, expectedDigest, expectedStoreIdentity } = intent
@@ -5551,6 +5618,35 @@ window.__ModuleLoader__.load({
             if (active()) set({ halfLapPreview: { key, error: error.message || String(error) } })
           } finally {
             if (halfLapPreviewController === controller) halfLapPreviewController = undefined
+          }
+        },
+        cancelTimberUvPreview: () => {
+          timberUvPreviewController?.abort()
+          timberUvPreviewController = undefined
+          set({ timberUvPreview: null })
+        },
+        previewTimberUv: async () => {
+          const intent = timberUvPreviewIntent(data)
+          if (!intent || data.busy.editor || timberUvPreviewController || halfLapPreviewController) return
+          const controller = new AbortController()
+          timberUvPreviewController = controller
+          const { key, patch, expectedDigest, expectedStoreIdentity, cameraId } = intent
+          const active = () => running && timberUvPreviewController === controller && !controller.signal.aborted
+          set({ timberUvPreview: { key, busy: true } })
+          try {
+            const response = await fetchImpl(projectRoute(patch.projectId, '/timber-uv-preview'), {
+              method: 'POST', headers: { 'content-type': 'application/json', accept: 'application/json' }, signal: controller.signal,
+              body: JSON.stringify({ patch, expectedDigest, expectedStoreIdentity, cameraId }),
+            })
+            const payload = await response.json()
+            if (!active()) return
+            if (!response.ok || !payload.ok) throw new Error(payload.error?.message || response.status)
+            if (!verifiedTimberUvPreview(payload.preview, intent)) throw new Error(t('inspection.mismatch'))
+            set({ timberUvPreview: { key, result: payload.preview } })
+          } catch (error) {
+            if (active()) set({ timberUvPreview: { key, error: error.message || String(error) } })
+          } finally {
+            if (timberUvPreviewController === controller) timberUvPreviewController = undefined
           }
         },
         updateEditor: (section, path, value) => {
@@ -5616,10 +5712,11 @@ window.__ModuleLoader__.load({
           try { patch = buildEditorPatch(draft) } catch (error) {
             setIn('notices', 'scene', { ok: false, message: error.message }); return
           }
-          if (!patch.operations.length || data.halfLapPreview?.busy) return
-          const inspection = data.halfLapPreview?.result
-          const inspected = inspection && halfLapPreviewIntent(data, draft, patch)?.key === data.halfLapPreview.key
-          const request = inspected ? { patch, expectedSpecHash: inspection.candidateSpecHash, expectedStoreIdentity: inspection.storeIdentity } : { patch }
+          if (!patch.operations.length || data.halfLapPreview?.busy || data.timberUvPreview?.busy) return
+          const slot = data.halfLapPreview, texture = data.timberUvPreview
+          const inspection = texture?.result && timberUvPreviewIntent(data, draft, patch)?.key === texture.key
+            ? texture.result : slot?.result && halfLapPreviewIntent(data, draft, patch)?.key === slot.key ? slot.result : null
+          const request = inspection ? { patch, expectedSpecHash: inspection.candidateSpecHash, expectedStoreIdentity: inspection.storeIdentity } : { patch }
           const beforePreviews = editorClone(data.previews?.revisions?.find(item => item.revision === draft.baseRevision)?.previews || [])
           setIn('busy', 'editor', true)
           const outcome = await postJson(fetchImpl, projectRoute(draft.projectId, '/patch'), request)
@@ -5981,6 +6078,10 @@ window.__ModuleLoader__.load({
           motionControllers.clear()
           halfLapPreviewController?.abort()
           halfLapPreviewController = undefined
+          timberUvPreviewController?.abort()
+          timberUvPreviewController = undefined
+          data = { ...data, timberUvPreview: null }
+          snapshot = { ...snapshot, timberUvPreview: null }
           photographyControllers.clear()
           for (const controller of placementControllers.values()) controller.abort()
           placementControllers.clear()
@@ -6461,8 +6562,13 @@ window.__ModuleLoader__.load({
       const slotIntent = halfLapPreviewIntent(state, draft)
       const slotWork = slotIntent && state.halfLapPreview?.key === slotIntent.key ? state.halfLapPreview : null
       const slotResult = slotWork?.result
+      const uvPartner = state.timberUvPreviewSupported ? editorTimberUvPartner(draft) : null
+      const uvScene = state.selected?.scene
+      const uvIntent = timberUvPreviewIntent(state, draft)
+      const uvWork = uvIntent && state.timberUvPreview?.key === uvIntent.key ? state.timberUvPreview : null
+      const uvResult = uvWork?.result
       const apply = Button({ action: 'editor-apply', tone: 'primary',
-        disabled: disabled || !dirty || errors.length > 0 || slotWork?.busy === true, onClick: actions.applyEditor, children: t('editor.apply') })
+        disabled: disabled || !dirty || errors.length > 0 || slotWork?.busy === true || uvWork?.busy === true, onClick: actions.applyEditor, children: t('editor.apply') })
       const geometryField = key => {
         const bounds = generatorIntegerBounds(geometry, key)
         if (key === 'rootTension') return numeric(labels[key], `editor-generator-${key}`, geometry[key],
@@ -6540,6 +6646,8 @@ window.__ModuleLoader__.load({
                   toggle(t('editor.uv.project'), 'editor-uv-project', draft.uvProjection != null,
                     value => actions.updateEditor('uvProjection', [], value ? { quarterTurns: 0, scale: 1 } : null)),
                   draft.uvProjection ? [
+                    uvPartner ? toggle(t('editor.uv.includePartner', { name: uvPartner.name || uvPartner.id }), 'editor-uv-partner',
+                      draft.uvProjection.includePartner === true, value => actions.updateEditor('uvProjection', ['includePartner'], value)) : null,
                     el('p', { className: 'db-muted', key: 'uv-help' }, t('editor.uv.help')),
                     choose(t('editor.uv.direction'), 'editor-uv-quarterTurns', String(draft.uvProjection.quarterTurns),
                       [0, 1, 2, 3].map(turn => [String(turn), `${turn * 90}°`]), value => actions.updateEditor('uvProjection', ['quarterTurns'], Number(value))),
@@ -6548,6 +6656,12 @@ window.__ModuleLoader__.load({
                         invalid: draft.uvProjection.scale < 0.0001 || draft.uvProjection.scale > 10000,
                         error: t('editor.uv.scaleInvalid') }),
                     el('p', { className: 'db-muted', key: 'uv-scale-help' }, t('editor.uv.scaleHelp')),
+                    draft.uvProjection.includePartner && uvPartner ? [
+                      uvScene?.nodes.cameras?.length > 1 ? choose(t('editor.uv.previewCamera'), 'editor-uv-camera',
+                        timberUvPreviewCamera(uvScene, draft)?.id, uvScene.nodes.cameras.map(camera => [camera.id, camera.name || camera.id]),
+                        value => actions.updateEditor('uvProjection', ['cameraId'], value)) : null,
+                      TimberUvPreview({ work: uvWork, apply, disabled: disabled || !uvIntent || slotWork?.busy === true, actions }),
+                    ] : null,
                   ] : null),
                 halfLapOptions.length ? el('fieldset', { key: 'half-lap', 'data-half-lap-editor': true, disabled, style: { border: 0, padding: 0, margin: '16px 0' } },
                   el('legend', null, t('editor.halfLap.title')),
@@ -6560,7 +6674,7 @@ window.__ModuleLoader__.load({
                     actions.setEditorHalfLapWidth, { factor: 1000, min: 0, max: 5, step: .05,
                       invalid: halfLapEdgeWidth < 0 || halfLapEdgeWidth > .005, error: t('editor.halfLap.edgeInvalid') }) : null,
                   halfLapPartner ? el('p', { className: 'db-muted', key: 'edge-width-help' }, t('editor.halfLap.edgeHelp')) : null,
-                  slotIntent ? HalfLapPreview({ slotWork, apply, disabled, actions }) : null) : null] : null,
+                  slotIntent ? HalfLapPreview({ slotWork, apply: uvResult ? null : apply, disabled: disabled || uvWork?.busy === true, actions }) : null) : null] : null,
               el('p', { className: 'db-muted', key: 'local-size' }, t('editor.localDimensions', { scale: (draft.entity.transform.scale || [1, 1, 1]).join(' × ') })),
               geometry.shape === 'rounded_box' ? el('p', { className: 'db-muted', key: 'rounded' }, t('editor.roundedRequired')) : null,
               geometry.shape === 'handled_cup' ? el('p', { className: 'db-muted', key: 'cup-help' }, t('editor.cupHelp')) : null,
@@ -6670,11 +6784,28 @@ window.__ModuleLoader__.load({
           el('div', { className: 'db-inline' }, Object.entries(modifierNames).map(([type, name]) => Button({ action: `editor-modifier-add-${type}`, disabled: disabled || !canModify || draft.entity.modifiers.length >= 8,
             children: t('editor.add', { name }), onClick: () => actions.editEditorList('modifiers', 0, 'add', type) })))) : null,
         errors.length ? el('div', { className: 'db-error', 'data-editor-errors': true }, errors.join(' ')) : null,
-        el('div', { className: 'db-inline db-editor-actions' }, slotResult ? null : apply,
+        el('div', { className: 'db-inline db-editor-actions' }, slotResult || uvResult ? null : apply,
           Button({ action: 'editor-reset', disabled: state.busy.editor, onClick: actions.resetEditor, children: t('editor.reset') }),
           Button({ action: 'editor-review-subject', disabled: disabled || draft.entity.visible === false || draft.entity.kind === 'empty'
             || state.briefWork[state.activeProjectId]?.saving || state.visualRuns[state.activeProjectId]?.busy,
             onClick: () => actions.setReviewSubject(draft.entityId), children: t('brief.subjectShortcut') }), restore))
+    }
+
+    function TimberUvPreview({ work, apply, disabled, actions }) {
+      const result = work?.result
+      return el('div', { key: 'uv-preview', 'data-timber-uv-preview': result ? 'ready' : work?.busy ? 'loading' : work?.error ? 'error' : 'idle',
+        'aria-busy': work?.busy === true },
+        el('div', { className: 'db-inline' },
+          Button({ action: 'timber-uv-preview', disabled: disabled || work?.busy === true,
+            children: work?.busy ? t('editor.uv.previewBusy') : t('editor.uv.preview'), onClick: actions.previewTimberUv }),
+          work?.busy ? Button({ action: 'timber-uv-preview-cancel', children: t('geometry.cancel'), onClick: actions.cancelTimberUvPreview }) : null),
+        result ? el('figure', { style: { margin: '12px 0' } },
+          el('img', { src: `data:image/png;base64,${result.image.pngBase64}`, alt: t('editor.uv.previewImage'),
+            width: result.image.width, height: result.image.height, style: { display: 'block', width: '100%', height: 'auto' } }),
+          el('figcaption', { className: 'db-muted', role: 'status', style: { overflowWrap: 'anywhere' } },
+            t('editor.uv.previewCaption', { camera: result.cameraId, frame: result.frame }))) : null,
+        result ? apply : null,
+        work?.error ? el('p', { className: 'db-error', role: 'alert' }, t('editor.uv.previewError', { message: work.error })) : null)
     }
 
     function HalfLapPreview({ slotWork, apply, disabled, actions }) {
