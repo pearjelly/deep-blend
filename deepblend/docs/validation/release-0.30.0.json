@@ -1,0 +1,724 @@
+{
+  "schemaVersion": 1,
+  "status": "published",
+  "releaseLabel": "v0.30.0",
+  "releaseUrl": "https://github.com/pearjelly/deep-blend/releases/tag/v0.30.0",
+  "publishedAt": "2026-11-27T19:48:52Z",
+  "sourcePullRequest": "https://github.com/pearjelly/deep-blend/pull/95",
+  "acceptedSourceCommit": "7acb1f93c6ed2782edc5b6c736eea1eaf860b482",
+  "mergedSourceCommit": "0d2a00f9539ebb303a8c384f71e004ddc6501054",
+  "sourceTree": "76eb9e4067519b91fdcb4f3607af9094536a09af",
+  "packageTree": "23563151688ca6a0b94fe98acc62fb6a5073e4f7",
+  "acceptance": {
+    "suites": 60,
+    "trackedFiles": 1130,
+    "sourceAndFileModesIdentical": true,
+    "logSha256": "089597b86f3dfc012f93c1db4453b87191ee9dfadd18505fa9acbe8d1030065a"
+  },
+  "candidateCi": {
+    "url": "https://github.com/pearjelly/deep-blend/actions/runs/46039266857",
+    "head": "4eae7734b1a509990a4543011f2080efa6c122d0",
+    "jobs": 5,
+    "artifacts": [
+      {
+        "name": "linux-inspections-46039266857-1",
+        "id": 15220648043,
+        "sha256": "18d65f0021096674b0c9e18e36a87b389107b8a64ec5377390e86504c6a92f95",
+        "sizeBytes": 229138652,
+        "crcVerified": true
+      },
+      {
+        "name": "harness-021-46039266857-1",
+        "id": 15219945211,
+        "sha256": "e22be2ab40d01d7439bd04f118c9ea7b51d8a37a6115f208481a87e28f4db83c",
+        "sizeBytes": 3551979,
+        "crcVerified": true
+      },
+      {
+        "name": "linux-cup-parameters-46039266857-1",
+        "id": 15219103807,
+        "sha256": "10a12d8c6183be88ab484a7211640b3bcdea281feeff02f6d58c7bdfd2aaf70c",
+        "sizeBytes": 10108198,
+        "crcVerified": true
+      },
+      {
+        "name": "linux-render-photography-46039266857-1",
+        "id": 15219084855,
+        "sha256": "57b7311db0818a1a1c3f729f492199f97f0c8f3ae43a44430d87cdcfe1bbd6e7",
+        "sizeBytes": 67704929,
+        "crcVerified": true
+      }
+    ]
+  },
+  "integrationCi": {
+    "url": "https://github.com/pearjelly/deep-blend/actions/runs/46048899101",
+    "head": "74603a748bc4f03928da5882d94279ca4390c00f",
+    "jobs": 5,
+    "artifacts": [
+      {
+        "name": "linux-inspections-46048899101-1",
+        "id": 15226695798,
+        "sha256": "d43aca30f7251ce073b6f03c257801a441e1234dc66784aa0a1b9a580870197c",
+        "sizeBytes": 228819417,
+        "crcVerified": true
+      },
+      {
+        "name": "linux-render-photography-46048899101-1",
+        "id": 15224480979,
+        "sha256": "724f02463f64e4a65f458d21fa5f1bc9548aab47338bda1e368bbcf02380ac75",
+        "sizeBytes": 67718720,
+        "crcVerified": true
+      },
+      {
+        "name": "harness-021-46048899101-1",
+        "id": 15223851062,
+        "sha256": "36427e40ddff42717bf49ffc7427e77feaa55cbd7d8d0c21a34dcbbb053fe82e",
+        "sizeBytes": 3553228,
+        "crcVerified": true
+      },
+      {
+        "name": "linux-cup-parameters-46048899101-1",
+        "id": 15223424419,
+        "sha256": "c6b72f6264942727f375cee64b89ed744a454d0ac9b353302f6514c6eefe1fc8",
+        "sizeBytes": 10108123,
+        "crcVerified": true
+      }
+    ]
+  },
+  "mainCi": {
+    "url": "https://github.com/pearjelly/deep-blend/actions/runs/46054948043",
+    "jobs": 5,
+    "source": "0d2a00f9539ebb303a8c384f71e004ddc6501054"
+  },
+  "bundleSourceEquivalence": {
+    "source": "0d2a00f9539ebb303a8c384f71e004ddc6501054",
+    "previousSource": "7acb1f93c6ed2782edc5b6c736eea1eaf860b482",
+    "packageTree": "23563151688ca6a0b94fe98acc62fb6a5073e4f7",
+    "artifactSha256": "3387f8ea450a74d0cc8ff70c0a694e05b597c05e594dbcd4b8477488f02d7513",
+    "baselineArtifactSha256": "0baaa9d2dbcb1c6d932d3b28a3ab2b43bfb9ff63c9323e54cb0d67916a9878b4",
+    "rootSourcePins": 6,
+    "checkedAt": "2026-11-27T19:12:27.174Z",
+    "members": 474,
+    "verifiedUnchanged": 473,
+    "changedMembers": [
+      "package/package.json"
+    ]
+  },
+  "nativePayloads": {
+    "status": "native-payload-present",
+    "crossPlatformExecutionVerified": false,
+    "targets": [
+      {
+        "id": "darwin-arm64",
+        "os": "darwin",
+        "cpu": "arm64",
+        "sharp": "0.35.5",
+        "libvips": "8.18.7",
+        "runtimePackage": "@img/sharp-libvips-darwin-arm64"
+      },
+      {
+        "id": "linux-x64",
+        "os": "linux",
+        "cpu": "x64",
+        "libc": "glibc",
+        "sharp": "0.35.5",
+        "libvips": "8.18.7",
+        "runtimePackage": "@img/sharp-libvips-linux-x64"
+      },
+      {
+        "id": "linuxmusl-x64",
+        "os": "linux",
+        "cpu": "x64",
+        "libc": "musl",
+        "sharp": "0.35.5",
+        "libvips": "8.18.7",
+        "runtimePackage": "@img/sharp-libvips-linuxmusl-x64"
+      },
+      {
+        "id": "win32-x64",
+        "os": "win32",
+        "cpu": "x64",
+        "sharp": "0.35.5",
+        "libvips": "8.18.7",
+        "runtimePackage": "@img/sharp-win32-x64"
+      }
+    ],
+    "files": [
+      {
+        "path": "node_modules/@img/sharp-darwin-arm64/index.cjs",
+        "bytes": 141,
+        "sha256": "779fece1ac73b7136281d9767b90267f19d3a296e850ecf474d9c89a8ef1968c"
+      },
+      {
+        "path": "node_modules/@img/sharp-darwin-arm64/lib/sharp-darwin-arm64-0.35.5.node",
+        "bytes": 280256,
+        "sha256": "791921f975371be33aed727e06283282cc001c960792eb52505b579fdaaf1b55"
+      },
+      {
+        "path": "node_modules/@img/sharp-darwin-arm64/LICENSE",
+        "bytes": 10273,
+        "sha256": "73ba74dfaa520b49a401b5d21459a8523a146f3b7518a833eea5efa85130bf68"
+      },
+      {
+        "path": "node_modules/@img/sharp-darwin-arm64/package.json",
+        "bytes": 862,
+        "sha256": "157996706c751e9a3608f35811f156238fa4ad1f367abfd4facec30883747f5e"
+      },
+      {
+        "path": "node_modules/@img/sharp-libvips-darwin-arm64/lib/index.js",
+        "bytes": 28,
+        "sha256": "516a08c06660cddb50d5f30ccac29a0514b05724956a11e8a7e6b799f2e1ab72"
+      },
+      {
+        "path": "node_modules/@img/sharp-libvips-darwin-arm64/lib/libvips-cpp.8.18.7.dylib",
+        "bytes": 18231688,
+        "sha256": "c1a5b5633b21aeb8a229abf7d062e07e4d778c0b44ed43cd1f93362bda58c322"
+      },
+      {
+        "path": "node_modules/@img/sharp-libvips-darwin-arm64/package.json",
+        "bytes": 876,
+        "sha256": "394ecfe4e823ebf6ddc9f9b7155046aad1f0492300920323ddfb84cae85dbac0"
+      },
+      {
+        "path": "node_modules/@img/sharp-libvips-darwin-arm64/README.md",
+        "bytes": 4333,
+        "sha256": "5dd6d3c034f925604681d49b7bedc71bd08dcf3d0cfc6d16b9f0569497d700dc"
+      },
+      {
+        "path": "node_modules/@img/sharp-libvips-darwin-arm64/versions.json",
+        "bytes": 596,
+        "sha256": "e2611d5d854815a8b33c8a3d2ec649511a9596ccf16844e8eae7cf81e79881c4"
+      },
+      {
+        "path": "node_modules/@img/sharp-libvips-linux-x64/lib/index.js",
+        "bytes": 28,
+        "sha256": "516a08c06660cddb50d5f30ccac29a0514b05724956a11e8a7e6b799f2e1ab72"
+      },
+      {
+        "path": "node_modules/@img/sharp-libvips-linux-x64/lib/libvips-cpp.so.8.18.7",
+        "bytes": 18699288,
+        "sha256": "4aa73553408c3964071728f4a231a8e86918e39bc49f1fbae75355f7ea933ea9"
+      },
+      {
+        "path": "node_modules/@img/sharp-libvips-linux-x64/package.json",
+        "bytes": 935,
+        "sha256": "2c5f6f9abf74c1492622d5dc4e4da056ab0712fd71de61e03a687c88b8cdab4e"
+      },
+      {
+        "path": "node_modules/@img/sharp-libvips-linux-x64/README.md",
+        "bytes": 4331,
+        "sha256": "b4fb1a9f5909cfd58edb4177c2028ce3033cf8651aef740a554c1dc58b3c5ee3"
+      },
+      {
+        "path": "node_modules/@img/sharp-libvips-linux-x64/versions.json",
+        "bytes": 596,
+        "sha256": "e2611d5d854815a8b33c8a3d2ec649511a9596ccf16844e8eae7cf81e79881c4"
+      },
+      {
+        "path": "node_modules/@img/sharp-libvips-linuxmusl-x64/lib/index.js",
+        "bytes": 28,
+        "sha256": "516a08c06660cddb50d5f30ccac29a0514b05724956a11e8a7e6b799f2e1ab72"
+      },
+      {
+        "path": "node_modules/@img/sharp-libvips-linuxmusl-x64/lib/libvips-cpp.so.8.18.7",
+        "bytes": 18911144,
+        "sha256": "979b625437190a1970b835164e0e30d47dc60159ce6a394ce78cc40cb9d59ab8"
+      },
+      {
+        "path": "node_modules/@img/sharp-libvips-linuxmusl-x64/package.json",
+        "bytes": 941,
+        "sha256": "9d93c5ff1a47f5c79286f6c832e0ab9001feff6db50b9085f578b20a663b580e"
+      },
+      {
+        "path": "node_modules/@img/sharp-libvips-linuxmusl-x64/README.md",
+        "bytes": 4334,
+        "sha256": "df733be80a44f45878f212d7f0859ffd18fbdd8ed988b5226663487732aa1c1c"
+      },
+      {
+        "path": "node_modules/@img/sharp-libvips-linuxmusl-x64/versions.json",
+        "bytes": 596,
+        "sha256": "e2611d5d854815a8b33c8a3d2ec649511a9596ccf16844e8eae7cf81e79881c4"
+      },
+      {
+        "path": "node_modules/@img/sharp-linux-x64/index.cjs",
+        "bytes": 135,
+        "sha256": "01ae7daa0380ea031c8c5133808f5afb5a42ca00ee9057139e28c5b885705c4a"
+      },
+      {
+        "path": "node_modules/@img/sharp-linux-x64/lib/sharp-linux-x64-0.35.5.node",
+        "bytes": 415112,
+        "sha256": "cf896cc1b7f3ae9c3e8eb3d7b2b198b8de2824ff7d0681d684bab5a825def335"
+      },
+      {
+        "path": "node_modules/@img/sharp-linux-x64/LICENSE",
+        "bytes": 10273,
+        "sha256": "73ba74dfaa520b49a401b5d21459a8523a146f3b7518a833eea5efa85130bf68"
+      },
+      {
+        "path": "node_modules/@img/sharp-linux-x64/package.json",
+        "bytes": 921,
+        "sha256": "181c58413d16ac3ce035f39c94c614031e03c023d88315712a81ed210c9fa04c"
+      },
+      {
+        "path": "node_modules/@img/sharp-linuxmusl-x64/index.cjs",
+        "bytes": 143,
+        "sha256": "5e1b7be0f83e850ad2bd2504aaa0ec9195fe18d4795475e53854103b5b43838c"
+      },
+      {
+        "path": "node_modules/@img/sharp-linuxmusl-x64/lib/sharp-linuxmusl-x64-0.35.5.node",
+        "bytes": 301328,
+        "sha256": "14ce8ddd283c101f225089152da805632568bfa372d336ccbfdd811f4f1dca02"
+      },
+      {
+        "path": "node_modules/@img/sharp-linuxmusl-x64/LICENSE",
+        "bytes": 10273,
+        "sha256": "73ba74dfaa520b49a401b5d21459a8523a146f3b7518a833eea5efa85130bf68"
+      },
+      {
+        "path": "node_modules/@img/sharp-linuxmusl-x64/package.json",
+        "bytes": 931,
+        "sha256": "1d41eb946e8c574f27606680c8a674adce6936ef3fc05b754be38a3e3fd3857e"
+      },
+      {
+        "path": "node_modules/@img/sharp-win32-x64/index.cjs",
+        "bytes": 62,
+        "sha256": "6ecbd583f45e914233410fe83a614e4f5ff1a6875a7eb828b03b7258e8ba6944"
+      },
+      {
+        "path": "node_modules/@img/sharp-win32-x64/lib/libvips-42.dll",
+        "bytes": 19018240,
+        "sha256": "06dab07cc386748513337a31672b1d5269fbc770a14ff403080575665bf0813f"
+      },
+      {
+        "path": "node_modules/@img/sharp-win32-x64/lib/libvips-cpp-8.18.7.dll",
+        "bytes": 333312,
+        "sha256": "25001dbd05305a0a29119ab49933622c70b4a20ea12ef1d5d20ca40181db53bf"
+      },
+      {
+        "path": "node_modules/@img/sharp-win32-x64/lib/sharp-win32-x64-0.35.5.node",
+        "bytes": 443904,
+        "sha256": "971048779f9c8598df14641dfc03c625885c93f473a788e65ca2deb50d0b083e"
+      },
+      {
+        "path": "node_modules/@img/sharp-win32-x64/LICENSE",
+        "bytes": 10464,
+        "sha256": "dc1f5d2d43c5531dfe0acaf4e950ea5dbe3e61e1850cf0e983bda7efc10d6693"
+      },
+      {
+        "path": "node_modules/@img/sharp-win32-x64/package.json",
+        "bytes": 888,
+        "sha256": "697b3d89590e3b988b51764bd22dfd6f4a1b35cd4eb12c664eca7987e8ee6115"
+      },
+      {
+        "path": "node_modules/@img/sharp-win32-x64/README.md",
+        "bytes": 4913,
+        "sha256": "3d083ada5ebafe1e6c227daa7b061d4254b61df4a3901c359ffdeac817ce5866"
+      },
+      {
+        "path": "node_modules/@img/sharp-win32-x64/versions.json",
+        "bytes": 596,
+        "sha256": "e2611d5d854815a8b33c8a3d2ec649511a9596ccf16844e8eae7cf81e79881c4"
+      },
+      {
+        "path": "node_modules/sharp/LICENSE",
+        "bytes": 10273,
+        "sha256": "73ba74dfaa520b49a401b5d21459a8523a146f3b7518a833eea5efa85130bf68"
+      },
+      {
+        "path": "node_modules/sharp/package.json",
+        "bytes": 8115,
+        "sha256": "ad4a2535d72eb638053a38867b1abf43c328cd1c1dbae5cf4172d498365a8b97"
+      }
+    ],
+    "artifact": "deepblend-bundle.tgz",
+    "artifactSha256": "3387f8ea450a74d0cc8ff70c0a694e05b597c05e594dbcd4b8477488f02d7513"
+  },
+  "installedRelease": {
+    "legacy": {
+      "harness": "0.1.5-rc.2",
+      "browserChecks": 9,
+      "filesByteAndModeVerified": 474,
+      "workbenchHttp": 200,
+      "anonymousHttp": 401,
+      "presets": [
+        "deepblend",
+        "deepblend-dev"
+      ],
+      "roughnessAfterBinding": [
+        0.44,
+        0.57
+      ],
+      "samePackedPhoto": true
+    },
+    "modern": {
+      "harness": "0.2.1-rc.1",
+      "browserChecks": 9,
+      "filesByteAndModeVerified": 474,
+      "workbenchHttp": 200,
+      "anonymousHttp": 401,
+      "presets": [
+        "deepblend",
+        "deepblend-dev"
+      ],
+      "roughnessAfterBinding": [
+        0.44,
+        0.57
+      ],
+      "samePackedPhoto": true
+    }
+  },
+  "editableExample": {
+    "source": "7acb1f93c6ed2782edc5b6c736eea1eaf860b482",
+    "archiveName": "walnut-trivet-material-example.zip",
+    "archiveSha256": "1d991fc7205212e8ea1abcb6272e0339786a1cb92763b58dd6b58298f5e9e866",
+    "archiveBytes": 2371166,
+    "checkedAt": "2026-11-27T18:00:37.753609+00:00",
+    "reopenedFromExtractedZip": true,
+    "pathScanClean": true,
+    "geometryObjectsCamerasLightsAndUvsMatch": true,
+    "texture": {
+      "source": "https://polyhaven.com/a/dark_wood",
+      "license": "CC0-1.0",
+      "sha256": "d68da31655bf47024af893156a6a01a6c95bb60f55d97e2dc9bdd47be320e5b5"
+    },
+    "materials": {
+      "longitudinal-slats": {
+        "roughness": 0.44,
+        "imageSha256": "d68da31655bf47024af893156a6a01a6c95bb60f55d97e2dc9bdd47be320e5b5",
+        "uvLayer": "UVMap"
+      },
+      "cross-slats": {
+        "roughness": 0.57,
+        "imageSha256": "d68da31655bf47024af893156a6a01a6c95bb60f55d97e2dc9bdd47be320e5b5",
+        "uvLayer": "UVMap"
+      }
+    },
+    "verifiedRenders": [
+      {
+        "name": "walnut-trivet-before-binding.png",
+        "revision": "r0002",
+        "sha256": "0f18f9f4e82bd86df522b68e86eb8b3513a4aa8d035645df0b53e65ccbd38981",
+        "resolution": [
+          720,
+          540
+        ],
+        "camera": "hero",
+        "frame": 2,
+        "samples": 24
+      },
+      {
+        "name": "walnut-trivet-after-binding.png",
+        "revision": "r0003",
+        "sha256": "34206d4194a2647db1c381119ce2971a3fb3e32a3b08b7469a4815f5457ae4f1",
+        "resolution": [
+          720,
+          540
+        ],
+        "camera": "hero",
+        "frame": 2,
+        "samples": 24
+      },
+      {
+        "name": "walnut-trivet-wood-finish.png",
+        "sha256": "87d642779adc2e2fddf654f1bba60571870b35e8d9d4d7648e092c8d4dcd736a",
+        "resolution": [
+          720,
+          540
+        ],
+        "usage": "Saved detail camera after a separate paired UV edit."
+      },
+      {
+        "name": "walnut-trivet-material-workbench-390px.png",
+        "sha256": "322e6f0aecb5416b2ca8fcc1946ff7d9b92730c5f2663320248010c85ef0953f",
+        "resolution": [
+          390,
+          844
+        ],
+        "usage": "Actual workbench showing both named timber groups before the one binding save."
+      }
+    ],
+    "sameCameraBindingComparison": {
+      "pixelsDifferByMoreThan8": 80114,
+      "cameraId": "hero",
+      "frame": 2,
+      "samples": 24,
+      "resolution": [
+        720,
+        540
+      ]
+    },
+    "zipFiles": {
+      "README.md": "1af7d12bd8e3c1228750a492d62589e294d5006a524b56973d39f7b7886c4154",
+      "walnut-trivet.blend": "63bea99355e2a3420ffbdcad8db8e81d45d53bade65572179270de4ae0ef22b9",
+      "assets/raw/d68da31655bf47024af893156a6a01a6c95bb60f55d97e2dc9bdd47be320e5b5.jpg": "d68da31655bf47024af893156a6a01a6c95bb60f55d97e2dc9bdd47be320e5b5"
+    }
+  },
+  "github": {
+    "tagName": "v0.30.0",
+    "publishedAt": "2026-11-27T19:48:52Z",
+    "targetCommitish": "0d2a00f9539ebb303a8c384f71e004ddc6501054",
+    "url": "https://github.com/pearjelly/deep-blend/releases/tag/v0.30.0",
+    "checkedAt": "2026-11-27T19:49:32.940960+00:00",
+    "notesVerified": true,
+    "assets": [
+      {
+        "name": "SHA256SUMS",
+        "size": 971,
+        "sha256": "bf8ff26fdb4dddb14a16797a66743ab5d0ce4b6d71fd41f1b6e703b8f0083ad2",
+        "url": "https://github.com/pearjelly/deep-blend/releases/download/v0.30.0/SHA256SUMS",
+        "anonymousDownloadMatches": true
+      },
+      {
+        "name": "deepblend-bundle.tgz",
+        "size": 73199866,
+        "sha256": "3387f8ea450a74d0cc8ff70c0a694e05b597c05e594dbcd4b8477488f02d7513",
+        "url": "https://github.com/pearjelly/deep-blend/releases/download/v0.30.0/deepblend-bundle.tgz",
+        "anonymousDownloadMatches": true
+      },
+      {
+        "name": "native-payload-verification.json",
+        "size": 8003,
+        "sha256": "e6857492621f372b3f715c76db9c16c58584631f90bcaf8cb37f7c6db563625f",
+        "url": "https://github.com/pearjelly/deep-blend/releases/download/v0.30.0/native-payload-verification.json",
+        "anonymousDownloadMatches": true
+      },
+      {
+        "name": "own-package-copy-verification.json",
+        "size": 1199,
+        "sha256": "396274e2e7a94377a9760319cdd3365d53ad0f9c6ddd6754a57bd45f795fa76c",
+        "url": "https://github.com/pearjelly/deep-blend/releases/download/v0.30.0/own-package-copy-verification.json",
+        "anonymousDownloadMatches": true
+      },
+      {
+        "name": "software-acceptance.json",
+        "size": 9360,
+        "sha256": "5d613fed5a48de81b11eb042b3291ccad72e88fb620e204be008d4bba8214b76",
+        "url": "https://github.com/pearjelly/deep-blend/releases/download/v0.30.0/software-acceptance.json",
+        "anonymousDownloadMatches": true
+      },
+      {
+        "name": "source-equivalence.json",
+        "size": 534,
+        "sha256": "ec62316d604c875e2f98f440e1a20c6aac4df04f372b467ef1ee97ca5d2b93a4",
+        "url": "https://github.com/pearjelly/deep-blend/releases/download/v0.30.0/source-equivalence.json",
+        "anonymousDownloadMatches": true
+      },
+      {
+        "name": "walnut-trivet-after-binding.png",
+        "size": 407932,
+        "sha256": "34206d4194a2647db1c381119ce2971a3fb3e32a3b08b7469a4815f5457ae4f1",
+        "url": "https://github.com/pearjelly/deep-blend/releases/download/v0.30.0/walnut-trivet-after-binding.png",
+        "anonymousDownloadMatches": true
+      },
+      {
+        "name": "walnut-trivet-before-binding.png",
+        "size": 374596,
+        "sha256": "0f18f9f4e82bd86df522b68e86eb8b3513a4aa8d035645df0b53e65ccbd38981",
+        "url": "https://github.com/pearjelly/deep-blend/releases/download/v0.30.0/walnut-trivet-before-binding.png",
+        "anonymousDownloadMatches": true
+      },
+      {
+        "name": "walnut-trivet-material-example.zip",
+        "size": 2371166,
+        "sha256": "1d991fc7205212e8ea1abcb6272e0339786a1cb92763b58dd6b58298f5e9e866",
+        "url": "https://github.com/pearjelly/deep-blend/releases/download/v0.30.0/walnut-trivet-material-example.zip",
+        "anonymousDownloadMatches": true
+      },
+      {
+        "name": "walnut-trivet-material-workbench-390px.png",
+        "size": 48196,
+        "sha256": "322e6f0aecb5416b2ca8fcc1946ff7d9b92730c5f2663320248010c85ef0953f",
+        "url": "https://github.com/pearjelly/deep-blend/releases/download/v0.30.0/walnut-trivet-material-workbench-390px.png",
+        "anonymousDownloadMatches": true
+      },
+      {
+        "name": "walnut-trivet-wood-finish.png",
+        "size": 577603,
+        "sha256": "87d642779adc2e2fddf654f1bba60571870b35e8d9d4d7648e092c8d4dcd736a",
+        "url": "https://github.com/pearjelly/deep-blend/releases/download/v0.30.0/walnut-trivet-wood-finish.png",
+        "anonymousDownloadMatches": true
+      }
+    ]
+  },
+  "npm": {
+    "packageCount": 7,
+    "fileCount": 212,
+    "publicationLedgerSha256": "6c0f5048a39f37b12bf1bb865196ab6650d9315f6180f7834b16191da741231a",
+    "source": "0d2a00f9539ebb303a8c384f71e004ddc6501054",
+    "version": "0.30.0",
+    "acceptedCandidate": "7acb1f93c6ed2782edc5b6c736eea1eaf860b482",
+    "archiveBaselineSource": "0d2a00f9539ebb303a8c384f71e004ddc6501054",
+    "packageTree": "23563151688ca6a0b94fe98acc62fb6a5073e4f7",
+    "checkedAt": "2026-11-27T20:06:50.597Z",
+    "receipts": [
+      {
+        "name": "@deepblend/dsh-blender-contracts",
+        "version": "0.30.0",
+        "latest": "0.30.0",
+        "tarball": "https://registry.npmjs.org/@deepblend/dsh-blender-contracts/-/dsh-blender-contracts-0.30.0.tgz",
+        "bytes": 193769,
+        "integrity": "sha512-hZcnS7oEdC4CvwPTrmJXVZXjGu7mA+JXmRLODqf3QYF3HtlfNNxqO5JLOlA2jfuOKnmxiGsUQSfHxoXMRV39jQ==",
+        "files": 47,
+        "allBytesAndModesMatchPreparedSource": true,
+        "allNonManifestBytesAndModesMatchActualReleaseSource": true
+      },
+      {
+        "name": "@deepblend/dsh-blender-host",
+        "version": "0.30.0",
+        "latest": "0.30.0",
+        "tarball": "https://registry.npmjs.org/@deepblend/dsh-blender-host/-/dsh-blender-host-0.30.0.tgz",
+        "bytes": 3419506,
+        "integrity": "sha512-EReaZQJYFIjbCDdXs8la9hYi330lEkzOSL6Bnd9irbsiMkEz89AgQzgPRsjvx/MIkCiQkiXcvqiacxeaqy6RTQ==",
+        "files": 68,
+        "allBytesAndModesMatchPreparedSource": true,
+        "allNonManifestBytesAndModesMatchActualReleaseSource": true
+      },
+      {
+        "name": "@deepblend/dsh-blender-preset",
+        "version": "0.30.0",
+        "latest": "0.30.0",
+        "tarball": "https://registry.npmjs.org/@deepblend/dsh-blender-preset/-/dsh-blender-preset-0.30.0.tgz",
+        "bytes": 36699,
+        "integrity": "sha512-LQsMTUXNfhqWtRethuG9JX5ss+JNjoicuAH02DaY5fyYYVakUuNAtmsnq5C918qU5r4gsg6CowKcfBCDvL+yKw==",
+        "files": 9,
+        "allBytesAndModesMatchPreparedSource": true,
+        "allNonManifestBytesAndModesMatchActualReleaseSource": true
+      },
+      {
+        "name": "@deepblend/dsh-blender-provider-local",
+        "version": "0.30.0",
+        "latest": "0.30.0",
+        "tarball": "https://registry.npmjs.org/@deepblend/dsh-blender-provider-local/-/dsh-blender-provider-local-0.30.0.tgz",
+        "bytes": 198758,
+        "integrity": "sha512-z5IiR0TZD8JuBlZR6JW5BW8WrWu9C3mRs2MyPV01uRkYkiUMo+ptOGwDFwcjH3+CIiG7a8r/CbsQs4x77ivMqQ==",
+        "files": 44,
+        "allBytesAndModesMatchPreparedSource": true,
+        "allNonManifestBytesAndModesMatchActualReleaseSource": true
+      },
+      {
+        "name": "@deepblend/dsh-blender-tool",
+        "version": "0.30.0",
+        "latest": "0.30.0",
+        "tarball": "https://registry.npmjs.org/@deepblend/dsh-blender-tool/-/dsh-blender-tool-0.30.0.tgz",
+        "bytes": 63498,
+        "integrity": "sha512-zfN2qQ060W2hTDQoT9iQnYndUPVh0YSvsp64fvcBb/1hptiEmp272RzYIfCkEWfdkHHcr7y3qXwgGpBfbBZKoQ==",
+        "files": 14,
+        "allBytesAndModesMatchPreparedSource": true,
+        "allNonManifestBytesAndModesMatchActualReleaseSource": true
+      },
+      {
+        "name": "@deepblend/dsh-blender-ui",
+        "version": "0.30.0",
+        "latest": "0.30.0",
+        "tarball": "https://registry.npmjs.org/@deepblend/dsh-blender-ui/-/dsh-blender-ui-0.30.0.tgz",
+        "bytes": 181640,
+        "integrity": "sha512-SVHmbQpBouSsHpgOhpyG3ZKs8zzDI82E5JGZvTMLd/olnW/7so3fWy0+OEAuqwyJALPrtVqOrQ/qfJy3w53Xzw==",
+        "files": 3,
+        "allBytesAndModesMatchPreparedSource": true,
+        "allNonManifestBytesAndModesMatchActualReleaseSource": true
+      },
+      {
+        "name": "@deepblend/dsh-blender-bundle",
+        "version": "0.30.0",
+        "latest": "0.30.0",
+        "tarball": "https://registry.npmjs.org/@deepblend/dsh-blender-bundle/-/dsh-blender-bundle-0.30.0.tgz",
+        "bytes": 479617,
+        "integrity": "sha512-55kCQyui3q0s/0nKNta8M4vZ5jHhrpthoXR8PcBcWNpsYsI5LvVJs1miYyfvyKaQkWGSoqOVkXdq3NLpV7PPQQ==",
+        "files": 27,
+        "allBytesAndModesMatchPreparedSource": true,
+        "allNonManifestBytesAndModesMatchActualReleaseSource": true
+      }
+    ]
+  },
+  "installationComparison": {
+    "source": "0d2a00f9539ebb303a8c384f71e004ddc6501054",
+    "expected": "0.30.0",
+    "checkedAt": "2026-11-27T20:07:07.396Z",
+    "readings": [
+      {
+        "id": "source",
+        "spec": "github:pearjelly/deep-blend#path:/packages/deepblend/bundle",
+        "startedAt": "2026-11-27T19:14:15.226Z",
+        "anonymousCapabilitiesHttp": 401,
+        "version": "@deepblend/dsh-blender-bundle@0.30.0",
+        "workbench": "HTTP 200, text/html; charset=utf-8, reserves #deepblend-workbench=true, imports its own client bundle=true",
+        "fetched": "19",
+        "presets": "[\"deepblend\",\"deepblend-dev\"]",
+        "verdict": "the spec installs, serves DeepBlend and delivers both presets — github:pearjelly/deep-blend#path:/packages/deepblend/bundle",
+        "logSha256": "ec1abeba30a201cc763f57ea9df15a97b3f6e85e8d6f8704d19a9b8d01a7c92b"
+      },
+      {
+        "id": "npm",
+        "spec": "@deepblend/dsh-blender-bundle",
+        "startedAt": "2026-11-27T20:06:52.953Z",
+        "anonymousCapabilitiesHttp": 401,
+        "version": "@deepblend/dsh-blender-bundle@0.30.0",
+        "workbench": "HTTP 200, text/html; charset=utf-8, reserves #deepblend-workbench=true, imports its own client bundle=true",
+        "fetched": "19",
+        "presets": "[\"deepblend\",\"deepblend-dev\"]",
+        "verdict": "the spec installs, serves DeepBlend and delivers both presets — @deepblend/dsh-blender-bundle",
+        "logSha256": "dcfe0b8317b8514f1d8f7be4f0bee0ad6b50e91795fea7b84b38c8837521d846"
+      },
+      {
+        "id": "tarball",
+        "spec": "https://github.com/pearjelly/deep-blend/releases/latest/download/deepblend-bundle.tgz",
+        "startedAt": "2026-11-27T19:49:41.295Z",
+        "anonymousCapabilitiesHttp": 401,
+        "version": "@deepblend/dsh-blender-bundle@0.30.0",
+        "workbench": "HTTP 200, text/html; charset=utf-8, reserves #deepblend-workbench=true, imports its own client bundle=true",
+        "fetched": "1",
+        "presets": "[\"deepblend\",\"deepblend-dev\"]",
+        "verdict": "the spec installs, serves DeepBlend and delivers both presets — https://github.com/pearjelly/deep-blend/releases/latest/download/deepblend-bundle.tgz",
+        "logSha256": "72e15500b85d5147dc2136f5425efbcacecb8f27a4f48a958eb4ff9397152221"
+      }
+    ],
+    "comparison": {
+      "lines": [
+        "source installed: @deepblend/dsh-blender-bundle@0.30.0",
+        "npm installed: @deepblend/dsh-blender-bundle@0.30.0",
+        "tarball installed: @deepblend/dsh-blender-bundle@0.30.0",
+        "all three serve: @deepblend/dsh-blender-bundle@0.30.0",
+        "and the repository says: 0.30.0",
+        "source workbench route: HTTP 200",
+        "npm workbench route: HTTP 200",
+        "tarball workbench route: HTTP 200",
+        "all three deployed presets: [\"deepblend\",\"deepblend-dev\"]",
+        "source packages pnpm fetched: 19",
+        "npm packages pnpm fetched: 19",
+        "tarball packages pnpm fetched: 1"
+      ],
+      "problems": []
+    },
+    "exitCode": 0
+  },
+  "community": {
+    "pullRequestUrl": "https://github.com/awesome-dsh-plugin/awesome-dsh-plugin/pull/19450",
+    "state": "OPEN",
+    "base": "0eb067cb2a27c99fd14bb32816d7e0113bb51597",
+    "head": "c756bf8bc14b34ed13b65f51f529836072ea53d0",
+    "headCommitUrl": "https://github.com/pearjelly/awesome-dsh-plugin/commit/c756bf8bc14b34ed13b65f51f529836072ea53d0",
+    "changedKeys": [
+      "description.en",
+      "description.zh"
+    ],
+    "entry": "data/plugins/pearjelly__deep-blend--packages-deepblend-bundle.yml",
+    "latestUpdateObservedAt": "2026-11-27T20:07:25Z",
+    "catalogs": [
+      {
+        "at": "2026-11-27T20:07:31.943348+00:00",
+        "url": "https://awesome-dsh-plugin.com/index.json",
+        "name": "@deepblend/dsh-blender-bundle",
+        "version": "0.27.0",
+        "sha256": "8d15b9395de1b4d7b4990d4f1170b34e7356a0454f372a36e97439a0422cbaae"
+      },
+      {
+        "at": "2026-11-27T20:07:36.524183+00:00",
+        "url": "https://awesome-dsh-plugin.com/plugins.json",
+        "name": "deep-blend#bundle",
+        "version": "0.27.0",
+        "sha256": "c58407ac86c669b19c294dcea2cc6cca659f425b67e52492d0554d25958c8b7f"
+      }
+    ]
+  },
+  "scope": "Maintainer acceptance of the published release, the Blender example, and independent public installation checks."
+}

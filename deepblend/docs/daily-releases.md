@@ -1072,3 +1072,9 @@ npm 首包写入后即时读回为 404。确认首包的公开版本和归档后
 北京时间 01:36:57 从主线 `521a800c` 发布。两组木条可一次设置 UV，在原相机预览后一起保存。64 mm 格栅垫实测从两次保存减为一次，真实木纹示例的退化 UV 三角形从 496 个降为零。[版本说明](releases/0.29.0.md)
 
 本机连续 60 套验收、候选和主线各五项 CI、十件 GitHub 附件、七个 npm 包及三种公开安装路线均已核验。DeepSeek Harness 社区条目更新已提交审核，公开目录抽查见发布证据。 [发布证据](validation/release-0.29.0.json) · [社区条目更新](https://github.com/awesome-dsh-plugin/awesome-dsh-plugin/pull/19441)
+
+### 2026-11-28 · 0.30.0 给两组木条贴同一张图
+
+北京时间 03:48:52 从主线 `0d2a00f9` 发布。对两组半搭接木条一次应用同一张实拍贴图，格栅垫实测从八次操作和两次保存减到五次操作和一次保存。Blender 重开核对两组各自的粗糙度。[版本说明](releases/0.30.0.md)
+
+本机 60 套验收、候选和主线各五项 CI、十一件 GitHub 附件、七个 npm 包及三种公开安装路线均已核对。DeepSeek Harness 社区条目更新已提交审核，公开目录抽查见发布证据。 [发布证据](validation/release-0.30.0.json) · [社区条目更新](https://github.com/awesome-dsh-plugin/awesome-dsh-plugin/pull/19450)
