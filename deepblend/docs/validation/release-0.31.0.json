@@ -1,0 +1,995 @@
+{
+  "schemaVersion": 1,
+  "status": "published",
+  "releaseLabel": "v0.31.0",
+  "releaseUrl": "https://github.com/pearjelly/deep-blend/releases/tag/v0.31.0",
+  "publishedAt": "2026-11-27T23:42:26Z",
+  "sourcePullRequest": "https://github.com/pearjelly/deep-blend/pull/98",
+  "acceptedSourceCommit": "bd66255f6fc3145ec42e3d370e25c24a09b7d0af",
+  "mergedSourceCommit": "875f6b81d58d78bde73917b0620291617403b0c6",
+  "sourceTree": "3e6da9271ba7911af9319ecd8627adad3ca3f487",
+  "packageTree": "cdc4cc40d741dd37ed407b743c84f71fec9cf928",
+  "acceptance": {
+    "suites": 60,
+    "trackedFiles": 1131,
+    "sourceAndFileModesIdentical": true,
+    "logSha256": "d87ef23353b604a74dd368fc73048dae89231b67fdad47e07c64459ed79b7419"
+  },
+  "candidateCi": {
+    "run": 46063826036,
+    "url": "https://github.com/pearjelly/deep-blend/actions/runs/46063826036",
+    "head": "1d60f346b30b0733b45be7fbce7e61f5721dc1d2",
+    "checkedAt": "2026-11-27T21:02:17.749013+00:00",
+    "verified": [
+      {
+        "name": "linux-inspections-46063826036-1",
+        "id": 15231436950,
+        "sha256": "ef88d63b8ceb94965d0ae1a57c7c6d969a0c41bbc61a2552b0df10ef4030749b",
+        "sizeBytes": 230761652,
+        "crcVerified": true,
+        "fileCount": 3773,
+        "evidenceFiles": [
+          "artifact-concurrency/result.json",
+          "asset-bundle/glb-external-buffer/workspace/projects/bundle-proof/revisions/r0002/diagnostics/diagnostic-20261127203949-963fb52e-7e24-4a14-bef3-3c5d0504c2af-8799272a-7284-4e37-a360-e3496ef6da4e/result.json",
+          "asset-bundle/glb-external-buffer/workspace/projects/bundle-proof/revisions/r0003/diagnostics/diagnostic-20261127203951-8a55859c-d469-4bc7-9a64-fa48fee74618-27d27cc5-bec4-419b-9d7c-1995856c3ffb/result.json",
+          "asset-bundle/glb-internal-buffer/workspace/projects/bundle-proof/revisions/r0002/diagnostics/diagnostic-20261127203930-a0511300-2a67-4a5d-8511-2f40a1fecd41-959365a5-391d-40c6-b24a-da65c3d57325/result.json",
+          "asset-bundle/glb-internal-buffer/workspace/projects/bundle-proof/revisions/r0003/diagnostics/diagnostic-20261127203932-b94946b1-4a3d-4855-9359-cb6fef0e24fe-c5bef104-723d-430e-9660-fe72ea19ee4f/result.json",
+          "asset-bundle/obj-explicit/workspace/projects/bundle-proof/revisions/r0002/diagnostics/diagnostic-20261127204008-8936e4ac-3cbb-490f-9533-c14e01d34da4-65cee3cf-1217-472b-ace1-8237ac2fbf17/result.json",
+          "asset-bundle/obj-explicit/workspace/projects/bundle-proof/revisions/r0003/diagnostics/diagnostic-20261127204009-1e51196d-5471-483d-b1f2-330fd8a00967-ca8765a1-54ac-4577-ba16-cb0bac7bb209/result.json",
+          "asset-bundle/obj-implicit/workspace/projects/bundle-proof/revisions/r0002/diagnostics/diagnostic-20261127204028-274f76e2-8cbd-413b-a35b-cb0178c142cc-49eb725a-dedd-43fb-8545-4b7abd05d732/result.json",
+          "asset-bundle/obj-implicit/workspace/projects/bundle-proof/revisions/r0003/diagnostics/diagnostic-20261127204029-14c02d7e-cdfa-46c5-94a9-c6967c9177cf-6442c806-5a8e-4ef0-a2bf-a4f31bdfa86d/result.json",
+          "asset-bundle/workspace/projects/bundle-proof/revisions/r0002/diagnostics/diagnostic-20261127203659-d0a9cfde-e79d-41fe-a47d-7736dcdfb1af-65c0b0eb-303d-4b3d-9b90-897fe4e845c4/result.json",
+          "asset-bundle/workspace/projects/bundle-proof/revisions/r0003/diagnostics/diagnostic-20261127203700-0d24801d-3ca2-47ec-9845-7efc346f2ac6-17b37b81-f4ed-4bf3-8508-c1d2ea2a2fdd/result.json",
+          "browser/store/projects/inspection-ui/revisions/r0001/diagnostics/diagnostic-20261127203116-158c52c7-1a4a-4d0a-8e0f-c7a94f056e09-77e5e62c-b821-4cc4-82fd-b1633fa0539c/result.json",
+          "browser/store/projects/inspection-ui/revisions/r0001/diagnostics/diagnostic-20261127203119-3fc6eb3e-3091-411b-abfe-c3df9eb5b9e0-d3eb452b-62c3-445d-9b3f-c8752bc471a7/result.json",
+          "browser/store/projects/inspection-ui/revisions/r0001/diagnostics/diagnostic-20261127203122-f8ca4b01-b15c-4e03-a225-036b72e98d12-8c420f7f-29ff-47c8-977d-2ede566175c3/result.json",
+          "cup/workspace/projects/glazed-handled-cup/revisions/r0001/diagnostics/diagnostic-20261127203216-50ba31da-f025-4ab5-a3a9-c870bc79a437-74fcff73-44d0-4969-b852-3c511b70919f/result.json",
+          "cup/workspace/projects/glazed-handled-cup/revisions/r0001/diagnostics/diagnostic-20261127203240-24011f9b-f060-487e-9b71-8a5f0328e77f-ab8dd21f-e3e4-4279-94a6-bf4d62fd43a7/result.json",
+          "diagnostic/beauty-result.json",
+          "diagnostic/clay-result.json",
+          "diagnostic/eevee-result.json",
+          "diagnostic/workspace/projects/fixed-frame-inspection-proof/revisions/r0002/diagnostics/diagnostic-20261127203007-6e04b771-eec1-466a-a03f-0203e16596e4-2c3999fa-6348-4888-918c-b1134084d1b2/result.json"
+        ],
+        "logCount": 284
+      },
+      {
+        "name": "linux-render-photography-46063826036-1",
+        "id": 15230143449,
+        "sha256": "76c856395defb874288aa2d47a7b20449152c0ef96324be4349adbc123457021",
+        "sizeBytes": 67658045,
+        "crcVerified": true,
+        "fileCount": 679,
+        "evidenceFiles": [
+          "asset-bundle-upload-browser/runtime.json",
+          "photography-browser/store/projects/photography-cup/revisions/r0001/diagnostics/diagnostic-20261127203219-05bad08e-8dab-4297-8518-df7a7079a14f-1ead3213-f274-4e27-bf27-f154e56c9096/result.json",
+          "photography-browser/store/projects/photography-cup/revisions/r0002/diagnostics/diagnostic-20261127203313-1f037f58-7d11-486a-a7cb-6c30be7bd734-3f8b25e8-4036-4561-bc95-994f5fdde3e7/result.json",
+          "photography-browser/store/projects/photography-cup/revisions/r0003/diagnostics/diagnostic-20261127203359-6c99bf08-fdd9-460f-b741-b3dcab2030f2-c521bbad-fe43-4bb6-907c-61c8504ce787/result.json",
+          "photography-browser/store/projects/photography-other/revisions/r0002/diagnostics/diagnostic-20261127203449-78f41606-f5f7-47e9-b144-8402d678b815-e37a3466-19f7-44e0-9e6f-3801efddb3aa/result.json",
+          "photography-browser/store/projects/photography-other/revisions/r0003/diagnostics/diagnostic-20261127203535-3439c29a-06eb-4aa4-b496-ee27f58eee82-b534a75a-d55b-4800-8208-e2591c311e80/result.json",
+          "render-selection-browser/store/projects/render-selection-ui/renders/render-0001/result.json",
+          "render-selection-browser/store/projects/render-selection-ui/renders/render-0002/result.json",
+          "runtime-check.json",
+          "shot-render/projects/native-shot-cuts/renders/render-0001/result.json",
+          "shot-render/projects/native-shot-cuts/renders/render-0002/result.json",
+          "shot-render/projects/native-shot-resume/renders/render-0001/result.json"
+        ],
+        "logCount": 25
+      },
+      {
+        "name": "harness-021-46063826036-1",
+        "id": 15229598678,
+        "sha256": "a2c8e39f8800d52bae1e85173abc9384e3be2e0e11837ccc4520d3ce920c41d9",
+        "sizeBytes": 3552054,
+        "crcVerified": true,
+        "fileCount": 81,
+        "evidenceFiles": [
+          "modern-browser/store/projects/inspection-ui/revisions/r0001/diagnostics/diagnostic-20261127203158-0a6d2671-a183-4ad8-8b8c-0cbd35eda0da-f1c1c4dd-7a49-4f1a-b239-5e7b36df693d/result.json",
+          "modern-browser/store/projects/inspection-ui/revisions/r0001/diagnostics/diagnostic-20261127203202-81a34b5d-2327-4f03-b5c0-40c043134dcb-5ea3d635-a0f1-4ca3-883c-ba998d26ec05/result.json",
+          "modern-browser/store/projects/inspection-ui/revisions/r0001/diagnostics/diagnostic-20261127203206-a2e5e436-6136-45bb-9a7d-cf116701a53f-904e75c0-e50c-47dc-9221-228c82ffc67a/result.json"
+        ],
+        "logCount": 11
+      },
+      {
+        "name": "linux-cup-parameters-46063826036-1",
+        "id": 15229284259,
+        "sha256": "01c2335471baaba64e41c41c6e31c170163802ea147b8cabe18fd495ef281789",
+        "sizeBytes": 10106977,
+        "crcVerified": true,
+        "fileCount": 99,
+        "evidenceFiles": [
+          "runtime-check.json"
+        ],
+        "logCount": 11
+      }
+    ],
+    "pairedTimberUvLinux": {
+      "checks": 12,
+      "resolution": [
+        720,
+        540
+      ],
+      "measurements": {
+        "repair": [
+          {
+            "member": "longitudinal-slats",
+            "before": 256,
+            "after": 0
+          },
+          {
+            "member": "cross-slats",
+            "before": 240,
+            "after": 0
+          }
+        ],
+        "changedChannelsOver8": 704049,
+        "cameraId": "detail",
+        "frame": 1,
+        "samples": 24,
+        "combined": {
+          "baseRevision": "r0002",
+          "savedRevision": "r0005",
+          "saves": 1,
+          "separateSaves": 2,
+          "matchingPixels": true,
+          "sharedLayerRoughnessPreserved": true
+        }
+      },
+      "pixelSha256": {
+        "before": "5aebba15b5ec8e15852dafab78ee68f863770c5a31d2c0edc4b715199d9113f7",
+        "draft": "259d0111e54992ff96f3c02c9bc89c91d680dd1db46d226071c3c4cf510a4655",
+        "saved": "259d0111e54992ff96f3c02c9bc89c91d680dd1db46d226071c3c4cf510a4655",
+        "combined-saved": "259d0111e54992ff96f3c02c9bc89c91d680dd1db46d226071c3c4cf510a4655"
+      },
+      "geometryAndOtherUvMapsUnchanged": true,
+      "materialScreens": {
+        "paired-material-desktop": {
+          "size": [
+            1440,
+            1100
+          ],
+          "decodedPixelSha256": "51d593abf52350c4267204edd286a7b3b86182a3886a1ba251841938fdb03f86"
+        },
+        "paired-material-mobile": {
+          "size": [
+            390,
+            844
+          ],
+          "decodedPixelSha256": "4059b399964585069e6ccf2b21231d36c78185880b5a4c27b22b19e9f49f9309"
+        }
+      }
+    }
+  },
+  "integrationCi": {
+    "run": 46075436028,
+    "url": "https://github.com/pearjelly/deep-blend/actions/runs/46075436028",
+    "head": "22c60847b07c145d415a7377cb6dbf17406c9e68",
+    "checkedAt": "2026-11-27T22:47:04.748197+00:00",
+    "verified": [
+      {
+        "name": "linux-inspections-46075436028-1",
+        "id": 15236187306,
+        "sha256": "57c516bc0d46bfe0c1870a9b8a003b35bb8f67b26f5f716575e9b57e56d78b6a",
+        "sizeBytes": 230742608,
+        "crcVerified": true,
+        "fileCount": 3773,
+        "evidenceFiles": [
+          "artifact-concurrency/result.json",
+          "asset-bundle/glb-external-buffer/workspace/projects/bundle-proof/revisions/r0002/diagnostics/diagnostic-20261127222538-35752234-3380-4c94-93f2-36b837f63e64-43414632-2f8a-4b17-82f2-78af2d8d581a/result.json",
+          "asset-bundle/glb-external-buffer/workspace/projects/bundle-proof/revisions/r0003/diagnostics/diagnostic-20261127222539-0faeb975-cb4e-4996-bd9d-cc26622f4877-ab3af3f4-aa1a-4cf7-8c88-17df040eb6a2/result.json",
+          "asset-bundle/glb-internal-buffer/workspace/projects/bundle-proof/revisions/r0002/diagnostics/diagnostic-20261127222520-6980dfb5-33be-4829-833d-b06cbd7b46e2-79bad062-be74-430a-9b38-1a48b5f3a9ac/result.json",
+          "asset-bundle/glb-internal-buffer/workspace/projects/bundle-proof/revisions/r0003/diagnostics/diagnostic-20261127222522-6252d5c6-1b46-48f3-bc1c-63de7de7f545-614ed97d-173b-427e-afc7-8d06b2a7688c/result.json",
+          "asset-bundle/obj-explicit/workspace/projects/bundle-proof/revisions/r0002/diagnostics/diagnostic-20261127222555-35210871-a9e3-4a91-a981-0815844d6ac6-c2941160-13d8-4722-9d5f-81581e67ce24/result.json",
+          "asset-bundle/obj-explicit/workspace/projects/bundle-proof/revisions/r0003/diagnostics/diagnostic-20261127222556-88b1ded5-cd2a-47f0-9469-f4cddf9faaab-a915ba75-fd2b-4275-b0b7-bb2e64cb2e3e/result.json",
+          "asset-bundle/obj-implicit/workspace/projects/bundle-proof/revisions/r0002/diagnostics/diagnostic-20261127222613-d72838b8-f879-4877-bebc-0d716a752cba-31a0b665-3bb7-4bb8-adb4-f7a4c7a457ae/result.json",
+          "asset-bundle/obj-implicit/workspace/projects/bundle-proof/revisions/r0003/diagnostics/diagnostic-20261127222615-ae5627e8-9fdb-4f34-8f45-56d5f9610eaf-345b6f76-10d4-4462-8f7b-cfc36e0f0dbc/result.json",
+          "asset-bundle/workspace/projects/bundle-proof/revisions/r0002/diagnostics/diagnostic-20261127222303-4902692e-9850-4c38-b0b3-b5b3838d7651-993b44c1-9336-4554-81a5-9868be62b3ce/result.json",
+          "asset-bundle/workspace/projects/bundle-proof/revisions/r0003/diagnostics/diagnostic-20261127222304-35a7d164-7281-40af-bbc5-e10b9412d6b0-c2091591-d492-485d-aa44-ba49d50b16e0/result.json",
+          "browser/store/projects/inspection-ui/revisions/r0001/diagnostics/diagnostic-20261127221735-e3e25fa7-9278-4b01-8064-ae721f7c60b8-07d36f9f-02d3-444c-b278-d0de8d2e2947/result.json",
+          "browser/store/projects/inspection-ui/revisions/r0001/diagnostics/diagnostic-20261127221738-127ad27c-73d0-41aa-a0be-06a2178ad01a-853634bd-664b-4233-8489-7ac0ec36e3f9/result.json",
+          "browser/store/projects/inspection-ui/revisions/r0001/diagnostics/diagnostic-20261127221741-c0d08003-d4d8-497c-a362-88ae8c9f84b8-686c17a0-15d3-48e1-b212-cd15dcffae1d/result.json",
+          "cup/workspace/projects/glazed-handled-cup/revisions/r0001/diagnostics/diagnostic-20261127221833-77d3de28-4c81-4d3f-9b5b-941f2d5b8b94-601e1842-b7fa-4649-ac65-59d7d4d60941/result.json",
+          "cup/workspace/projects/glazed-handled-cup/revisions/r0001/diagnostics/diagnostic-20261127221855-c0cb541a-79d3-4afd-bc7c-938bcdb3f93d-dd2d9eb5-d03b-4918-8162-80f76e6daa42/result.json",
+          "diagnostic/beauty-result.json",
+          "diagnostic/clay-result.json",
+          "diagnostic/eevee-result.json",
+          "diagnostic/workspace/projects/fixed-frame-inspection-proof/revisions/r0002/diagnostics/diagnostic-20261127221630-f98891f2-efcb-4a48-a598-2a18f09599f4-fdc2b871-2da7-4ffc-9c3c-0b5ee0501601/result.json"
+        ],
+        "logCount": 284
+      },
+      {
+        "name": "linux-cup-parameters-46075436028-1",
+        "id": 15235695037,
+        "sha256": "ebb614eaec2c14385b98ef11e77a935364a1c9685fab7d4cf1d55f1590df683f",
+        "sizeBytes": 10106991,
+        "crcVerified": true,
+        "fileCount": 99,
+        "evidenceFiles": [
+          "runtime-check.json"
+        ],
+        "logCount": 11
+      },
+      {
+        "name": "linux-render-photography-46075436028-1",
+        "id": 15235505689,
+        "sha256": "29683033e634b501f6f707d8762802710f921f8c9461b81d0ed3ba9fc9ca1991",
+        "sizeBytes": 67671578,
+        "crcVerified": true,
+        "fileCount": 679,
+        "evidenceFiles": [
+          "asset-bundle-upload-browser/runtime.json",
+          "photography-browser/store/projects/photography-cup/revisions/r0001/diagnostics/diagnostic-20261127221838-7547ce49-890e-4935-9a3a-12db75aa90b2-5bae2509-4338-414e-b0a9-59a4fb5dbc4f/result.json",
+          "photography-browser/store/projects/photography-cup/revisions/r0002/diagnostics/diagnostic-20261127221933-a4957c02-5606-4ed1-af7f-cd1ceaeecfaa-2eede1c4-b0ce-4d8e-913b-e5bc88529e4f/result.json",
+          "photography-browser/store/projects/photography-cup/revisions/r0003/diagnostics/diagnostic-20261127222019-4acaf84a-4157-49d9-a201-8bbfb74b1837-a2d59b1b-2ec4-47af-9270-93b66b3f2e7a/result.json",
+          "photography-browser/store/projects/photography-other/revisions/r0002/diagnostics/diagnostic-20261127222109-91b5aee7-52dd-4a8c-8eef-f070600b77d8-8778c460-7ce0-4542-9c2a-194c97651e9b/result.json",
+          "photography-browser/store/projects/photography-other/revisions/r0003/diagnostics/diagnostic-20261127222155-d2ecaf5d-d97c-4824-ab34-a8b3ca048bd3-f34995fd-b34a-490a-8ae0-8173c97ef341/result.json",
+          "render-selection-browser/store/projects/render-selection-ui/renders/render-0001/result.json",
+          "render-selection-browser/store/projects/render-selection-ui/renders/render-0002/result.json",
+          "runtime-check.json",
+          "shot-render/projects/native-shot-cuts/renders/render-0001/result.json",
+          "shot-render/projects/native-shot-cuts/renders/render-0002/result.json",
+          "shot-render/projects/native-shot-resume/renders/render-0001/result.json"
+        ],
+        "logCount": 25
+      },
+      {
+        "name": "harness-021-46075436028-1",
+        "id": 15234504833,
+        "sha256": "2ac4c8d0a8e538537636560d7a0cc4de857a9bd90519b811205ce3831b21fcb9",
+        "sizeBytes": 3552239,
+        "crcVerified": true,
+        "fileCount": 81,
+        "evidenceFiles": [
+          "modern-browser/store/projects/inspection-ui/revisions/r0001/diagnostics/diagnostic-20261127221905-39144ece-4d87-42b1-bae8-1661f5b11ae0-45d554e9-a78b-45d8-b1f2-fc857e5592d3/result.json",
+          "modern-browser/store/projects/inspection-ui/revisions/r0001/diagnostics/diagnostic-20261127221910-a40d61b2-ecc7-4b02-ae8e-06dd6108db61-71f71b04-6531-4e83-9d94-9576679b007a/result.json",
+          "modern-browser/store/projects/inspection-ui/revisions/r0001/diagnostics/diagnostic-20261127221915-e682e0d5-ef81-40e1-8b26-b297c8408afd-2d7fbaf1-7008-4d5c-83ff-88e50bda11f6/result.json"
+        ],
+        "logCount": 11
+      }
+    ],
+    "pairedTimberUvLinux": {
+      "checks": 12,
+      "resolution": [
+        720,
+        540
+      ],
+      "measurements": {
+        "repair": [
+          {
+            "member": "longitudinal-slats",
+            "before": 256,
+            "after": 0
+          },
+          {
+            "member": "cross-slats",
+            "before": 240,
+            "after": 0
+          }
+        ],
+        "changedChannelsOver8": 704049,
+        "cameraId": "detail",
+        "frame": 1,
+        "samples": 24,
+        "combined": {
+          "baseRevision": "r0002",
+          "savedRevision": "r0005",
+          "saves": 1,
+          "separateSaves": 2,
+          "matchingPixels": true,
+          "sharedLayerRoughnessPreserved": true
+        }
+      },
+      "pixelSha256": {
+        "before": "5aebba15b5ec8e15852dafab78ee68f863770c5a31d2c0edc4b715199d9113f7",
+        "draft": "259d0111e54992ff96f3c02c9bc89c91d680dd1db46d226071c3c4cf510a4655",
+        "saved": "259d0111e54992ff96f3c02c9bc89c91d680dd1db46d226071c3c4cf510a4655",
+        "combined-saved": "259d0111e54992ff96f3c02c9bc89c91d680dd1db46d226071c3c4cf510a4655"
+      },
+      "geometryAndOtherUvMapsUnchanged": true,
+      "materialScreens": {
+        "paired-material-desktop": {
+          "size": [
+            1440,
+            1100
+          ],
+          "decodedPixelSha256": "51d593abf52350c4267204edd286a7b3b86182a3886a1ba251841938fdb03f86"
+        },
+        "paired-material-mobile": {
+          "size": [
+            390,
+            844
+          ],
+          "decodedPixelSha256": "aa14c9529b4caa9865605326aa8915f5c77b2bef0f9fbb69d76c4087e93e6699"
+        }
+      }
+    }
+  },
+  "mainCi": {
+    "url": "https://github.com/pearjelly/deep-blend/actions/runs/46078592668",
+    "jobs": 5,
+    "source": "875f6b81d58d78bde73917b0620291617403b0c6"
+  },
+  "bundleSourceEquivalence": {
+    "source": "875f6b81d58d78bde73917b0620291617403b0c6",
+    "previousSource": "bd66255f6fc3145ec42e3d370e25c24a09b7d0af",
+    "packageTree": "cdc4cc40d741dd37ed407b743c84f71fec9cf928",
+    "artifactSha256": "83cf6ee229502e7fc3a84b7382494a39b04ebef15a123aeac7276bc10def8f6e",
+    "baselineArtifactSha256": "c8cd8458f51a4fd93c27abe02ca45b91ba17a1c19f0349f6131cafdca613b6c0",
+    "rootSourcePins": 6,
+    "checkedAt": "2026-11-27T22:47:07.532Z",
+    "members": 474,
+    "verifiedUnchanged": 473,
+    "changedMembers": [
+      "package/package.json"
+    ]
+  },
+  "nativePayloads": {
+    "status": "native-payload-present",
+    "crossPlatformExecutionVerified": false,
+    "targets": [
+      {
+        "id": "darwin-arm64",
+        "os": "darwin",
+        "cpu": "arm64",
+        "sharp": "0.35.5",
+        "libvips": "8.18.7",
+        "runtimePackage": "@img/sharp-libvips-darwin-arm64"
+      },
+      {
+        "id": "linux-x64",
+        "os": "linux",
+        "cpu": "x64",
+        "libc": "glibc",
+        "sharp": "0.35.5",
+        "libvips": "8.18.7",
+        "runtimePackage": "@img/sharp-libvips-linux-x64"
+      },
+      {
+        "id": "linuxmusl-x64",
+        "os": "linux",
+        "cpu": "x64",
+        "libc": "musl",
+        "sharp": "0.35.5",
+        "libvips": "8.18.7",
+        "runtimePackage": "@img/sharp-libvips-linuxmusl-x64"
+      },
+      {
+        "id": "win32-x64",
+        "os": "win32",
+        "cpu": "x64",
+        "sharp": "0.35.5",
+        "libvips": "8.18.7",
+        "runtimePackage": "@img/sharp-win32-x64"
+      }
+    ],
+    "files": [
+      {
+        "path": "node_modules/@img/sharp-darwin-arm64/index.cjs",
+        "bytes": 141,
+        "sha256": "779fece1ac73b7136281d9767b90267f19d3a296e850ecf474d9c89a8ef1968c"
+      },
+      {
+        "path": "node_modules/@img/sharp-darwin-arm64/lib/sharp-darwin-arm64-0.35.5.node",
+        "bytes": 280256,
+        "sha256": "791921f975371be33aed727e06283282cc001c960792eb52505b579fdaaf1b55"
+      },
+      {
+        "path": "node_modules/@img/sharp-darwin-arm64/LICENSE",
+        "bytes": 10273,
+        "sha256": "73ba74dfaa520b49a401b5d21459a8523a146f3b7518a833eea5efa85130bf68"
+      },
+      {
+        "path": "node_modules/@img/sharp-darwin-arm64/package.json",
+        "bytes": 862,
+        "sha256": "157996706c751e9a3608f35811f156238fa4ad1f367abfd4facec30883747f5e"
+      },
+      {
+        "path": "node_modules/@img/sharp-libvips-darwin-arm64/lib/index.js",
+        "bytes": 28,
+        "sha256": "516a08c06660cddb50d5f30ccac29a0514b05724956a11e8a7e6b799f2e1ab72"
+      },
+      {
+        "path": "node_modules/@img/sharp-libvips-darwin-arm64/lib/libvips-cpp.8.18.7.dylib",
+        "bytes": 18231688,
+        "sha256": "c1a5b5633b21aeb8a229abf7d062e07e4d778c0b44ed43cd1f93362bda58c322"
+      },
+      {
+        "path": "node_modules/@img/sharp-libvips-darwin-arm64/package.json",
+        "bytes": 876,
+        "sha256": "394ecfe4e823ebf6ddc9f9b7155046aad1f0492300920323ddfb84cae85dbac0"
+      },
+      {
+        "path": "node_modules/@img/sharp-libvips-darwin-arm64/README.md",
+        "bytes": 4333,
+        "sha256": "5dd6d3c034f925604681d49b7bedc71bd08dcf3d0cfc6d16b9f0569497d700dc"
+      },
+      {
+        "path": "node_modules/@img/sharp-libvips-darwin-arm64/versions.json",
+        "bytes": 596,
+        "sha256": "e2611d5d854815a8b33c8a3d2ec649511a9596ccf16844e8eae7cf81e79881c4"
+      },
+      {
+        "path": "node_modules/@img/sharp-libvips-linux-x64/lib/index.js",
+        "bytes": 28,
+        "sha256": "516a08c06660cddb50d5f30ccac29a0514b05724956a11e8a7e6b799f2e1ab72"
+      },
+      {
+        "path": "node_modules/@img/sharp-libvips-linux-x64/lib/libvips-cpp.so.8.18.7",
+        "bytes": 18699288,
+        "sha256": "4aa73553408c3964071728f4a231a8e86918e39bc49f1fbae75355f7ea933ea9"
+      },
+      {
+        "path": "node_modules/@img/sharp-libvips-linux-x64/package.json",
+        "bytes": 935,
+        "sha256": "2c5f6f9abf74c1492622d5dc4e4da056ab0712fd71de61e03a687c88b8cdab4e"
+      },
+      {
+        "path": "node_modules/@img/sharp-libvips-linux-x64/README.md",
+        "bytes": 4331,
+        "sha256": "b4fb1a9f5909cfd58edb4177c2028ce3033cf8651aef740a554c1dc58b3c5ee3"
+      },
+      {
+        "path": "node_modules/@img/sharp-libvips-linux-x64/versions.json",
+        "bytes": 596,
+        "sha256": "e2611d5d854815a8b33c8a3d2ec649511a9596ccf16844e8eae7cf81e79881c4"
+      },
+      {
+        "path": "node_modules/@img/sharp-libvips-linuxmusl-x64/lib/index.js",
+        "bytes": 28,
+        "sha256": "516a08c06660cddb50d5f30ccac29a0514b05724956a11e8a7e6b799f2e1ab72"
+      },
+      {
+        "path": "node_modules/@img/sharp-libvips-linuxmusl-x64/lib/libvips-cpp.so.8.18.7",
+        "bytes": 18911144,
+        "sha256": "979b625437190a1970b835164e0e30d47dc60159ce6a394ce78cc40cb9d59ab8"
+      },
+      {
+        "path": "node_modules/@img/sharp-libvips-linuxmusl-x64/package.json",
+        "bytes": 941,
+        "sha256": "9d93c5ff1a47f5c79286f6c832e0ab9001feff6db50b9085f578b20a663b580e"
+      },
+      {
+        "path": "node_modules/@img/sharp-libvips-linuxmusl-x64/README.md",
+        "bytes": 4334,
+        "sha256": "df733be80a44f45878f212d7f0859ffd18fbdd8ed988b5226663487732aa1c1c"
+      },
+      {
+        "path": "node_modules/@img/sharp-libvips-linuxmusl-x64/versions.json",
+        "bytes": 596,
+        "sha256": "e2611d5d854815a8b33c8a3d2ec649511a9596ccf16844e8eae7cf81e79881c4"
+      },
+      {
+        "path": "node_modules/@img/sharp-linux-x64/index.cjs",
+        "bytes": 135,
+        "sha256": "01ae7daa0380ea031c8c5133808f5afb5a42ca00ee9057139e28c5b885705c4a"
+      },
+      {
+        "path": "node_modules/@img/sharp-linux-x64/lib/sharp-linux-x64-0.35.5.node",
+        "bytes": 415112,
+        "sha256": "cf896cc1b7f3ae9c3e8eb3d7b2b198b8de2824ff7d0681d684bab5a825def335"
+      },
+      {
+        "path": "node_modules/@img/sharp-linux-x64/LICENSE",
+        "bytes": 10273,
+        "sha256": "73ba74dfaa520b49a401b5d21459a8523a146f3b7518a833eea5efa85130bf68"
+      },
+      {
+        "path": "node_modules/@img/sharp-linux-x64/package.json",
+        "bytes": 921,
+        "sha256": "181c58413d16ac3ce035f39c94c614031e03c023d88315712a81ed210c9fa04c"
+      },
+      {
+        "path": "node_modules/@img/sharp-linuxmusl-x64/index.cjs",
+        "bytes": 143,
+        "sha256": "5e1b7be0f83e850ad2bd2504aaa0ec9195fe18d4795475e53854103b5b43838c"
+      },
+      {
+        "path": "node_modules/@img/sharp-linuxmusl-x64/lib/sharp-linuxmusl-x64-0.35.5.node",
+        "bytes": 301328,
+        "sha256": "14ce8ddd283c101f225089152da805632568bfa372d336ccbfdd811f4f1dca02"
+      },
+      {
+        "path": "node_modules/@img/sharp-linuxmusl-x64/LICENSE",
+        "bytes": 10273,
+        "sha256": "73ba74dfaa520b49a401b5d21459a8523a146f3b7518a833eea5efa85130bf68"
+      },
+      {
+        "path": "node_modules/@img/sharp-linuxmusl-x64/package.json",
+        "bytes": 931,
+        "sha256": "1d41eb946e8c574f27606680c8a674adce6936ef3fc05b754be38a3e3fd3857e"
+      },
+      {
+        "path": "node_modules/@img/sharp-win32-x64/index.cjs",
+        "bytes": 62,
+        "sha256": "6ecbd583f45e914233410fe83a614e4f5ff1a6875a7eb828b03b7258e8ba6944"
+      },
+      {
+        "path": "node_modules/@img/sharp-win32-x64/lib/libvips-42.dll",
+        "bytes": 19018240,
+        "sha256": "06dab07cc386748513337a31672b1d5269fbc770a14ff403080575665bf0813f"
+      },
+      {
+        "path": "node_modules/@img/sharp-win32-x64/lib/libvips-cpp-8.18.7.dll",
+        "bytes": 333312,
+        "sha256": "25001dbd05305a0a29119ab49933622c70b4a20ea12ef1d5d20ca40181db53bf"
+      },
+      {
+        "path": "node_modules/@img/sharp-win32-x64/lib/sharp-win32-x64-0.35.5.node",
+        "bytes": 443904,
+        "sha256": "971048779f9c8598df14641dfc03c625885c93f473a788e65ca2deb50d0b083e"
+      },
+      {
+        "path": "node_modules/@img/sharp-win32-x64/LICENSE",
+        "bytes": 10464,
+        "sha256": "dc1f5d2d43c5531dfe0acaf4e950ea5dbe3e61e1850cf0e983bda7efc10d6693"
+      },
+      {
+        "path": "node_modules/@img/sharp-win32-x64/package.json",
+        "bytes": 888,
+        "sha256": "697b3d89590e3b988b51764bd22dfd6f4a1b35cd4eb12c664eca7987e8ee6115"
+      },
+      {
+        "path": "node_modules/@img/sharp-win32-x64/README.md",
+        "bytes": 4913,
+        "sha256": "3d083ada5ebafe1e6c227daa7b061d4254b61df4a3901c359ffdeac817ce5866"
+      },
+      {
+        "path": "node_modules/@img/sharp-win32-x64/versions.json",
+        "bytes": 596,
+        "sha256": "e2611d5d854815a8b33c8a3d2ec649511a9596ccf16844e8eae7cf81e79881c4"
+      },
+      {
+        "path": "node_modules/sharp/LICENSE",
+        "bytes": 10273,
+        "sha256": "73ba74dfaa520b49a401b5d21459a8523a146f3b7518a833eea5efa85130bf68"
+      },
+      {
+        "path": "node_modules/sharp/package.json",
+        "bytes": 8115,
+        "sha256": "ad4a2535d72eb638053a38867b1abf43c328cd1c1dbae5cf4172d498365a8b97"
+      }
+    ],
+    "artifact": "deepblend-bundle.tgz",
+    "artifactSha256": "83cf6ee229502e7fc3a84b7382494a39b04ebef15a123aeac7276bc10def8f6e"
+  },
+  "installedRelease": {
+    "legacy": {
+      "harness": "0.1.5-rc.2",
+      "browserChecks": 12,
+      "filesByteAndModeVerified": 474,
+      "workbenchHttp": 200,
+      "anonymousHttp": 401,
+      "presets": [
+        "deepblend",
+        "deepblend-dev"
+      ],
+      "detailRepair": {
+        "repair": [
+          {
+            "member": "longitudinal-slats",
+            "before": 256,
+            "after": 0
+          },
+          {
+            "member": "cross-slats",
+            "before": 240,
+            "after": 0
+          }
+        ],
+        "changedChannelsOver8": 525143,
+        "cameraId": "detail",
+        "frame": 1,
+        "samples": 24,
+        "combined": {
+          "baseRevision": "r0002",
+          "savedRevision": "r0005",
+          "saves": 1,
+          "separateSaves": 2,
+          "matchingPixels": true,
+          "sharedLayerRoughnessPreserved": true
+        }
+      }
+    },
+    "modern": {
+      "harness": "0.2.1-rc.1",
+      "browserChecks": 12,
+      "filesByteAndModeVerified": 474,
+      "workbenchHttp": 200,
+      "anonymousHttp": 401,
+      "presets": [
+        "deepblend",
+        "deepblend-dev"
+      ],
+      "detailRepair": {
+        "repair": [
+          {
+            "member": "longitudinal-slats",
+            "before": 256,
+            "after": 0
+          },
+          {
+            "member": "cross-slats",
+            "before": 240,
+            "after": 0
+          }
+        ],
+        "changedChannelsOver8": 525143,
+        "cameraId": "detail",
+        "frame": 1,
+        "samples": 24,
+        "combined": {
+          "baseRevision": "r0002",
+          "savedRevision": "r0005",
+          "saves": 1,
+          "separateSaves": 2,
+          "matchingPixels": true,
+          "sharedLayerRoughnessPreserved": true
+        }
+      }
+    }
+  },
+  "editableExample": {
+    "source": "da135c2b9591a1e4d55f764132640d3a5a75c8d4",
+    "candidateArchiveSha256": "4c37603a97f98e67015eb7a17def21578b8e56a12f346f4362b1671e56fd09bd",
+    "checkedAt": "2026-11-27T20:17:15.394885+00:00",
+    "archiveName": "walnut-trivet-paired-uv-example.zip",
+    "archiveSha256": "4b3f307c001a4d49629c42140d4a7e195549382a24e570d65fe4662ad49e4410",
+    "archiveBytes": 2371479,
+    "pathScanClean": true,
+    "sameFixedCameraPixelsAfterOneOrTwoSaves": true,
+    "reopenedFromExtractedZip": true,
+    "geometryObjectsCamerasLightsAndUvsMatch": true,
+    "materials": {
+      "longitudinal-slats": {
+        "roughness": 0.44,
+        "images": {
+          "Base Color": {
+            "sha256": "d68da31655bf47024af893156a6a01a6c95bb60f55d97e2dc9bdd47be320e5b5",
+            "uvLayer": "UVMap"
+          }
+        }
+      },
+      "cross-slats": {
+        "roughness": 0.57,
+        "images": {
+          "Base Color": {
+            "sha256": "d68da31655bf47024af893156a6a01a6c95bb60f55d97e2dc9bdd47be320e5b5",
+            "uvLayer": "UVMap"
+          },
+          "Roughness": {
+            "sha256": "ed369731c05d6a8b3bb9f80debd9bfb9ca8f1d2a3d274af1cd824837a6c434af",
+            "uvLayer": "UVMap"
+          }
+        }
+      }
+    },
+    "verifiedRenders": [
+      {
+        "name": "walnut-trivet-before-paired-uv.png",
+        "sha256": "38332b621b9021facc84362ae2127d839c1d388440d943aa4e3e767398357d6e",
+        "size": [
+          720,
+          540
+        ],
+        "camera": "detail",
+        "frame": 1,
+        "samples": 24,
+        "originalSha256": "ccf494e16c11388220c3bcfcb0f57a75503268390d6d1e448702744134ef6f25",
+        "pixelSha256": "de285d426a67c4221d893888165a911cc733b952b2059bdcdf6fb179b3d2fa65",
+        "publishedBytes": 543852,
+        "onlyBlenderFileTextRemoved": true
+      },
+      {
+        "name": "walnut-trivet-two-saves.png",
+        "sha256": "cd8c2d0fdd3257753fd60c0d683cb0c55e88ece6d211c9319fcf62230f5683eb",
+        "size": [
+          720,
+          540
+        ],
+        "camera": "detail",
+        "frame": 1,
+        "samples": 24,
+        "originalSha256": "84a3820be07e1f63c98a4889d9d8bb86c07e91274e1bda9b6b13a308730d7eef",
+        "pixelSha256": "81f52a4dec75f40c25484cefb30fd867bf4e0c44eb59b27a3d58beaf6436fe9b",
+        "publishedBytes": 589391,
+        "onlyBlenderFileTextRemoved": true
+      },
+      {
+        "name": "walnut-trivet-one-save.png",
+        "sha256": "fbf961069506d2d2a46c6ee96ee2313cff546ad05b46f94d7bfd6b5efa58487f",
+        "size": [
+          720,
+          540
+        ],
+        "camera": "detail",
+        "frame": 1,
+        "samples": 24,
+        "originalSha256": "483ddb91375925a0558bad8bf6863a58409b77a4c3c722274a580d61d97e0244",
+        "pixelSha256": "81f52a4dec75f40c25484cefb30fd867bf4e0c44eb59b27a3d58beaf6436fe9b",
+        "publishedBytes": 589391,
+        "onlyBlenderFileTextRemoved": true
+      }
+    ],
+    "zipFiles": {
+      "README.md": "b18537efc3834abed3ab5d5ec0239ffbe0a44aff1f2f21c1142146aa5d711ad5",
+      "assets/raw/d68da31655bf47024af893156a6a01a6c95bb60f55d97e2dc9bdd47be320e5b5.jpg": "d68da31655bf47024af893156a6a01a6c95bb60f55d97e2dc9bdd47be320e5b5",
+      "assets/raw/ed369731c05d6a8b3bb9f80debd9bfb9ca8f1d2a3d274af1cd824837a6c434af.png": "ed369731c05d6a8b3bb9f80debd9bfb9ca8f1d2a3d274af1cd824837a6c434af",
+      "walnut-trivet.blend": "b3a3328762df53905eb25f4ed709ff108589458e1fe6e2b5177a76551b16b8a8"
+    },
+    "publicExamplePathAudit": {
+      "archiveMembers": 4,
+      "localPathPatternMatches": 0
+    }
+  },
+  "github": {
+    "tagName": "v0.31.0",
+    "publishedAt": "2026-11-27T23:42:26Z",
+    "targetCommitish": "875f6b81d58d78bde73917b0620291617403b0c6",
+    "url": "https://github.com/pearjelly/deep-blend/releases/tag/v0.31.0",
+    "checkedAt": "2026-11-27T23:43:07.948074+00:00",
+    "notesVerified": true,
+    "assets": [
+      {
+        "name": "SHA256SUMS",
+        "size": 858,
+        "sha256": "56f6202264fef3e36b413f0ab60eef48f3ec6ac3c4e601c370a97f71b0f3dc15",
+        "url": "https://github.com/pearjelly/deep-blend/releases/download/v0.31.0/SHA256SUMS",
+        "anonymousDownloadMatches": true,
+        "verificationTransport": "anonymous-https-stream"
+      },
+      {
+        "name": "deepblend-bundle.tgz",
+        "size": 73201857,
+        "sha256": "83cf6ee229502e7fc3a84b7382494a39b04ebef15a123aeac7276bc10def8f6e",
+        "url": "https://github.com/pearjelly/deep-blend/releases/download/v0.31.0/deepblend-bundle.tgz",
+        "anonymousDownloadMatches": true,
+        "verificationTransport": "anonymous-https-stream"
+      },
+      {
+        "name": "native-payload-verification.json",
+        "size": 8003,
+        "sha256": "8406f968186934bd671d6ef43a5d176181fd8e367e8a8d3f4d5c97bc2d4fa9fa",
+        "url": "https://github.com/pearjelly/deep-blend/releases/download/v0.31.0/native-payload-verification.json",
+        "anonymousDownloadMatches": true,
+        "verificationTransport": "anonymous-https-stream"
+      },
+      {
+        "name": "own-package-copy-verification.json",
+        "size": 1199,
+        "sha256": "66abaa7524f2c6672d452f9f185381176e0c7784bc93e1110887cabf90e13b03",
+        "url": "https://github.com/pearjelly/deep-blend/releases/download/v0.31.0/own-package-copy-verification.json",
+        "anonymousDownloadMatches": true,
+        "verificationTransport": "anonymous-https-stream"
+      },
+      {
+        "name": "software-acceptance.json",
+        "size": 26610,
+        "sha256": "cfc5b028a5bb7f30f83cba5eae810a48be09b1ca1918bd6791ccb9639c1d0d15",
+        "url": "https://github.com/pearjelly/deep-blend/releases/download/v0.31.0/software-acceptance.json",
+        "anonymousDownloadMatches": true,
+        "verificationTransport": "anonymous-https-stream"
+      },
+      {
+        "name": "source-equivalence.json",
+        "size": 534,
+        "sha256": "a4843df4244187d549fffe1f2f4af123111ade183a672de7ecc752a3dc4916a5",
+        "url": "https://github.com/pearjelly/deep-blend/releases/download/v0.31.0/source-equivalence.json",
+        "anonymousDownloadMatches": true,
+        "verificationTransport": "anonymous-https-stream"
+      },
+      {
+        "name": "walnut-trivet-before-paired-uv.png",
+        "size": 543852,
+        "sha256": "38332b621b9021facc84362ae2127d839c1d388440d943aa4e3e767398357d6e",
+        "url": "https://github.com/pearjelly/deep-blend/releases/download/v0.31.0/walnut-trivet-before-paired-uv.png",
+        "anonymousDownloadMatches": true,
+        "verificationTransport": "anonymous-https-stream"
+      },
+      {
+        "name": "walnut-trivet-one-save.png",
+        "size": 589391,
+        "sha256": "fbf961069506d2d2a46c6ee96ee2313cff546ad05b46f94d7bfd6b5efa58487f",
+        "url": "https://github.com/pearjelly/deep-blend/releases/download/v0.31.0/walnut-trivet-one-save.png",
+        "anonymousDownloadMatches": true,
+        "verificationTransport": "anonymous-https-stream"
+      },
+      {
+        "name": "walnut-trivet-paired-uv-example.zip",
+        "size": 2371479,
+        "sha256": "4b3f307c001a4d49629c42140d4a7e195549382a24e570d65fe4662ad49e4410",
+        "url": "https://github.com/pearjelly/deep-blend/releases/download/v0.31.0/walnut-trivet-paired-uv-example.zip",
+        "anonymousDownloadMatches": true,
+        "verificationTransport": "anonymous-https-stream"
+      },
+      {
+        "name": "walnut-trivet-two-saves.png",
+        "size": 589391,
+        "sha256": "cd8c2d0fdd3257753fd60c0d683cb0c55e88ece6d211c9319fcf62230f5683eb",
+        "url": "https://github.com/pearjelly/deep-blend/releases/download/v0.31.0/walnut-trivet-two-saves.png",
+        "anonymousDownloadMatches": true,
+        "verificationTransport": "anonymous-https-stream"
+      }
+    ]
+  },
+  "npm": {
+    "packageCount": 7,
+    "fileCount": 212,
+    "publicationLedgerSha256": "49ea5c2e3fba12f7b22059344ff86d1866ff423f0896e379ea58589a71f901e6",
+    "source": "875f6b81d58d78bde73917b0620291617403b0c6",
+    "version": "0.31.0",
+    "acceptedCandidate": "bd66255f6fc3145ec42e3d370e25c24a09b7d0af",
+    "archiveBaselineSource": "875f6b81d58d78bde73917b0620291617403b0c6",
+    "packageTree": "cdc4cc40d741dd37ed407b743c84f71fec9cf928",
+    "checkedAt": "2026-11-28T00:04:53.595Z",
+    "transport": "anonymous registry metadata and previously downloaded matching public archive digests",
+    "receipts": [
+      {
+        "name": "@deepblend/dsh-blender-contracts",
+        "version": "0.31.0",
+        "latest": "0.31.0",
+        "tarball": "https://registry.npmjs.org/@deepblend/dsh-blender-contracts/-/dsh-blender-contracts-0.31.0.tgz",
+        "bytes": 193769,
+        "integrity": "sha512-Dlgcpe9IyDwxk4kq8oZflCPWbiMq4mtr18z+11lX2/UfUU6le7fXpO402V65E2LN6Tg/b/FmDWvOymZQnNkQMQ==",
+        "files": 47,
+        "allBytesAndModesMatchPreparedSource": true,
+        "allNonManifestBytesAndModesMatchActualReleaseSource": true
+      },
+      {
+        "name": "@deepblend/dsh-blender-host",
+        "version": "0.31.0",
+        "latest": "0.31.0",
+        "tarball": "https://registry.npmjs.org/@deepblend/dsh-blender-host/-/dsh-blender-host-0.31.0.tgz",
+        "bytes": 3419508,
+        "integrity": "sha512-RGQG0vw/cJrJI9HaMOXXr/iXqmk/Nn43eMwCNFjtfDZfFfJZMhtNG0jmXXiZOcOtgm68FRYL9UdqpBomj2xuaw==",
+        "files": 68,
+        "allBytesAndModesMatchPreparedSource": true,
+        "allNonManifestBytesAndModesMatchActualReleaseSource": true
+      },
+      {
+        "name": "@deepblend/dsh-blender-preset",
+        "version": "0.31.0",
+        "latest": "0.31.0",
+        "tarball": "https://registry.npmjs.org/@deepblend/dsh-blender-preset/-/dsh-blender-preset-0.31.0.tgz",
+        "bytes": 36699,
+        "integrity": "sha512-Kp49smGY9BEepBp2ZhA+NxMVbmcx+C8BjQ8Ex0L1w2NJlbnoqb3g4lZImJVqcnYui2Uiy0iZJpPTsvO4TtlNBA==",
+        "files": 9,
+        "allBytesAndModesMatchPreparedSource": true,
+        "allNonManifestBytesAndModesMatchActualReleaseSource": true
+      },
+      {
+        "name": "@deepblend/dsh-blender-provider-local",
+        "version": "0.31.0",
+        "latest": "0.31.0",
+        "tarball": "https://registry.npmjs.org/@deepblend/dsh-blender-provider-local/-/dsh-blender-provider-local-0.31.0.tgz",
+        "bytes": 198758,
+        "integrity": "sha512-86Aw01KoTTd7MEY6m4lr9RVE3IwwU7h6NmnMn4v2bQVP8wGLVdvUZDIG7hh4uq1ifnBMcDbZNESVDtdzRTyQwA==",
+        "files": 44,
+        "allBytesAndModesMatchPreparedSource": true,
+        "allNonManifestBytesAndModesMatchActualReleaseSource": true
+      },
+      {
+        "name": "@deepblend/dsh-blender-tool",
+        "version": "0.31.0",
+        "latest": "0.31.0",
+        "tarball": "https://registry.npmjs.org/@deepblend/dsh-blender-tool/-/dsh-blender-tool-0.31.0.tgz",
+        "bytes": 63498,
+        "integrity": "sha512-eIk1swZQRE30bsJzx1Rml49xXmuCsnpNywisfoHAxGx28FQTI8SR9LyI1MuHXL1hUMHhpwsvNi0OXDLbuYVDyg==",
+        "files": 14,
+        "allBytesAndModesMatchPreparedSource": true,
+        "allNonManifestBytesAndModesMatchActualReleaseSource": true
+      },
+      {
+        "name": "@deepblend/dsh-blender-ui",
+        "version": "0.31.0",
+        "latest": "0.31.0",
+        "tarball": "https://registry.npmjs.org/@deepblend/dsh-blender-ui/-/dsh-blender-ui-0.31.0.tgz",
+        "bytes": 183180,
+        "integrity": "sha512-tIcxjfn/71esVWbNmMe6qHmfk3w+KRdUhwY1b/VdOYxAOzeT1YlsW3MsD9rX/eYOgNoYbBA3Jv8o9Q/KdvQzig==",
+        "files": 3,
+        "allBytesAndModesMatchPreparedSource": true,
+        "allNonManifestBytesAndModesMatchActualReleaseSource": true
+      },
+      {
+        "name": "@deepblend/dsh-blender-bundle",
+        "version": "0.31.0",
+        "latest": "0.31.0",
+        "tarball": "https://registry.npmjs.org/@deepblend/dsh-blender-bundle/-/dsh-blender-bundle-0.31.0.tgz",
+        "bytes": 480828,
+        "integrity": "sha512-rAjkk8XSiOoGmnjHrn9eULPiyzxs4OeKKTiGDyxGeUMM+fnC5vNIMtvUz9mgaf2EN2BhOwK5Vq3XSI41tv9LEA==",
+        "files": 27,
+        "allBytesAndModesMatchPreparedSource": true,
+        "allNonManifestBytesAndModesMatchActualReleaseSource": true
+      }
+    ]
+  },
+  "installationComparison": {
+    "source": "875f6b81d58d78bde73917b0620291617403b0c6",
+    "expected": "0.31.0",
+    "checkedAt": "2026-11-28T00:06:44.732Z",
+    "readings": [
+      {
+        "id": "source",
+        "spec": "github:pearjelly/deep-blend#path:/packages/deepblend/bundle",
+        "startedAt": "2026-11-27T23:51:54.246Z",
+        "anonymousCapabilitiesHttp": 401,
+        "version": "@deepblend/dsh-blender-bundle@0.31.0",
+        "workbench": "HTTP 200, text/html; charset=utf-8, reserves #deepblend-workbench=true, imports its own client bundle=true",
+        "fetched": "19",
+        "presets": "[\"deepblend\",\"deepblend-dev\"]",
+        "verdict": "the spec installs, serves DeepBlend and delivers both presets — github:pearjelly/deep-blend#path:/packages/deepblend/bundle",
+        "logSha256": "32a2780cefda8c9d04f4c60676ba1e3853ef3744f6cd5b59524e41da62646487"
+      },
+      {
+        "id": "npm",
+        "spec": "@deepblend/dsh-blender-bundle",
+        "startedAt": "2026-11-28T00:04:18.264Z",
+        "anonymousCapabilitiesHttp": 401,
+        "version": "@deepblend/dsh-blender-bundle@0.31.0",
+        "workbench": "HTTP 200, text/html; charset=utf-8, reserves #deepblend-workbench=true, imports its own client bundle=true",
+        "fetched": "19",
+        "presets": "[\"deepblend\",\"deepblend-dev\"]",
+        "verdict": "the spec installs, serves DeepBlend and delivers both presets — @deepblend/dsh-blender-bundle",
+        "logSha256": "1fc5f6d58460c487030eb24262e3546ce0788721eb9c95166847b2bb4d9ef8db"
+      },
+      {
+        "id": "tarball",
+        "spec": "https://github.com/pearjelly/deep-blend/releases/latest/download/deepblend-bundle.tgz",
+        "startedAt": "2026-11-27T23:50:38.096Z",
+        "anonymousCapabilitiesHttp": 401,
+        "version": "@deepblend/dsh-blender-bundle@0.31.0",
+        "workbench": "HTTP 200, text/html; charset=utf-8, reserves #deepblend-workbench=true, imports its own client bundle=true",
+        "fetched": "1",
+        "presets": "[\"deepblend\",\"deepblend-dev\"]",
+        "verdict": "the spec installs, serves DeepBlend and delivers both presets — https://github.com/pearjelly/deep-blend/releases/latest/download/deepblend-bundle.tgz",
+        "logSha256": "689e0982ff9e0456c527a5f1d01ca06b4931998c85ab69f0c61a32dd1ad0cdc3"
+      }
+    ],
+    "comparison": {
+      "lines": [
+        "source installed: @deepblend/dsh-blender-bundle@0.31.0",
+        "npm installed: @deepblend/dsh-blender-bundle@0.31.0",
+        "tarball installed: @deepblend/dsh-blender-bundle@0.31.0",
+        "all three serve: @deepblend/dsh-blender-bundle@0.31.0",
+        "and the repository says: 0.31.0",
+        "source workbench route: HTTP 200",
+        "npm workbench route: HTTP 200",
+        "tarball workbench route: HTTP 200",
+        "all three deployed presets: [\"deepblend\",\"deepblend-dev\"]",
+        "source packages pnpm fetched: 19",
+        "npm packages pnpm fetched: 19",
+        "tarball packages pnpm fetched: 1"
+      ],
+      "problems": []
+    },
+    "exitCode": 0
+  },
+  "community": {
+    "pullRequestUrl": "https://github.com/awesome-dsh-plugin/awesome-dsh-plugin/pull/19457",
+    "state": "OPEN",
+    "base": "1114facbadcc0339c063c658686b45ed57c6e42d",
+    "head": "26d3ed0d6609f52273bd4ace03f733a3ed21fe41",
+    "headCommitUrl": "https://github.com/pearjelly/awesome-dsh-plugin/commit/26d3ed0d6609f52273bd4ace03f733a3ed21fe41",
+    "changedKeys": [
+      "description.en",
+      "description.zh"
+    ],
+    "entry": "data/plugins/pearjelly__deep-blend--packages-deepblend-bundle.yml",
+    "latestUpdateObservedAt": "2026-11-28T00:07:05Z",
+    "catalogs": [
+      {
+        "at": "2026-11-28T00:07:12.841696+00:00",
+        "url": "https://awesome-dsh-plugin.com/index.json",
+        "name": "@deepblend/dsh-blender-bundle",
+        "version": "0.27.0",
+        "sha256": "46d9d729ca971571f3bb15f1e5158ec09b65d5a65d9dbf5a34fbe347bf302813"
+      },
+      {
+        "at": "2026-11-28T00:07:17.904851+00:00",
+        "url": "https://awesome-dsh-plugin.com/plugins.json",
+        "name": "deep-blend#bundle",
+        "version": "0.27.0",
+        "sha256": "806b3276ca937bf77e8205b6ff350bad64364dbb32b3fa133a2b59bd9c0cdf74"
+      }
+    ]
+  },
+  "scope": "Maintainer acceptance of the published artifacts, Blender example and independent public installations."
+}
