@@ -1078,3 +1078,9 @@ npm 首包写入后即时读回为 404。确认首包的公开版本和归档后
 北京时间 03:48:52 从主线 `0d2a00f9` 发布。对两组半搭接木条一次应用同一张实拍贴图，格栅垫实测从八次操作和两次保存减到五次操作和一次保存。Blender 重开核对两组各自的粗糙度。[版本说明](releases/0.30.0.md)
 
 本机 60 套验收、候选和主线各五项 CI、十一件 GitHub 附件、七个 npm 包及三种公开安装路线均已核对。DeepSeek Harness 社区条目更新已提交审核，公开目录抽查见发布证据。 [发布证据](validation/release-0.30.0.json) · [社区条目更新](https://github.com/awesome-dsh-plugin/awesome-dsh-plugin/pull/19450)
+
+### 2026-11-28 · 0.31.0 一次保存两组木条的贴图和 UV
+
+北京时间 07:42:26 从主线 `875f6b81` 发布。素材面板可在一次保存中应用底色照片并重建两组半搭接的 UV。格栅垫的实际 Blender 重开确认修复 496 个退化 UV 三角形，原粗糙度贴图得到保留。[版本说明](releases/0.31.0.md)
+
+本机 60 套验收、正式安装包、十件 GitHub 附件、七个 npm 包及三条公开安装路线均已核对。DeepSeek Harness 社区条目更新已提交审核。 [发布证据](validation/release-0.31.0.json) · [社区条目更新](https://github.com/awesome-dsh-plugin/awesome-dsh-plugin/pull/19457)
